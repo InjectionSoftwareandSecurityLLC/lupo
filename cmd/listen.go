@@ -1,48 +1,26 @@
-/*
-Copyright © 2020 NAME HERE <EMAIL ADDRESS>
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/spf13/cobra"
+	"github.com/desertbit/grumble"
 )
 
-// listenCmd represents the listen command
-var listenCmd = &cobra.Command{
-	Use:   "listen",
-	Short: "Starts a listener to catch C2 communications.",
-	Long: `Starts a listener to catch C2 communications.
-	
-	Listeners can be HTTP/HTTPS or TCP based. All listeners run concurrently so they can handle multiple connections at once on one port.`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("listen called")
-	},
-}
-
 func init() {
-	startCmd.AddCommand(listenCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// listenCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// listenCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	listenCmd := &grumble.Command{
+		Name:     "listen",
+		Help:     "start a listener",
+		LongHelp: "Starts an HTTP/HTTPS or TCP Listener",
+		Args: func(a *grumble.Args) {
+			a.String("--lhost", "listening host IP/Domain", grumble.Default("127.0.0.1"))
+			a.String("--lport", "listening host port", grumble.Default("1337"))
+			a.String("--protocol", "protocol to listen on (HTTP, HTTPS, or TCP)", grumble.Default("HTTPS"))
+		},
+		Run: func(c *grumble.Context) error {
+			println(c.Args.String("lhost"))
+			println(c.Args.String("lport"))
+			println(c.Args.String("protocol"))
+			return nil
+		},
+	}
+	App.AddCommand(listenCmd)
 }
