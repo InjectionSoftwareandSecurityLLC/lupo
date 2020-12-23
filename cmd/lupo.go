@@ -34,7 +34,7 @@ func init() {
 		a.Println("      mrf\\\\( \\oo/ )\\\\\\/\\")
 		a.Println("           \\'-..-'\\/\\\\")
 		a.Println("              \\\\/ \\\\")
-		a.Println("                            art by Morfina")
+		a.Println("                      art by Morfina")
 		a.Println()
 	})
 }
