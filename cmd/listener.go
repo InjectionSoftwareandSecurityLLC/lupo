@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/server"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
@@ -16,6 +17,8 @@ import (
 var errorColorUnderline = color.New(color.FgRed).Add(color.Underline)
 var errorColorBold = color.New(color.FgRed).Add(color.Bold)
 var successColorBold = color.New(color.FgGreen).Add(color.Bold)
+
+var psk string
 
 // Listener - defines a listener structure
 type Listener struct {
@@ -53,8 +56,9 @@ func init() {
 			lport := c.Flags.Int("lport")
 			protocol := c.Flags.String("protocol")
 			listenString := lhost + ":" + strconv.Itoa(lport)
+			psk := c.Flags.String("psk")
 
-			startListener(listenerID, lhost, lport, protocol, listenString)
+			startListener(listenerID, lhost, lport, protocol, listenString, psk)
 
 			listenerID++
 
@@ -111,9 +115,11 @@ func init() {
 }
 
 // startListener - Creates a listener
-func startListener(id int, lhost string, lport int, protocol string, listenString string) {
+func startListener(id int, lhost string, lport int, protocol string, listenString string, psk string) {
 
-	httpServer := &http.Server{Addr: listenString}
+	server.PSK = psk
+
+	httpServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
 
 	newListener := Listener{
 		id:       id,
