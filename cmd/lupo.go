@@ -5,6 +5,7 @@ import (
 	"github.com/fatih/color"
 )
 
+// App - Primary lupo grumble CLI construction
 var App = grumble.New(&grumble.Config{
 	Name:                  "lupo",
 	Description:           "Lupo Modular C2",
@@ -14,6 +15,9 @@ var App = grumble.New(&grumble.Config{
 	HelpHeadlineColor:     color.New(color.FgWhite),
 	HelpHeadlineUnderline: true,
 	HelpSubCommands:       true,
+	Flags: func(f *grumble.Flags) {
+		f.String("k", "psk", "wolfpack", "Pre-Shared Key for implant authentication")
+	},
 })
 
 func init() {

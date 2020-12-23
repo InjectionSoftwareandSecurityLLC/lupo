@@ -2,17 +2,23 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/server"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
+
+// Define custom colors for text output
+var errorColorUnderline = color.New(color.FgRed).Add(color.Underline)
+var errorColorBold = color.New(color.FgRed).Add(color.Bold)
+var successColorBold = color.New(color.FgGreen).Add(color.Bold)
+
+var psk string
 
 // Listener - defines a listener structure
 type Listener struct {
@@ -23,17 +29,8 @@ type Listener struct {
 	instance *http.Server
 }
 
-var listeners []Listener
+var listeners = make(map[int]Listener)
 var listenerID int = 0
-
-var errorColorUnderline = color.New(color.FgRed).Add(color.Underline)
-var errorColorBold = color.New(color.FgRed).Add(color.Bold)
-var successColorBold = color.New(color.FgGreen).Add(color.Bold)
-
-// RemoveListener - Simple slice management function to help remove items from slices
-func RemoveListener(l []Listener, index int) []Listener {
-	return append(l[:index], l[index:]...)
-}
 
 func init() {
 
@@ -59,8 +56,9 @@ func init() {
 			lport := c.Flags.Int("lport")
 			protocol := c.Flags.String("protocol")
 			listenString := lhost + ":" + strconv.Itoa(lport)
+			psk := c.Flags.String("psk")
 
-			startListener(listenerID, lhost, lport, protocol, listenString)
+			startListener(listenerID, lhost, lport, protocol, listenString, psk)
 
 			listenerID++
 
@@ -89,6 +87,7 @@ func init() {
 					strconv.Itoa(listeners[i].lport),
 					listeners[i].protocol)
 			}
+
 			table.Flush()
 			return nil
 		},
@@ -105,16 +104,10 @@ func init() {
 		Run: func(c *grumble.Context) error {
 
 			killID := c.Args.Int("id")
-
-			for i := range listeners {
-				if listeners[i].id == killID {
-					httpServer := listeners[i].instance
-					httpServer.Close()
-					listeners = append(listeners[:i], listeners[i+1:]...)
-					successColorBold.Println("Killing listener: " + strconv.Itoa(killID))
-					return nil
-				}
-			}
+			httpServer := listeners[killID].instance
+			httpServer.Close()
+			delete(listeners, killID)
+			successColorBold.Println("Killing listener: " + strconv.Itoa(killID))
 			return nil
 		},
 	}
@@ -122,9 +115,11 @@ func init() {
 }
 
 // startListener - Creates a listener
-func startListener(id int, lhost string, lport int, protocol string, listenString string) {
+func startListener(id int, lhost string, lport int, protocol string, listenString string, psk string) {
 
-	httpServer := &http.Server{Addr: listenString}
+	server.PSK = psk
+
+	httpServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
 
 	newListener := Listener{
 		id:       id,
@@ -134,7 +129,8 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 		instance: httpServer,
 	}
 
-	listeners = append(listeners, newListener)
+	listeners[id] = newListener
+
 	successColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
 
 	go func(newListener Listener) {
@@ -142,43 +138,10 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 		if err != nil {
 			println("")
 			errorColorBold.Println(err)
-			for i := range listeners {
-				if listeners[i].id == newListener.id {
-					listeners = append(listeners[:i], listeners[i+1:]...)
-					listenerID--
-					return
-				}
-			}
+			delete(listeners, newListener.id)
+			listenerID--
 			return
 		}
 	}(newListener)
 
-}
-
-// HTTPServer - Handles HTTPServer requests
-func HTTPServer(w http.ResponseWriter, req *http.Request) {
-
-	path := req.URL.Path[1:]
-
-	body, err := ioutil.ReadAll(req.Body)
-	if err != nil {
-		log.Println(err)
-	}
-
-	data := string(body)
-
-	switch req.Method {
-	case "GET":
-		if path != "" {
-			log.Println("GET: " + path)
-			fmt.Fprintf(w, "%s", path)
-		}
-	case "POST":
-		if data != "" {
-			log.Println("POST: " + data)
-			fmt.Fprintf(w, "%s", data)
-		}
-	default:
-		fmt.Println("Invalid Request Type")
-	}
 }
