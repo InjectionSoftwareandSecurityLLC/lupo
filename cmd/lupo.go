@@ -5,6 +5,11 @@ import (
 	"github.com/fatih/color"
 )
 
+// Define custom colors for text output
+var errorColorUnderline = color.New(color.FgRed).Add(color.Underline)
+var errorColorBold = color.New(color.FgRed).Add(color.Bold)
+var successColorBold = color.New(color.FgGreen).Add(color.Bold)
+
 // lupoApp - Primary lupo grumble CLI construction
 var lupoApp = grumble.New(&grumble.Config{
 	Name:                  "lupo",
