@@ -16,7 +16,7 @@ type session struct {
 	status  string
 }
 
-var activeSession int
+var activeSession = -1
 
 // SessionAppConfig - Primary session nested grumble CLI config construction
 var SessionAppConfig = &grumble.Config{
@@ -30,10 +30,9 @@ var SessionAppConfig = &grumble.Config{
 	HelpSubCommands:       true,
 }
 
-// SessionApp - Primary session nested grumble CLI app construction
-var SessionApp = grumble.New(SessionAppConfig)
+// InitializeSession - Initialize the nested session CLI arguments
+func InitializeSession(sessionApp *grumble.App, activeSession int) {
 
-func init() {
 	backCmd := &grumble.Command{
 		Name:     "back",
 		Help:     "go back to core lupo cli (or use the exit command)",
@@ -43,12 +42,12 @@ func init() {
 
 			server.CMD = ""
 
-			SessionApp.Close()
+			sessionApp.Close()
 
 			return nil
 		},
 	}
-	SessionApp.AddCommand(backCmd)
+	sessionApp.AddCommand(backCmd)
 
 	sessionSwitchCmd := &grumble.Command{
 		Name:     "session",
@@ -59,13 +58,13 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 			activeSession = c.Args.Int("id")
-			SessionApp.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
+			sessionApp.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
 
 			return nil
 		},
 	}
 
-	SessionApp.AddCommand(sessionSwitchCmd)
+	sessionApp.AddCommand(sessionSwitchCmd)
 
 	sessionCMDCmd := &grumble.Command{
 		Name:     "cmd",
@@ -82,5 +81,5 @@ func init() {
 		},
 	}
 
-	SessionApp.AddCommand(sessionCMDCmd)
+	sessionApp.AddCommand(sessionCMDCmd)
 }

@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"strconv"
+
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 	"github.com/desertbit/grumble"
 )
 
-// ActiveSession - Active session that is being interacted with by the user
-var ActiveSession int
+// activeSession - Active session that is being interacted with by the user
+var activeSession int
 
 func init() {
 
@@ -19,9 +21,11 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			ActiveSession = c.Args.Int("id")
+			activeSession = c.Args.Int("id")
 
-			App = core.SessionApp
+			App = grumble.New(core.SessionAppConfig)
+			App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
+			core.InitializeSession(App, activeSession)
 
 			grumble.Main(App)
 
