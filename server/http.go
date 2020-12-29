@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/google/uuid"
+
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 	"github.com/fatih/color"
 )
@@ -27,6 +29,7 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 	getParams := r.URL.Query()
 	var getPSK string
 	var getSessionID int
+	var getUUID uuid.UUID
 	var getImplantArch string
 	var getAdditionalFunctions string
 	var regsiter bool
@@ -63,6 +66,17 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 		errorColorBold.Println("Temp error - just means agent didn't provide session id with the request")
 	}
 
+	if len(getParams["UUID"]) > 0 {
+		getUUID, err = uuid.Parse(getParams["UUID"][0])
+		if err != nil {
+			errorColorBold.Println("UUID provided by agent was not a valid UUID")
+			return
+		}
+	} else {
+		getUUID = core.ZeroedUUID
+		errorColorBold.Println("Temp error - just means agent didn't provide a UUID id with the request")
+	}
+
 	if len(getParams["arch"]) > 0 {
 		getImplantArch = getParams["arch"][0]
 	} else {
@@ -84,7 +98,7 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 
 			core.RegisterSession(core.SessionID, "HTTP", implant, getRemoteAddr)
 
-			fmt.Fprintf(w, "%s", strconv.Itoa(core.SessionID-1))
+			fmt.Fprintf(w, "%d\n%s", core.SessionID-1, implant.ID)
 			return
 
 		}
@@ -95,6 +109,11 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data := string(body)
+
+		if core.Sessions[getSessionID].Implant.ID != getUUID || getUUID == core.ZeroedUUID {
+			errorColorBold.Println("Invalid UUID - Agent did not pass validation")
+			return
+		}
 
 		switch r.Method {
 		case "GET":
