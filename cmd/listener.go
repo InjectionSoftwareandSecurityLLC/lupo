@@ -10,13 +10,7 @@ import (
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/server"
 	"github.com/desertbit/grumble"
-	"github.com/fatih/color"
 )
-
-// Define custom colors for text output
-var errorColorUnderline = color.New(color.FgRed).Add(color.Underline)
-var errorColorBold = color.New(color.FgRed).Add(color.Bold)
-var successColorBold = color.New(color.FgGreen).Add(color.Bold)
 
 var psk string
 
@@ -78,7 +72,7 @@ func init() {
 				strings.Repeat("=", len("ID")),
 				strings.Repeat("=", len("Host")),
 				strings.Repeat("=", len("Port")),
-				strings.Repeat("=", len("tProtocol")))
+				strings.Repeat("=", len("Protocol")))
 
 			for i := range listeners {
 				fmt.Fprintf(table, "%s\t%s\t%s\t%s\t\n",

@@ -5,8 +5,13 @@ import (
 	"github.com/fatih/color"
 )
 
-// App - Primary lupo grumble CLI construction
-var App = grumble.New(&grumble.Config{
+// Define custom colors for text output
+var errorColorUnderline = color.New(color.FgRed).Add(color.Underline)
+var errorColorBold = color.New(color.FgRed).Add(color.Bold)
+var successColorBold = color.New(color.FgGreen).Add(color.Bold)
+
+// lupoApp - Primary lupo grumble CLI construction
+var lupoApp = grumble.New(&grumble.Config{
 	Name:                  "lupo",
 	Description:           "Lupo Modular C2",
 	HistoryFile:           "/tmp/lupo.log",
@@ -19,6 +24,9 @@ var App = grumble.New(&grumble.Config{
 		f.String("k", "psk", "wolfpack", "Pre-Shared Key for implant authentication")
 	},
 })
+
+// App - Primary grumble CLI construction variable for switching nested app contexts
+var App = lupoApp
 
 func init() {
 	App.SetPrintASCIILogo(func(a *grumble.App) {
