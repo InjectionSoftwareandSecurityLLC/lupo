@@ -10,19 +10,15 @@ import (
 	"github.com/fatih/color"
 )
 
-// Define custom colors for text output
-var errorColorUnderline = color.New(color.FgRed).Add(color.Underline)
-var errorColorBold = color.New(color.FgRed).Add(color.Bold)
-var successColorBold = color.New(color.FgGreen).Add(color.Bold)
-
 // Session - defines a session structure for Lupo session handling
 type Session struct {
-	ID       int
-	Protocol string
-	Implant  Implant
-	Rhost    string
-	Checkin  string
-	Status   string
+	ID         int
+	Protocol   string
+	Implant    Implant
+	Rhost      string
+	RawCheckin time.Time
+	Checkin    string
+	Status     string
 }
 
 var activeSession = -1
@@ -48,21 +44,47 @@ var SessionAppConfig = &grumble.Config{
 // RegisterSession - Registers a session and adds it to the session map
 func RegisterSession(sessionID int, protocol string, implant Implant, rhost string) {
 
-	t := time.Now()
+	currentTime := time.Now()
 	timeFormatted := fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d",
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), t.Minute(), t.Second())
+		currentTime.Year(), currentTime.Month(), currentTime.Day(),
+		currentTime.Hour(), currentTime.Minute(), currentTime.Second())
 
 	Sessions[sessionID] = Session{
-		ID:       sessionID,
-		Protocol: protocol,
-		Implant:  implant,
-		Rhost:    rhost,
-		Checkin:  timeFormatted,
-		Status:   "TEMP",
+		ID:         sessionID,
+		Protocol:   protocol,
+		Implant:    implant,
+		Rhost:      rhost,
+		RawCheckin: currentTime,
+		Checkin:    timeFormatted,
+		Status:     "ALIVE",
 	}
 
 	SessionID++
+}
+
+// SessionCheckIn - Updates the Last Check In anytime a verified session calls back
+func SessionCheckIn(sessionID int) {
+	currentTime := time.Now()
+	timeFormatted := fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d",
+		currentTime.Year(), currentTime.Month(), currentTime.Day(),
+		currentTime.Hour(), currentTime.Minute(), currentTime.Second())
+
+	var sessionUpdate = Sessions[sessionID]
+
+	sessionUpdate.RawCheckin = currentTime
+	sessionUpdate.Checkin = timeFormatted
+
+	Sessions[sessionID] = sessionUpdate
+}
+
+// SessionStatusUpdate - Updates the current status of a session
+func SessionStatusUpdate(sessionID int, status string) {
+
+	var sessionUpdate = Sessions[sessionID]
+
+	sessionUpdate.Status = status
+
+	Sessions[sessionID] = sessionUpdate
 }
 
 // InitializeSessionCLI - Initialize the nested session CLI arguments
@@ -117,15 +139,63 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			cmd := c.Args.String("cmd")
 
-			var sessionUpdate = Sessions[activeSession]
-
-			sessionUpdate.Implant.Command = cmd
-
-			Sessions[activeSession] = sessionUpdate
+			QueueImplantCommand(activeSession, cmd)
 
 			return nil
 		},
 	}
 
 	sessionApp.AddCommand(sessionCMDCmd)
+
+	sessionKillCmd := &grumble.Command{
+		Name:     "kill",
+		Help:     "kills a specified session",
+		LongHelp: "Kills a session with a specified ID",
+		Args: func(a *grumble.Args) {
+			a.Int("id", "Session ID to kill")
+		},
+		Run: func(c *grumble.Context) error {
+
+			id := c.Args.Int("id")
+
+			delete(Sessions, id)
+
+			WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionKillCmd)
+
+	sessionLoadCmd := &grumble.Command{
+		Name:     "load",
+		Help:     "loads custom functions for a given implant",
+		LongHelp: "Loads custom functions registered by an implant tied to the current session if any exist",
+		Run: func(c *grumble.Context) error {
+			for i := range Sessions[activeSession].Implant.Functions {
+
+				command := Sessions[activeSession].Implant.Functions[i]
+				implantFunction := &grumble.Command{
+					Name:     command,
+					Help:     "custom implant command",
+					LongHelp: "Custom implant command",
+					Run: func(c *grumble.Context) error {
+
+						QueueImplantCommand(activeSession, command)
+
+						return nil
+					},
+				}
+
+				sessionApp.AddCommand(implantFunction)
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionLoadCmd)
+
 }
