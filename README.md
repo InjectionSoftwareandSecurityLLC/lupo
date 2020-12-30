@@ -26,6 +26,7 @@ TODO:
 - [x] Implement registering custom functions
 - [x] Consider creating a "color" library in core to handle custom colors across the entire application
 - [ ] Port finished HTTP server to HTTPs
+- [ ] Enhance custom functions
 - [ ] Implement TCP listener
 - [ ] Consider Implementing UDP listener
 - [ ] Consider random PSK generation rather than a default base key (keeping default for now for testing)
