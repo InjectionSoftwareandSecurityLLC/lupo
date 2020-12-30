@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/server"
 	"github.com/desertbit/grumble"
 )
@@ -101,7 +102,7 @@ func init() {
 			httpServer := listeners[killID].instance
 			httpServer.Close()
 			delete(listeners, killID)
-			successColorBold.Println("Killing listener: " + strconv.Itoa(killID))
+			core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
 			return nil
 		},
 	}
@@ -125,13 +126,13 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 	listeners[id] = newListener
 
-	successColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+	core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
 
 	go func(newListener Listener) {
 		err := httpServer.ListenAndServe()
 		if err != nil {
 			println("")
-			errorColorBold.Println(err)
+			core.ErrorColorBold.Println(err)
 			delete(listeners, newListener.id)
 			listenerID--
 			return

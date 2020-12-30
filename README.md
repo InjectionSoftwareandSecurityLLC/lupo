@@ -22,8 +22,9 @@ Modular C2 server to tame your pack of wolves
 </pre>
 
 TODO:
-- [ ] Implement registering custom functions
-- [ ] Consider creating a "color" library in core to handle custom colors across the entire application
+- [x] Implement data response and check in status intervals
+- [x] Implement registering custom functions
+- [x] Consider creating a "color" library in core to handle custom colors across the entire application
 - [ ] Port finished HTTP server to HTTPs
 - [ ] Implement TCP listener
 - [ ] Consider Implementing UDP listener
