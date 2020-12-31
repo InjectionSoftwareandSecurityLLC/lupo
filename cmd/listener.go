@@ -17,11 +17,12 @@ var psk string
 
 // Listener - defines a listener structure
 type Listener struct {
-	id       int
-	lhost    string
-	lport    int
-	protocol string
-	instance *http.Server
+	id           int
+	lhost        string
+	lport        int
+	protocol     string
+	httpInstance *http.Server
+	tcpInstance  string
 }
 
 var listeners = make(map[int]Listener)
@@ -43,7 +44,9 @@ func init() {
 		Flags: func(f *grumble.Flags) {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
 			f.Int("p", "lport", 1337, "listening host port")
-			f.String("x", "protocol", "HTTP", "protocol to listen on (HTTP, HTTPS, or TCP)") //Temporarily default to HTTP change to HTTPS once implemented
+			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)") //Temporarily default to HTTP change to HTTPS once implemented
+			f.String("k", "key", "lupo-server.key", "path to TLS private key")
+			f.String("c", "cert", "lupo-server.crt", "path to TLS cert")
 		},
 		Run: func(c *grumble.Context) error {
 
@@ -51,9 +54,20 @@ func init() {
 			lport := c.Flags.Int("lport")
 			protocol := c.Flags.String("protocol")
 			listenString := lhost + ":" + strconv.Itoa(lport)
+
+			var tlsKey string
+			var tlsCert string
+			if protocol == "HTTPS" {
+				tlsKey = c.Flags.String("key")
+				tlsCert = c.Flags.String("cert")
+			} else {
+				tlsKey = ""
+				tlsCert = ""
+			}
+
 			psk := c.Flags.String("psk")
 
-			startListener(listenerID, lhost, lport, protocol, listenString, psk)
+			startListener(listenerID, lhost, lport, protocol, listenString, psk, tlsKey, tlsCert)
 
 			listenerID++
 
@@ -99,8 +113,10 @@ func init() {
 		Run: func(c *grumble.Context) error {
 
 			killID := c.Args.Int("id")
-			httpServer := listeners[killID].instance
-			httpServer.Close()
+			if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
+				httpServer := listeners[killID].httpInstance
+				httpServer.Close()
+			}
 			delete(listeners, killID)
 			core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
 			return nil
@@ -110,33 +126,57 @@ func init() {
 }
 
 // startListener - Creates a listener
-func startListener(id int, lhost string, lport int, protocol string, listenString string, psk string) {
+func startListener(id int, lhost string, lport int, protocol string, listenString string, psk string, tlsKey string, tlsCert string) {
 
 	server.PSK = psk
 
-	httpServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
+	var newListener Listener
 
-	newListener := Listener{
-		id:       id,
-		lhost:    lhost,
-		lport:    lport,
-		protocol: protocol,
-		instance: httpServer,
-	}
+	if protocol == "HTTP" || protocol == "HTTPS" {
+		newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
+		newListener = Listener{
+			id:           id,
+			lhost:        lhost,
+			lport:        lport,
+			protocol:     protocol,
+			httpInstance: newServer,
+			tcpInstance:  "",
+		}
 
-	listeners[id] = newListener
+		listeners[id] = newListener
 
-	core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
-
-	go func(newListener Listener) {
-		err := httpServer.ListenAndServe()
-		if err != nil {
-			println("")
-			core.ErrorColorBold.Println(err)
-			delete(listeners, newListener.id)
-			listenerID--
+		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+		switch protocol {
+		case "HTTP":
+			go func(newListener Listener) {
+				err := newServer.ListenAndServe()
+				if err != nil {
+					println("")
+					core.ErrorColorBold.Println(err)
+					delete(listeners, newListener.id)
+					listenerID--
+					return
+				}
+			}(newListener)
+		case "HTTPS":
+			go func(newListener Listener) {
+				err := newServer.ListenAndServeTLS(tlsCert, tlsKey)
+				if err != nil {
+					println("")
+					core.ErrorColorBold.Println(err)
+					delete(listeners, newListener.id)
+					listenerID--
+					return
+				}
+			}(newListener)
+		default:
+			// Invalid request type, stay silent don't respond to anything that isn't pre-defined
 			return
 		}
-	}(newListener)
+
+	} else {
+		core.ErrorColorUnderline.Println("Unsupported listener protocol specified: " + protocol + " is not implemented")
+		return
+	}
 
 }

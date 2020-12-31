@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/google/uuid"
 
@@ -16,7 +15,7 @@ import (
 // PSK - Pre-shared key for implant authentication
 var PSK string
 
-// HTTPServerHandler - Handles HTTPServer requests
+// HTTPServerHandler - Handles all HTTPS/HTTPServer requests
 func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 	// Setup webserver attributes like headers and response information
 	w.Header().Set("Content-Type", "application/json")
@@ -45,7 +44,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	var getUpdate float64
 	var getData string
 	var getAdditionalFunctions string
-	var additionalFunctions []string
+	var additionalFunctions map[string]interface{}
 	var register bool
 	var err error
 
@@ -117,7 +116,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 	if len(getParams["functions"]) > 0 {
 		getAdditionalFunctions = getParams["functions"][0]
-		additionalFunctions = strings.Split(getAdditionalFunctions, ",")
+		json.Unmarshal([]byte(getAdditionalFunctions), &additionalFunctions)
 	} else {
 		getAdditionalFunctions = ""
 	}
@@ -189,7 +188,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	var postUpdate float64
 	var postData string
 	var postAdditionalFunctions string
-	var additionalFunctions []string
+	var additionalFunctions map[string]interface{}
 	var register bool
 	var err error
 
@@ -261,7 +260,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 
 	if len(postParams["functions"]) > 0 {
 		postAdditionalFunctions = postParams["functions"][0]
-		additionalFunctions = strings.Split(postAdditionalFunctions, ",")
+		json.Unmarshal([]byte(postAdditionalFunctions), &additionalFunctions)
 	} else {
 		postAdditionalFunctions = ""
 	}
