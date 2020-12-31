@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -22,7 +24,7 @@ type Listener struct {
 	lport        int
 	protocol     string
 	httpInstance *http.Server
-	tcpInstance  string
+	tcpInstance  net.Listener
 }
 
 var listeners = make(map[int]Listener)
@@ -140,12 +142,13 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 			lport:        lport,
 			protocol:     protocol,
 			httpInstance: newServer,
-			tcpInstance:  "",
+			tcpInstance:  nil,
 		}
 
 		listeners[id] = newListener
 
 		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+
 		switch protocol {
 		case "HTTP":
 			go func(newListener Listener) {
@@ -174,6 +177,35 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 			return
 		}
 
+	} else if protocol == "TCP" {
+
+		newServer, err := net.Listen("tcp", listenString)
+		if err != nil {
+			log.Fatal(err)
+		}
+		newListener = Listener{
+			id:           id,
+			lhost:        lhost,
+			lport:        lport,
+			protocol:     protocol,
+			httpInstance: nil,
+			tcpInstance:  newServer,
+		}
+
+		listeners[id] = newListener
+
+		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+		defer newServer.Close()
+
+		for {
+			conn, err := newServer.Accept()
+			if err != nil {
+				// Print the error using a log.Fatal would exit the server
+				log.Println(err)
+			}
+			// Using a go routine to handle the connection
+			go server.TCPServerHandler(conn)
+		}
 	} else {
 		core.ErrorColorUnderline.Println("Unsupported listener protocol specified: " + protocol + " is not implemented")
 		return
