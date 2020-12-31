@@ -3,13 +3,32 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 )
 
+// StartTCPServer - starts a tcp server with given parameters
+func StartTCPServer(tcpServer net.Listener) {
+	defer tcpServer.Close()
+
+	for {
+		conn, err := tcpServer.Accept()
+		if err != nil {
+			// Print the error using a log.Fatal would exit the server
+			log.Println(err)
+		}
+		// Using a go routine to handle the connection
+		go TCPServerHandler(conn)
+	}
+}
+
 // TCPServerHandler - handles incoming TCP connections
 func TCPServerHandler(conn net.Conn) {
+
+	defer conn.Close()
+
 	fmt.Printf("Serving %s\n", conn.RemoteAddr().String())
 
 	var cmd string

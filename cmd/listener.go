@@ -118,6 +118,9 @@ func init() {
 			if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
 				httpServer := listeners[killID].httpInstance
 				httpServer.Close()
+			} else if listeners[killID].protocol == "TCP" {
+				tcpServer := listeners[killID].tcpInstance
+				tcpServer.Close()
 			}
 			delete(listeners, killID)
 			core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
@@ -195,17 +198,9 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 		listeners[id] = newListener
 
 		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
-		defer newServer.Close()
 
-		for {
-			conn, err := newServer.Accept()
-			if err != nil {
-				// Print the error using a log.Fatal would exit the server
-				log.Println(err)
-			}
-			// Using a go routine to handle the connection
-			go server.TCPServerHandler(conn)
-		}
+		go server.StartTCPServer(newServer)
+
 	} else {
 		core.ErrorColorUnderline.Println("Unsupported listener protocol specified: " + protocol + " is not implemented")
 		return

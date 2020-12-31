@@ -30,6 +30,7 @@ TODO:
 - [ ] Implement TCP listener
 - [ ] Consider Implementing UDP listener
 - [ ] Implement extended functions like upload/download and any other seemingly "universal" switches
+- [ ] Implement a webshell handler for bind webshells
 - [ ] Consider random PSK generation rather than a default base key (keeping default for now for testing)
 - [ ] Document "API" and consider pre-generating API documentation.
 - [ ] Document core features: TLS generation, custom functions (part of API but notable), implant baseline implementation
