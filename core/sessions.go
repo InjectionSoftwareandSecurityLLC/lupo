@@ -173,13 +173,14 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Help:     "loads custom functions for a given implant",
 		LongHelp: "Loads custom functions registered by an implant tied to the current session if any exist",
 		Run: func(c *grumble.Context) error {
-			for i := range Sessions[activeSession].Implant.Functions {
+			for key, value := range Sessions[activeSession].Implant.Functions {
 
-				command := Sessions[activeSession].Implant.Functions[i]
+				command := key
+				info := value.(string)
+
 				implantFunction := &grumble.Command{
-					Name:     command,
-					Help:     "custom implant command",
-					LongHelp: "Custom implant command",
+					Name: command,
+					Help: info,
 					Run: func(c *grumble.Context) error {
 
 						QueueImplantCommand(activeSession, command)

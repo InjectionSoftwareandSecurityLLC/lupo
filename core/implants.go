@@ -11,14 +11,14 @@ type Implant struct {
 	Commands  []string
 	Update    float64
 	response  string
-	Functions []string
+	Functions map[string]interface{}
 }
 
 // ZeroedUUID - zeroed global used to clear UUIDs wherever applicable
 var ZeroedUUID, _ = uuid.Parse("00000000-0000-0000-0000-000000000000")
 
 // RegisterImplant - function to register a new implant and increment the ImplantID
-func RegisterImplant(arch string, updateInterval float64, functions []string) Implant {
+func RegisterImplant(arch string, updateInterval float64, functions map[string]interface{}) Implant {
 
 	implantID := uuid.New()
 
@@ -34,7 +34,7 @@ func RegisterImplant(arch string, updateInterval float64, functions []string) Im
 }
 
 // UpdateImplant - function to update common implant fields on a given check in cycle
-func UpdateImplant(sessionID int, updateInterval float64, functions []string) {
+func UpdateImplant(sessionID int, updateInterval float64, functions map[string]interface{}) {
 	var sessionUpdate = Sessions[sessionID]
 
 	if updateInterval != 0 {
