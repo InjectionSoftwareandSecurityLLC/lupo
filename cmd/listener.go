@@ -115,16 +115,23 @@ func init() {
 		Run: func(c *grumble.Context) error {
 
 			killID := c.Args.Int("id")
-			if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
-				httpServer := listeners[killID].httpInstance
-				httpServer.Close()
-			} else if listeners[killID].protocol == "TCP" {
-				tcpServer := listeners[killID].tcpInstance
-				tcpServer.Close()
+
+			if _, ok := listeners[killID]; ok {
+				if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
+					httpServer := listeners[killID].httpInstance
+					httpServer.Close()
+				} else if listeners[killID].protocol == "TCP" {
+					tcpServer := listeners[killID].tcpInstance
+					tcpServer.Close()
+				}
+				delete(listeners, killID)
+				core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
+				return nil
+			} else {
+				core.ErrorColorBold.Println("Listener: " + strconv.Itoa(killID) + " does not exist")
+				return nil
 			}
-			delete(listeners, killID)
-			core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
-			return nil
+
 		},
 	}
 	listenCmd.AddCommand(listenKillCmd)
