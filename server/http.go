@@ -12,9 +12,6 @@ import (
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 )
 
-// PSK - Pre-shared key for implant authentication
-var PSK string
-
 // HTTPServerHandler - Handles all HTTPS/HTTPServer requests
 func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 	// Setup webserver attributes like headers and response information
@@ -119,6 +116,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 		json.Unmarshal([]byte(getAdditionalFunctions), &additionalFunctions)
 	} else {
 		getAdditionalFunctions = ""
+		additionalFunctions = nil
 	}
 
 	if getPSK == PSK {
@@ -139,7 +137,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(response)
 
 			core.SuccessColorBold.Println("\nNew implant registered successfully!")
-			fmt.Println("Session: " + strconv.Itoa(newSession) + " opened")
+			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
 
 			return
 
@@ -283,7 +281,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(response)
 
 			core.SuccessColorBold.Println("\nNew implant registered successfully!")
-			fmt.Println("Session: " + strconv.Itoa(newSession) + " opened")
+			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
 
 			return
 

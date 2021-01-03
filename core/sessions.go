@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/desertbit/grumble"
@@ -133,13 +134,15 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Help:     "execute command on session",
 		LongHelp: "Executes a standard OS command that the implant for the current session will execute.",
 		Args: func(a *grumble.Args) {
-			a.String("cmd", "OS Command to be executed by the target session")
+			a.StringList("cmd", "OS Command to be executed by the target session")
 		},
 		Run: func(c *grumble.Context) error {
 
-			cmd := c.Args.String("cmd")
+			cmd := c.Args.StringList("cmd")
 
-			QueueImplantCommand(activeSession, cmd)
+			cmdString := strings.Join(cmd, " ")
+
+			QueueImplantCommand(activeSession, cmdString)
 
 			return nil
 		},

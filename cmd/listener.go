@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -22,7 +24,7 @@ type Listener struct {
 	lport        int
 	protocol     string
 	httpInstance *http.Server
-	tcpInstance  string
+	tcpInstance  net.Listener
 }
 
 var listeners = make(map[int]Listener)
@@ -113,13 +115,23 @@ func init() {
 		Run: func(c *grumble.Context) error {
 
 			killID := c.Args.Int("id")
-			if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
-				httpServer := listeners[killID].httpInstance
-				httpServer.Close()
+
+			if _, ok := listeners[killID]; ok {
+				if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
+					httpServer := listeners[killID].httpInstance
+					httpServer.Close()
+				} else if listeners[killID].protocol == "TCP" {
+					tcpServer := listeners[killID].tcpInstance
+					tcpServer.Close()
+				}
+				delete(listeners, killID)
+				core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
+				return nil
+			} else {
+				core.ErrorColorBold.Println("Listener: " + strconv.Itoa(killID) + " does not exist")
+				return nil
 			}
-			delete(listeners, killID)
-			core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
-			return nil
+
 		},
 	}
 	listenCmd.AddCommand(listenKillCmd)
@@ -140,12 +152,13 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 			lport:        lport,
 			protocol:     protocol,
 			httpInstance: newServer,
-			tcpInstance:  "",
+			tcpInstance:  nil,
 		}
 
 		listeners[id] = newListener
 
 		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+
 		switch protocol {
 		case "HTTP":
 			go func(newListener Listener) {
@@ -173,6 +186,27 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 			// Invalid request type, stay silent don't respond to anything that isn't pre-defined
 			return
 		}
+
+	} else if protocol == "TCP" {
+
+		newServer, err := net.Listen("tcp", listenString)
+		if err != nil {
+			log.Fatal(err)
+		}
+		newListener = Listener{
+			id:           id,
+			lhost:        lhost,
+			lport:        lport,
+			protocol:     protocol,
+			httpInstance: nil,
+			tcpInstance:  newServer,
+		}
+
+		listeners[id] = newListener
+
+		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+
+		go server.StartTCPServer(newServer)
 
 	} else {
 		core.ErrorColorUnderline.Println("Unsupported listener protocol specified: " + protocol + " is not implemented")

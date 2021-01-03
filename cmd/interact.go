@@ -79,7 +79,7 @@ func init() {
 				updateInterval := core.Sessions[filterID].Implant.Update
 				lastCheckIn := core.Sessions[filterID].RawCheckin
 
-				status, err := calcualateSessionStatus(updateInterval, lastCheckIn)
+				status, err := calculateSessionStatus(updateInterval, lastCheckIn)
 
 				var textStatus string
 
@@ -112,7 +112,7 @@ func init() {
 					updateInterval := core.Sessions[i].Implant.Update
 					lastCheckIn := core.Sessions[i].RawCheckin
 
-					status, err := calcualateSessionStatus(updateInterval, lastCheckIn)
+					status, err := calculateSessionStatus(updateInterval, lastCheckIn)
 
 					var textStatus string
 
@@ -193,7 +193,7 @@ func init() {
 
 }
 
-func calcualateSessionStatus(updateInterval float64, lastCheckIn time.Time) (bool, error) {
+func calculateSessionStatus(updateInterval float64, lastCheckIn time.Time) (bool, error) {
 
 	if updateInterval == 0 {
 		return true, errors.New("No update internal provided, could not be calculated")
