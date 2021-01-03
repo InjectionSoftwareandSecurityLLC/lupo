@@ -28,7 +28,7 @@ TODO:
 - [x] Port finished HTTP server to HTTPs
 - [x] Enhance custom functions
 - [x] Implement TCP listener
-- ~~[ ] Consider Implementing UDP listener~~ - Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API
+- [ ] ~~Consider Implementing UDP listener~~ (Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API)
 - [ ] Implement extended functions like upload/download and any other seemingly "universal" switches
 - [ ] Implement a webshell handler for bind webshells
 - [ ] Implement optional encryption flag for TCP/UDP
