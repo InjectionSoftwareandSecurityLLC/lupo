@@ -14,7 +14,15 @@ import (
 )
 
 // activeSession - Active session that is being interacted with by the user
+// This data is supplied as a parameter when switching sessions with either the "interact" command or "session" sub-shell
 var activeSession int
+
+// init - Initializes the primary "interact" grumble command
+// "interact" accepts an argument of "id" that is used to generate a new SessionApp with the SessionAppConfig
+//  "interact" subcommands include:
+//  	"show" - Shows all registered sessions. Accepts andargument of "id" that can be used to show a specific session based on the id.
+//  	"kill" - Accepts an argument of "id" that is used to de-register a session.
+//  	"clean" - De-registers all sessions marked as "DEAD" based on a pre-determined "Check-In" update interval.
 
 func init() {
 
@@ -193,6 +201,9 @@ func init() {
 
 }
 
+// calculateSessionStatus - Uses an update interval in seconds that is registered by an implant.
+// The update interval is then compared to the difference in the last "Check-In" time and the current time.
+// The result of this comparison + a 5 second buffer is checked. If the difference exceeds the expected update interval + 5 the function returns false.
 func calculateSessionStatus(updateInterval float64, lastCheckIn time.Time) (bool, error) {
 
 	if updateInterval == 0 {

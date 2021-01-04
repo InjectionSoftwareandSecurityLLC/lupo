@@ -11,7 +11,15 @@ import (
 	"github.com/fatih/color"
 )
 
-// Session - defines a session structure for Lupo session handling
+// Session - defines a session structure composed of:
+// id - unique identifier that is autoincremented on creation of a new session
+// protocol - the protocol to use when listening for incoming connections. Currenlty supports HTTP(S) and TCP.
+// implant - an instance of an Implant that is tied to a session whenever an implant reaches out to register a new session.
+// rhost - the "remote" host address. This contains a value of the external IP where an Implant is reaching out from.
+// rawcheckin - the raw check in time structure that is calculated anytime an implant communicates successfully with a listener.
+// checkin - a formatted version of the rawcheckin in time for easily displaying in print string output so it doesn't need to be converted each time.
+// status - current activity status of the implant, can be ALIVE, DEAD, or UNKOWN. UNKOWN is defaulted to if no update interval is provided during implant communications.
+
 type Session struct {
 	ID         int
 	Protocol   string
@@ -22,15 +30,18 @@ type Session struct {
 	Status     string
 }
 
+// activeSession = global value to keep track of the current active session. Since session "0" is a valid session, this starts at "-1" to determine if no session is active.
 var activeSession = -1
 
-// Sessions - map of all sessions
+// Sessions - map of all sessions. This is used to manage sessions that are registered successfully by implants. The map structure makes it easy to search, add, modify, and delete a large amount of Sessions.
 var Sessions = make(map[int]Session)
 
-// SessionID - Global SessionID counter
+// SessionID - Global SessionID counter. Session IDs are unique and auto-increment on creation. This value is kept track of throughout a Session's life cycle so it can be incremented/decremented automatically wherever appropriate.
 var SessionID int = 0
 
 // SessionAppConfig - Primary session nested grumble CLI config construction
+// This sets up the lupo "session" nested/sub-prompt and color scheme, defines a history logfile, and toggles various grumble sepcific parameters for help command options.
+
 var SessionAppConfig = &grumble.Config{
 	Name:                  "session",
 	Description:           "Interactive Session CLI",
@@ -42,7 +53,7 @@ var SessionAppConfig = &grumble.Config{
 	HelpSubCommands:       true,
 }
 
-// RegisterSession - Registers a session and adds it to the session map
+// RegisterSession - Registers a session and adds it to the session map and increments the global SessionID value
 func RegisterSession(sessionID int, protocol string, implant Implant, rhost string) {
 
 	currentTime := time.Now()
@@ -89,6 +100,13 @@ func SessionStatusUpdate(sessionID int, status string) {
 }
 
 // InitializeSessionCLI - Initialize the nested session CLI arguments
+// "session" has no arguments and is not a grumble command in and of itself. It is a separate nested grumble application and contains all new base commands.
+//  "session" base commands include:
+//  	"back" - resets the current active session to "-1" and closes the nested session sub-shell.
+//  	"session" - the actual "session" command which is used to switch sessions by specifying an argument of a session ID to switch to. This is identical to the interact command only it allows you to switch sessions while in the session sub-shell as "interact" is unavailable in the sub-shell.
+//  	"cmd" - built in command directive to denote commands that are intended to be executed as a system command of a specified session. These commands are usually sent to the client as JSON in the format of {"cmd":"<some command"}. It supports multi-line/multi-arg commands.
+//		"kill" - takes an argument of "id" which is used to de-register the specified session.
+//		"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
 func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	backCmd := &grumble.Command{
