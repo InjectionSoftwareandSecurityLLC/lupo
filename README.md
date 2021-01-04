@@ -21,6 +21,11 @@ Modular C2 server to tame your pack of wolves
                       art by Morfina
 </pre>
 
+
+## Documenation
+- [Usage Docs](./docs/README.md)
+- [Source Code Docs]() # ADD GODOC LINK
+
 TODO:
 - [x] Implement data response and check in status intervals
 - [x] Implement registering custom functions
@@ -33,8 +38,8 @@ TODO:
 - [ ] Implement a webshell handler for bind webshells
 - [ ] Implement optional encryption flag for TCP/UDP
 - [ ] Consider random PSK generation rather than a default base key (keeping default for now for testing)
-- [ ] Document "API" and consider pre-generating API documentation. (Consider "kill" notice for clean up)
+- [x] Document "API" and consider pre-generating API documentation.
 - [ ] Document core features: TLS generation, custom functions (part of API but notable), implant baseline implementation
 - [ ] Reformat the ASCII art so it is printed a bit more cleanly
-- [ ] Create demo implants to show off all the feature/functionality
+- [ ] Create demo implants to show off all the feature/functionality - documenation too
 - [ ] Repo art update and open source!

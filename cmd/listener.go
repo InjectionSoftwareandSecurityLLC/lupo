@@ -15,9 +15,22 @@ import (
 	"github.com/desertbit/grumble"
 )
 
+// psk - Global psk variable utilized by the listener for storing the Pre-Shared key established from the core "lupo" psk flag.
 var psk string
 
-// Listener - defines a listener structure
+// Listener - defines a listener structure composed of:
+//
+// id - unique identifier that is autoincremented on creation of a new listener
+//
+// lhost - the "listening" host address. This tells a listener what interface to listen on based on the address it is tied to.
+//
+// lport - the "listening" port. This tells a listener what port the lhost of the listener should open to receive connections on.
+//
+// protocol - the protocol to use when listening for incoming connections. Currenlty supports HTTP(S) and TCP.
+//
+// httpInstance - a pointer to an instance of the http.Server struct. This is used to reference the core HTTP Server itself when conducting operations such as starting/stopping a listener.
+//
+// tcpInstance - a copy of the net.Listener struct. This is used to interact with the core TCP Server itself when conducting operations such as starting/stopping a listener.
 type Listener struct {
 	id           int
 	lhost        string
@@ -27,8 +40,23 @@ type Listener struct {
 	tcpInstance  net.Listener
 }
 
+// listeners - a map of Listeners. This is used to manage listeners that are created by the user. The map structure makes it easy to search, add, modify, and delete a large amount of Listeners.
 var listeners = make(map[int]Listener)
+
+// listenerID - a global listener ID. Listener IDs are unique and auto-increment on creation. This value is kept track of throughout a Listener's life cycle so it can be incremented/decremented automatically wherever appropriate.
 var listenerID int = 0
+
+// init - Initializes the primary "listener" grumble command
+//
+// "listener" has no arguments and serves as a base for several subcommands.
+//
+//  "listener" subcommands include:
+//
+//  	"start" - Starts a listener. Can accept flags of lhost, lport, protocol, key (used in HTTPS), and cert (used in HTTPS) to specify how a listener will establish itself via the protocol given by the user (Defaults to HTTPS).
+//
+//  	"show" - Prints a table of all running listeners and their configuration details.
+//
+//  	"kill" - Accepts an argument of "id" that is used to de-register and shutdown a listener server.
 
 func init() {
 
@@ -46,7 +74,7 @@ func init() {
 		Flags: func(f *grumble.Flags) {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
 			f.Int("p", "lport", 1337, "listening host port")
-			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)") //Temporarily default to HTTP change to HTTPS once implemented
+			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)")
 			f.String("k", "key", "lupo-server.key", "path to TLS private key")
 			f.String("c", "cert", "lupo-server.crt", "path to TLS cert")
 		},
@@ -137,7 +165,17 @@ func init() {
 	listenCmd.AddCommand(listenKillCmd)
 }
 
-// startListener - Creates a listener
+// startListener - Creates a listener based on parameters generated via the "listener start" subcommand.
+//
+// Based on the parameters provided, this function will create a new Listener structure and save it to the listeners map.
+//
+// Each structure will contain either an HTTP(S) or TCP server instance which is used to start the actual listeners.
+//
+// HTTP Servers make use of an anonymous goroutine initially to start the listener, but all core handling functions are passed off to the HTTPServerHanlder() function.
+//
+// TCP Servers are started by executing a StartTCPServer function via goroutine. To maintain concurrency a subsequent goroutine is executed to handle the data for all TCP connections via TCPServerHandler() function.
+//
+// All listeners are concurrent and support multiple simultaneous connections.
 func startListener(id int, lhost string, lport int, protocol string, listenString string, psk string, tlsKey string, tlsCert string) {
 
 	server.PSK = psk
