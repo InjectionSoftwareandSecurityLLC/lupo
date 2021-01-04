@@ -1,11 +1,23 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
+	"github.com/desertbit/grumble"
 )
+
+// WolfPackApp - global value to store the current app context for the grumble app and access things like command execution in the grumble context
+var WolfPackApp *grumble.App
+
+// IsWolfPackExec - global value to let grumble run functions determine if the current command is being executed in the context of a
+var IsWolfPackExec bool
+
+// WolfPackResponse - global value for grumble run functions to populate a response in the context of a command execution loop (may need to be re-evaluated due to concurrency but works for testing)
+var WolfPackResponse string
 
 // WolfPackServerHandler - Handles all Wolfpack server requests over HTTPS by passing data to handler sub-functions
 //
@@ -25,7 +37,7 @@ func WolfPackServerHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// handleGetRequests - handles any incoming GET requests received by the HTTP(S) listener. Once all values are handled various Implant data update/response routines are executed where relevant based on the provided parameters.
+// handleWolfPackRequests - handles any incoming GET requests received by the HTTP(S) listener. Once all values are handled various Implant data update/response routines are executed where relevant based on the provided parameters.
 //
 // When requests are received, the URL parameters are extracted, validated and stored.
 //
@@ -43,7 +55,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	getParams := r.URL.Query()
 	var getPSK string
 	var getUsername string
-	var getCommand string
+	var getCommand []string
 
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
@@ -61,6 +73,10 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		getUsername = getParams["user"][0]
 	}
 
+	if len(getParams["command"]) > 0 {
+		getCommand = strings.Split(getParams["command"][0], " ")
+	}
+
 	if getPSK != core.Wolves[getUsername].WolfPSK {
 
 		returnErr := errors.New("http GET Request Invalid PSK, request ignored")
@@ -68,7 +84,16 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: User Wolf update routine to execute command and return the response
-	core.UpdateWolf(getUsername, getCommand, remoteAddr)
+	core.UpdateWolf(getUsername, remoteAddr)
+	IsWolfPackExec = true
+	WolfPackApp.RunCommand(getCommand)
 
+	response := map[string]interface{}{
+		"response": WolfPackResponse,
+	}
+
+	json.NewEncoder(w).Encode(response)
+
+	IsWolfPackExec = false
+	WolfPackResponse = ""
 }

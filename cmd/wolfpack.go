@@ -3,12 +3,33 @@ package cmd
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/server"
 	"github.com/desertbit/grumble"
 )
+
+// WolfPackServer - defines a wolfpack server structure composed of:
+//
+// lhost - the "listening" host address. This tells a listener what interface to listen on based on the address it is tied to.
+//
+// lport - the "listening" port. This tells a listener what port the lhost of the listener should open to receive connections on.
+//
+// status - the current status of the wolfpack server to determine if it is online or not.
+//
+// httpInstance - a pointer to an instance of the http.Server struct. This is used to reference the core HTTP Server itself when conducting operations such as starting/stopping a wolfpack server.
+type WolfPackServer struct {
+	lhost        string
+	lport        int
+	status       bool
+	httpInstance *http.Server
+}
+
+var wolfPackServer WolfPackServer
 
 func init() {
 
@@ -25,7 +46,7 @@ func init() {
 		LongHelp: "Starts the wolfpack teamserver",
 		Flags: func(f *grumble.Flags) {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
-			f.Int("p", "lport", 4074, "listening host port")
+			f.Int("p", "lport", 3074, "listening host port")
 			f.String("k", "key", "lupo-server.key", "path to TLS private key")
 			f.String("c", "cert", "lupo-server.crt", "path to TLS cert")
 		},
@@ -38,22 +59,47 @@ func init() {
 			tlsKey := c.Flags.String("key")
 			tlsCert := c.Flags.String("cert")
 
-			psk := c.Flags.String("psk")
+			app := App
 
-			if core.DefaultPSK == c.Flags.String("psk") && !didDisplayPsk {
-				core.SuccessColorBold.Println("Your randomly generated PSK is:")
-				fmt.Println(core.DefaultPSK)
-				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to listeners in this instance.")
-				fmt.Println("")
-				didDisplayPsk = true
-			}
-
-			startWolfPackServer(listenerID, lhost, lport, listenString, psk, tlsKey, tlsCert)
+			startWolfPackServer(listenerID, lhost, lport, listenString, psk, tlsKey, tlsCert, app)
 
 			return nil
 		},
 	}
 	wolfPackCmd.AddCommand(wolfPackStartCmd)
+
+	wolfPackStopCmd := &grumble.Command{
+		Name:     "stop",
+		Help:     "stops the wolfpack server",
+		LongHelp: "Stops the wolfpack teamserver",
+		Run: func(c *grumble.Context) error {
+
+			wolfPackServer.httpInstance.Close()
+
+			return nil
+		},
+	}
+	wolfPackCmd.AddCommand(wolfPackStopCmd)
+
+	wolfPackDeRegister := &grumble.Command{
+		Name:     "deregister",
+		Help:     "deregisters a wolfpack user",
+		LongHelp: "Deregisters a wolfpack user removing their access to the wolfpack server",
+		Args: func(a *grumble.Args) {
+			a.String("user", "Username to deregister")
+		},
+		Run: func(c *grumble.Context) error {
+
+			userName := c.Args.String("user")
+
+			delete(core.Wolves, userName)
+
+			core.SuccessColorBold.Println("User Deregistered!")
+
+			return nil
+		},
+	}
+	wolfPackCmd.AddCommand(wolfPackDeRegister)
 
 	wolfPackRegisterCmd := &grumble.Command{
 		Name:     "register",
@@ -80,11 +126,12 @@ func init() {
 				WolfPSK:  psk,
 				Username: userName,
 				Rhost:    "",
-				Command:  "",
 				Response: "",
 			}
 
 			core.Wolves[userName] = wolf
+
+			core.SuccessColorBold.Println("User Registered!")
 
 			// TODO: Generate client binary
 
@@ -93,23 +140,72 @@ func init() {
 			return nil
 		},
 	}
-	wolfPackCmd.AddCommand(wolfPackStartCmd)
+	wolfPackCmd.AddCommand(wolfPackRegisterCmd)
+
+	wolfPackShow := &grumble.Command{
+		Name:     "show",
+		Help:     "show wolfpack server status and registered user information",
+		LongHelp: "Displays the status of the wolfpack server along with information about registered wolfpack users",
+		Run: func(c *grumble.Context) error {
+
+			var status string
+			var listenString string
+			if wolfPackServer.status {
+				status = core.GreenColorIns("ONLINE")
+				listenString = wolfPackServer.lhost + ":" + strconv.Itoa(wolfPackServer.lport)
+			} else {
+				status = core.RedColorIns("OFFLINE")
+				listenString = "None"
+			}
+
+			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+			fmt.Fprintf(table, "Listening On\tStatus\t\n")
+			fmt.Fprintf(table, "%s\t%s\t\n",
+				strings.Repeat("=", len("Listening On")),
+				strings.Repeat("=", len("Status")))
+			fmt.Fprintf(table, "%s\t%s\t\n",
+				listenString,
+				status)
+
+			fmt.Fprintf(table, "\nUser\tRemote Host\tCheck In\t\n")
+			fmt.Fprintf(table, "%s\t%s\t%s\t\n",
+				strings.Repeat("=", len("User")),
+				strings.Repeat("=", len("Remote Host")),
+				strings.Repeat("=", len("Check In")))
+
+			for user := range core.Wolves {
+				fmt.Fprintf(table, "%s\t%s\t%s\t\n",
+					core.Wolves[user].Username,
+					core.Wolves[user].Rhost,
+					core.Wolves[user].Checkin)
+			}
+
+			table.Flush()
+			return nil
+		},
+	}
+	wolfPackCmd.AddCommand(wolfPackShow)
 }
 
 // startWolfPackServer - Creates a wolfpack server based on parameters generated via the "wolfpack start" subcommand.
-func startWolfPackServer(id int, lhost string, lport int, listenString string, psk string, tlsKey string, tlsCert string) {
+func startWolfPackServer(id int, lhost string, lport int, listenString string, psk string, tlsKey string, tlsCert string, app *grumble.App) {
 
-	server.PSK = psk
+	server.WolfPackApp = app
 
 	newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.WolfPackServerHandler)}
 
-	core.SuccessColorBold.Println("Starting listener wolfpack server")
+	wolfPackServer.lhost = lhost
+	wolfPackServer.lport = lport
+	wolfPackServer.httpInstance = newServer
 
+	core.SuccessColorBold.Println("Starting WolfPack Server on: " + listenString)
+	wolfPackServer.status = true
 	go func() {
 		err := newServer.ListenAndServeTLS(tlsCert, tlsKey)
 		if err != nil {
 			println("")
 			core.ErrorColorBold.Println(err)
+			wolfPackServer.status = false
 			return
 		}
 	}()

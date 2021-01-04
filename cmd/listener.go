@@ -122,6 +122,27 @@ func init() {
 		Help:     "show running listeners",
 		LongHelp: "Display all running listeners",
 		Run: func(c *grumble.Context) error {
+
+			if server.IsWolfPackExec {
+
+				server.WolfPackResponse = fmt.Sprintf("ID\tHost\tPort\tProtocol\t\n")
+				server.WolfPackResponse += fmt.Sprintf("%s\t%s\t%s\t%s\t\n",
+					strings.Repeat("=", len("ID")),
+					strings.Repeat("=", len("Host")),
+					strings.Repeat("=", len("Port")),
+					strings.Repeat("=", len("Protocol")))
+
+				for i := range listeners {
+					server.WolfPackResponse += fmt.Sprintf("%s\t%s\t%s\t%s\t\n",
+						strconv.Itoa(listeners[i].id),
+						listeners[i].lhost,
+						strconv.Itoa(listeners[i].lport),
+						listeners[i].protocol)
+				}
+
+				return nil
+			}
+
 			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 			fmt.Fprintf(table, "ID\tHost\tPort\tProtocol\t\n")
 			fmt.Fprintf(table, "%s\t%s\t%s\t%s\t\n",
@@ -154,6 +175,11 @@ func init() {
 		Run: func(c *grumble.Context) error {
 
 			killID := c.Args.Int("id")
+
+			if server.IsWolfPackExec {
+				server.WolfPackResponse = "hello from the wolfpack 2"
+				return nil
+			}
 
 			if _, ok := listeners[killID]; ok {
 				if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
