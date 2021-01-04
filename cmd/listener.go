@@ -46,6 +46,9 @@ var listeners = make(map[int]Listener)
 // listenerID - a global listener ID. Listener IDs are unique and auto-increment on creation. This value is kept track of throughout a Listener's life cycle so it can be incremented/decremented automatically wherever appropriate.
 var listenerID int = 0
 
+// didDisplayPsk - a boolean to check if the pre-generated PSK was already given to the user so it is not printed each time
+var didDisplayPsk = false
+
 // init - Initializes the primary "listener" grumble command
 //
 // "listener" has no arguments and serves as a base for several subcommands.
@@ -96,6 +99,14 @@ func init() {
 			}
 
 			psk := c.Flags.String("psk")
+
+			if core.DefaultPSK == c.Flags.String("psk") && !didDisplayPsk {
+				core.SuccessColorBold.Println("Your randomly generated PSK is:")
+				fmt.Println(core.DefaultPSK)
+				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to listeners in this instance.")
+				fmt.Println("")
+				didDisplayPsk = true
+			}
 
 			startListener(listenerID, lhost, lport, protocol, listenString, psk, tlsKey, tlsCert)
 

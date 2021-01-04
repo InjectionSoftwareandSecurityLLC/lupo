@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
@@ -27,7 +28,7 @@ var lupoApp = grumble.New(&grumble.Config{
 	HelpHeadlineUnderline: true,
 	HelpSubCommands:       true,
 	Flags: func(f *grumble.Flags) {
-		f.String("k", "psk", "wolfpack", "Pre-Shared Key for implant authentication")
+		f.String("k", "psk", core.DefaultPSK, "Pre-Shared Key for implant authentication")
 	},
 })
 
