@@ -5,11 +5,17 @@ import (
 )
 
 // Implant - defines an implant structure composed of:
+//
 // id - unique identifier that is autoincremented on creation of a new implant
+//
 // Arch -  string for storing the Architecture of an implant's host system. This can be anything and is provided by the implant, but is expected to be something that identifies the host operating system and architecture.
+//
 // Commands - a slice of commands that is populated and used as a queue based on interaction from the session CLI.
+//
 // Update - an update interval in seconds that implants provide to tell the server how often it intends to check in. This value is used to determine if a session may have been killed.
+//
 // response - populated by a data payload, usually the output of execute commands on the implant. Once an implant executes a command it will be retrieved, usually through a data parameter, and populated into the implant structure it is associated with.
+//
 // Functions - a map of additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that are loaded into the CLI if successfully registered via this property. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
 type Implant struct {
 	ID        uuid.UUID

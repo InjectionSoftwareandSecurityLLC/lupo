@@ -1,3 +1,6 @@
+// core - the "core" package is used to organize all primary libraries and utilities that are made use of across several aspects of the application.
+//
+// This can include anything from custom data structures, to colors for text output.
 package core
 
 import "github.com/fatih/color"

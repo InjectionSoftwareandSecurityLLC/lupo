@@ -12,13 +12,20 @@ import (
 )
 
 // Session - defines a session structure composed of:
+//
 // id - unique identifier that is autoincremented on creation of a new session
+//
 // protocol - the protocol to use when listening for incoming connections. Currenlty supports HTTP(S) and TCP.
+//
 // implant - an instance of an Implant that is tied to a session whenever an implant reaches out to register a new session.
+//
 // rhost - the "remote" host address. This contains a value of the external IP where an Implant is reaching out from.
+//
 // rawcheckin - the raw check in time structure that is calculated anytime an implant communicates successfully with a listener.
+//
 // checkin - a formatted version of the rawcheckin in time for easily displaying in print string output so it doesn't need to be converted each time.
-// status - current activity status of the implant, can be ALIVE, DEAD, or UNKOWN. UNKOWN is defaulted to if no update interval is provided during implant communications.
+//
+// status - current activity status of the implant, can be ALIVE, DEAD, or UNKNOWN. UNKNOWN is defaulted to if no update interval is provided during implant communications.
 
 type Session struct {
 	ID         int
@@ -100,13 +107,20 @@ func SessionStatusUpdate(sessionID int, status string) {
 }
 
 // InitializeSessionCLI - Initialize the nested session CLI arguments
+//
 // "session" has no arguments and is not a grumble command in and of itself. It is a separate nested grumble application and contains all new base commands.
-//  "session" base commands include:
-//  	"back" - resets the current active session to "-1" and closes the nested session sub-shell.
-//  	"session" - the actual "session" command which is used to switch sessions by specifying an argument of a session ID to switch to. This is identical to the interact command only it allows you to switch sessions while in the session sub-shell as "interact" is unavailable in the sub-shell.
-//  	"cmd" - built in command directive to denote commands that are intended to be executed as a system command of a specified session. These commands are usually sent to the client as JSON in the format of {"cmd":"<some command"}. It supports multi-line/multi-arg commands.
-//		"kill" - takes an argument of "id" which is used to de-register the specified session.
-//		"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
+//
+// "session" base commands include:
+//
+// 	"back" - resets the current active session to "-1" and closes the nested session sub-shell.
+//
+// 	"session" - the actual "session" command which is used to switch sessions by specifying an argument of a session ID to switch to. This is identical to the interact command only it allows you to switch sessions while in the session sub-shell as "interact" is unavailable in the sub-shell.
+//
+// 	"cmd" - built in command directive to denote commands that are intended to be executed as a system command of a specified session. These commands are usually sent to the client as JSON in the format of {"cmd":"<some command"}. It supports multi-line/multi-arg commands.
+//
+// 	"kill" - takes an argument of "id" which is used to de-register the specified session.
+//
+// 	"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
 func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	backCmd := &grumble.Command{

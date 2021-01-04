@@ -32,15 +32,25 @@ func StartTCPServer(tcpServer net.Listener) {
 }
 
 // TCPServerHandler - handles any incoming TCP connections. Once all values are handled various Implant data update/response routines are executed where relevant based on the provided parameters.
+//
 // TCP Requests are raw and as a result the TCPServer expects implants to send data in a pre-determined format for parsing.
+//
 // JSON is the expected format. All JSON values are mapped to a TCPData structure that is then utilized through the handling of the connection. The following parameters can be provided:
+//
 // PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
+//
 // SessionID - a unique Session ID that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration.
+//
 // UUID - a unique UUID formatted identifier that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration. The UUID is not the primary identifier but is a secondary validation to prevent id bruteforcing or id mis-matches during the registration/de-registration processes.
+//
 // ImplantArch - a string for storing the Architecture of an implant's host system. This can be anything and is provided by the implant, but is expected to be something that identifies the host operating system and architecture.
+//
 // Update - an update interval in seconds that implants provide to tell the server how often it intends to check in. This value is used to determine if a session may have been killed.
+//
 // Data - a data payload, usually the output of execute commands on the implant. Once an implant executes a command, it can send the output to the data parameter where it will be printed to the user in the Lupo CLI.
+//
 // AdditionalFunctions - additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that is loaded into the CLI if successfully registered. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
+//
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 
 func TCPServerHandler(conn net.Conn) {

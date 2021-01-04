@@ -13,6 +13,7 @@ import (
 )
 
 // HTTPServerHandler - Handles all HTTPS/HTTPServer requests by passing data to handler sub-functions based on request type.
+//
 // Also sets HTTP server parameters and any other applicable HTTP server level variables.
 func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 	// Setup webserver attributes like headers and response information
@@ -32,15 +33,25 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleGetRequests - handles any incoming GET requests received by the HTTP(S) listener. Once all values are handled various Implant data update/response routines are executed where relevant based on the provided parameters.
+//
 // When requests are received, the URL parameters are extracted, validated and stored.
+//
 // HTTP GET Requests are expected to be provided as URL parameters like any other web request. The following parameters can be provided:
+//
 // PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
+//
 // SessionID - a unique Session ID that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration.
+//
 // UUID - a unique UUID formatted identifier that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration. The UUID is not the primary identifier but is a secondary validation to prevent id bruteforcing or id mis-matches during the registration/de-registration processes.
+//
 // ImplantArch - a string for storing the Architecture of an implant's host system. This can be anything and is provided by the implant, but is expected to be something that identifies the host operating system and architecture.
+//
 // Update - an update interval in seconds that implants provide to tell the server how often it intends to check in. This value is used to determine if a session may have been killed.
+//
 // Data - a data payload, usually the output of execute commands on the implant. Once an implant executes a command, it can send the output to the data parameter where it will be printed to the user in the Lupo CLI.
+//
 // AdditionalFunctions - additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that is loaded into the CLI if successfully registered. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
+//
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 
 func handleGetRequests(w http.ResponseWriter, r *http.Request) {
@@ -189,15 +200,25 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 }
 
 // handPostRequests - handles any incoming POST requests received by the HTTP(S) listener. Once all values are handled various Implant data update/response routines are executed where relevant based on the provided parameters.
+//
 // When requests are received, the Form parameters are extracted, validated and stored.
+//
 // HTTP POST Requests are expected to be provided as standard Form based parameters in the body of the request. The following parameters can be provided:
+//
 // PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
+//
 // SessionID - a unique Session ID that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration.
+//
 // UUID - a unique UUID formatted identifier that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration. The UUID is not the primary identifier but is a secondary validation to prevent id bruteforcing or id mis-matches during the registration/de-registration processes.
+//
 // ImplantArch - a string for storing the Architecture of an implant's host system. This can be anything and is provided by the implant, but is expected to be something that identifies the host operating system and architecture.
+//
 // Update - an update interval in seconds that implants provide to tell the server how often it intends to check in. This value is used to determine if a session may have been killed.
+//
 // Data - a data payload, usually the output of execute commands on the implant. Once an implant executes a command, it can send the output to the data parameter where it will be printed to the user in the Lupo CLI.
+//
 // AdditionalFunctions - additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that is loaded into the CLI if successfully registered. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
+//
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 
 func handlePostRequests(w http.ResponseWriter, r *http.Request) {
