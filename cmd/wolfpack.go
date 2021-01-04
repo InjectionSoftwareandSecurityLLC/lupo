@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -135,6 +137,8 @@ func init() {
 
 			// TODO: Generate client binary
 
+			generateLupoClient()
+
 			fmt.Println(outFile + arch)
 
 			return nil
@@ -210,4 +214,37 @@ func startWolfPackServer(id int, lhost string, lport int, listenString string, p
 		}
 	}()
 
+}
+
+func generateLupoClient() {
+	lupoClient := []byte(`
+	package main
+
+	import "fmt"
+	
+	func main(){
+		fmt.Println("Hello I am going to be a Lupo client one day!")
+	}`)
+
+	lupoClientDir := "lupo_client/src/"
+	lupoClientSrcFile := "lupo_client.go"
+
+	err := os.MkdirAll(lupoClientDir, 0755)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	err = ioutil.WriteFile(lupoClientDir+lupoClientSrcFile, lupoClient, 777)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	cmd := exec.Command("go", "build", "-o", "lupo-client", lupoClientDir+lupoClientSrcFile)
+	stdout, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	fmt.Println(string(stdout))
 }

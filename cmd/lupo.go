@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
@@ -12,12 +11,6 @@ import (
 // lupoApp - Primary lupo grumble CLI construction
 //
 // This sets up the lupo prompt and color scheme, defines a history logfile, and toggles various grumble sepcific parameters for help command options.
-//
-// Flag(s):
-//
-// psk (optional) - The "psk" flag is for defining a Pre-Shared Key that will be checked for authentication to prevent invalid implants from establishing a session to the Lupo listeners.
-//
-// If no psk is provided, the default of "wolfpack" will be used. (Future updates may randomly generate a key and display it in the Lupo server console on start).
 var lupoApp = grumble.New(&grumble.Config{
 	Name:                  "lupo",
 	Description:           "Lupo Modular C2",
@@ -27,9 +20,6 @@ var lupoApp = grumble.New(&grumble.Config{
 	HelpHeadlineColor:     color.New(color.FgWhite),
 	HelpHeadlineUnderline: true,
 	HelpSubCommands:       true,
-	Flags: func(f *grumble.Flags) {
-		f.String("k", "psk", core.DefaultPSK, "Pre-Shared Key for implant authentication")
-	},
 })
 
 // App - Primary grumble CLI construction variable for switching nested app contexts
@@ -39,7 +29,7 @@ var lupoApp = grumble.New(&grumble.Config{
 // The primary use case is switching between the "lupo" core shell and the nested "session" sub-shell that handles session management.
 var App = lupoApp
 
-// init - initializes the Lupo ASCII Art Logo.
+// init - initializes the primary Lupo cli application
 func init() {
 	App.SetPrintASCIILogo(func(a *grumble.App) {
 		a.Println("     _                  _")
@@ -61,4 +51,5 @@ func init() {
 		a.Println("                      art by Morfina")
 		a.Println()
 	})
+
 }

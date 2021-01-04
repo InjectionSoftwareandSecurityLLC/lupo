@@ -55,6 +55,8 @@ var didDisplayPsk = false
 //
 //  "listener" subcommands include:
 //
+//		"manage" - Manages global properties of listeners not related to actually establishing a listener, such as PSK rotation
+//
 //  	"start" - Starts a listener. Can accept flags of lhost, lport, protocol, key (used in HTTPS), and cert (used in HTTPS) to specify how a listener will establish itself via the protocol given by the user (Defaults to HTTPS).
 //
 //  	"show" - Prints a table of all running listeners and their configuration details.
@@ -69,6 +71,51 @@ func init() {
 		LongHelp: "Interact with and manage an HTTP/HTTPS or TCP Listener",
 	}
 	App.AddCommand(listenCmd)
+
+	listenManageCmd := &grumble.Command{
+		Name:     "manage",
+		Help:     "manages global listener attributes",
+		LongHelp: "manages global listener attributes such as the PSK",
+		Flags: func(f *grumble.Flags) {
+			f.String("k", "psk", "", "sets the global PSK to something new to allow for PSK rotation (this will refuse future auth to any implants using the old PSK")
+			f.Bool("r", "rand", false, "generates a new random psk when coupled with an empty \"\" psk flag")
+		},
+		Run: func(c *grumble.Context) error {
+
+			psk := c.Flags.String("psk")
+			randPSK := c.Flags.Bool("rand")
+
+			var didResetPSK = true
+
+			if psk == "" {
+				if randPSK {
+					psk = core.GeneratePSK()
+					didResetPSK = true
+				} else {
+					core.WarningColorBold.Println("Warning, you did not provide a PSK, this will keep the current PSK. You can ignore this if you did not want to update the PSK.")
+					psk = core.DefaultPSK
+					didResetPSK = false
+				}
+			}
+
+			if core.DefaultPSK == c.Flags.String("psk") && !didDisplayPsk {
+				core.SuccessColorBold.Println("Your randomly generated PSK is:")
+				fmt.Println(core.DefaultPSK)
+				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
+				didDisplayPsk = true
+			} else if didResetPSK {
+				core.SuccessColorBold.Println("Your new PSK is:")
+				fmt.Println(psk)
+				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
+				fmt.Println("")
+			}
+
+			server.PSK = psk
+
+			return nil
+		},
+	}
+	listenCmd.AddCommand(listenManageCmd)
 
 	listenStartCmd := &grumble.Command{
 		Name:     "start",
@@ -98,14 +145,14 @@ func init() {
 				tlsCert = ""
 			}
 
-			psk := c.Flags.String("psk")
-
-			if core.DefaultPSK == c.Flags.String("psk") && !didDisplayPsk {
+			if server.PSK == "" && !didDisplayPsk {
 				core.SuccessColorBold.Println("Your randomly generated PSK is:")
 				fmt.Println(core.DefaultPSK)
-				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to listeners in this instance.")
+				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
 				fmt.Println("")
+				core.SuccessColorBold.Println("If you would like to set your own PSK, you can rotate the current key using the 'listener manage' sub command")
 				didDisplayPsk = true
+				psk = core.DefaultPSK
 			}
 
 			startListener(listenerID, lhost, lport, protocol, listenString, psk, tlsKey, tlsCert)
