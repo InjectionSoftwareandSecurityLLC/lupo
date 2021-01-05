@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -78,32 +77,32 @@ func init() {
 		LongHelp: "manages global listener attributes such as the PSK",
 		Flags: func(f *grumble.Flags) {
 			f.String("k", "psk", "", "sets the global PSK to something new to allow for PSK rotation (this will refuse future auth to any implants using the old PSK")
-			f.Bool("r", "rand", false, "generates a new random psk when coupled with an empty \"\" psk flag")
+			f.Bool("r", "rand", false, "generates a new random psk when coupled with or omitting an empty psk flag")
 		},
 		Run: func(c *grumble.Context) error {
 
 			psk := c.Flags.String("psk")
 			randPSK := c.Flags.Bool("rand")
 
-			var didResetPSK = true
+			var operator string
+
+			operator = "server"
 
 			if psk == "" {
 				if randPSK {
+					core.LogData(operator + " executed: listener manage -r true")
 					psk = core.GeneratePSK()
-					didResetPSK = true
+					core.SuccessColorBold.Println("Your new random PSK is:")
+					fmt.Println(psk)
+					core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
+					fmt.Println("")
 				} else {
+					core.LogData(operator + " executed: listener manage")
 					core.WarningColorBold.Println("Warning, you did not provide a PSK, this will keep the current PSK. You can ignore this if you did not want to update the PSK.")
 					psk = core.DefaultPSK
-					didResetPSK = false
 				}
-			}
-
-			if core.DefaultPSK == c.Flags.String("psk") && !didDisplayPsk {
-				core.SuccessColorBold.Println("Your randomly generated PSK is:")
-				fmt.Println(core.DefaultPSK)
-				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
-				didDisplayPsk = true
-			} else if didResetPSK {
+			} else {
+				core.LogData(operator + " executed: listener manage -k <redacted>")
 				core.SuccessColorBold.Println("Your new PSK is:")
 				fmt.Println(psk)
 				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
@@ -144,6 +143,11 @@ func init() {
 				tlsKey = ""
 				tlsCert = ""
 			}
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
 
 			if server.PSK == "" && !didDisplayPsk {
 				core.SuccessColorBold.Println("Your randomly generated PSK is:")
@@ -169,6 +173,12 @@ func init() {
 		Help:     "show running listeners",
 		LongHelp: "Display all running listeners",
 		Run: func(c *grumble.Context) error {
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: listener show")
 
 			if server.IsWolfPackExec {
 
@@ -223,6 +233,12 @@ func init() {
 
 			killID := c.Args.Int("id")
 
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: listener kill " + strconv.Itoa(killID))
+
 			if server.IsWolfPackExec {
 				server.WolfPackResponse = "hello from the wolfpack 2"
 				return nil
@@ -237,10 +253,14 @@ func init() {
 					tcpServer.Close()
 				}
 				delete(listeners, killID)
-				core.SuccessColorBold.Println("Killing listener: " + strconv.Itoa(killID))
+				responseMessage := "Killed listener: " + strconv.Itoa(killID)
+				core.LogData(responseMessage)
+				core.SuccessColorBold.Println(responseMessage)
 				return nil
 			} else {
-				core.ErrorColorBold.Println("Listener: " + strconv.Itoa(killID) + " does not exist")
+				responseMessage := "Listener: " + strconv.Itoa(killID) + " does not exist"
+				core.LogData(responseMessage)
+				core.ErrorColorBold.Println(responseMessage)
 				return nil
 			}
 
@@ -266,6 +286,8 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 	var newListener Listener
 
+	core.LogData("Starting new " + protocol + " listener on " + listenString)
+
 	if protocol == "HTTP" || protocol == "HTTPS" {
 		newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
 		newListener = Listener{
@@ -287,6 +309,7 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 				err := newServer.ListenAndServe()
 				if err != nil {
 					println("")
+					core.LogData("error: failed to start HTTP server")
 					core.ErrorColorBold.Println(err)
 					delete(listeners, newListener.id)
 					listenerID--
@@ -298,6 +321,7 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 				err := newServer.ListenAndServeTLS(tlsCert, tlsKey)
 				if err != nil {
 					println("")
+					core.LogData("error: failed to start HTTPS server")
 					core.ErrorColorBold.Println(err)
 					delete(listeners, newListener.id)
 					listenerID--
@@ -313,7 +337,9 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 		newServer, err := net.Listen("tcp", listenString)
 		if err != nil {
-			log.Fatal(err)
+			core.LogData("error: failed to start TCP server")
+			core.ErrorColorBold.Println(err)
+			return
 		}
 		newListener = Listener{
 			id:           id,
@@ -331,7 +357,9 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 		go server.StartTCPServer(newServer)
 
 	} else {
-		core.ErrorColorUnderline.Println("Unsupported listener protocol specified: " + protocol + " is not implemented")
+		errorString := "Unsupported listener protocol specified: " + protocol + " is not implemented"
+		core.LogData("error: " + errorString)
+		core.ErrorColorUnderline.Println(errorString)
 		return
 	}
 

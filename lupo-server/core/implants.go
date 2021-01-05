@@ -1,6 +1,8 @@
 package core
 
 import (
+	"strconv"
+
 	"github.com/google/uuid"
 )
 
@@ -42,11 +44,15 @@ func RegisterImplant(arch string, updateInterval float64, functions map[string]i
 		response:  "",
 		Functions: functions,
 	}
+
+	LogData("Registered new implant with UUID: " + implantID.String())
+
 	return implant
 }
 
 // UpdateImplant - function to update common implant fields on a given check in cycle such as the update interval, custom functions, and the command queue.
 func UpdateImplant(sessionID int, updateInterval float64, functions map[string]interface{}) {
+
 	var sessionUpdate = Sessions[sessionID]
 
 	if updateInterval != 0 {
@@ -68,6 +74,8 @@ func UpdateImplant(sessionID int, updateInterval float64, functions map[string]i
 	sessionUpdate.Implant.Commands = commandQueue
 
 	Sessions[sessionID] = sessionUpdate
+
+	LogData("Updated implant with Session ID: " + strconv.Itoa(sessionID))
 }
 
 // QueueImplantCommand - inserts a command to the command queue to be executed by a specified implant on the next check in
@@ -77,4 +85,6 @@ func QueueImplantCommand(sessionID int, cmd string) {
 	sessionUpdate.Implant.Commands = append(sessionUpdate.Implant.Commands, cmd)
 
 	Sessions[sessionID] = sessionUpdate
+
+	LogData("Queued command on implant with Session ID " + strconv.Itoa(sessionID) + ": " + cmd)
 }

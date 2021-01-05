@@ -16,3 +16,7 @@
 *.crt
 *.key
 *.pem
+
+.lupo.history
+.lupo.log
+lupo_client.json

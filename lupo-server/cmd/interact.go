@@ -43,10 +43,22 @@ func init() {
 
 			activeSession = c.Args.Int("id")
 
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: interact " + strconv.Itoa(activeSession))
+
 			_, sessionExists := core.Sessions[activeSession]
 
 			if !sessionExists {
-				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+
+				errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
+
+				core.LogData("error: " + errorMessage)
+
+				return errors.New(errorMessage)
+
 			}
 
 			App = grumble.New(core.SessionAppConfig)
@@ -71,6 +83,10 @@ func init() {
 
 			filterID := c.Args.Int("id")
 
+			var operator string
+
+			operator = "server"
+
 			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 			fmt.Fprintf(table, "ID\tRemote Host\tArch\tProtocol\tLast Check In\tUpdate Interval\tStatus\t\n")
 			fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t\n",
@@ -84,10 +100,17 @@ func init() {
 
 			if filterID != -1 {
 
+				core.LogData(operator + " executed: interact show" + strconv.Itoa(filterID))
+
 				_, sessionExists := core.Sessions[filterID]
 
 				if !sessionExists {
-					return errors.New("cannot filter show on session " + strconv.Itoa(activeSession) + " because the session does not exist")
+
+					errorMessage := "cannot filter show on session " + strconv.Itoa(activeSession) + " because the session does not exist"
+
+					core.LogData("error: " + errorMessage)
+
+					return errors.New(errorMessage)
 				}
 
 				updateInterval := core.Sessions[filterID].Implant.Update
@@ -121,6 +144,8 @@ func init() {
 					textStatus)
 
 			} else {
+				core.LogData(operator + " executed: interact show")
+
 				for i := range core.Sessions {
 
 					updateInterval := core.Sessions[i].Implant.Update
@@ -173,6 +198,12 @@ func init() {
 
 			id := c.Args.Int("id")
 
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: interact kill" + strconv.Itoa(id))
+
 			delete(core.Sessions, id)
 
 			core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
@@ -187,6 +218,12 @@ func init() {
 		Help:     "cleans all sessions marked as DEAD",
 		LongHelp: "Kills all sessions marked as DEAD to clear up the session list.",
 		Run: func(c *grumble.Context) error {
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: interact clean")
 
 			for i := range core.Sessions {
 
@@ -215,7 +252,7 @@ func init() {
 func calculateSessionStatus(updateInterval float64, lastCheckIn time.Time) (bool, error) {
 
 	if updateInterval == 0 {
-		return true, errors.New("No update internal provided, could not be calculated")
+		return true, errors.New("No update interval provided, could not be calculated")
 	}
 
 	currentTime := time.Now()

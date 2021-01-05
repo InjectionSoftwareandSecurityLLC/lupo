@@ -40,4 +40,6 @@ func UpdateWolf(username string, rhost string) {
 
 	Wolves[username] = updateWolf
 
+	LogData("Wolf structure for user: " + username + "@" + rhost + " was updated")
+
 }

@@ -1,9 +1,10 @@
-// cmd - the "cmd" package is the core packaged used to reference and manage all grumble integrated commands/features of the application.
+// Package cmd - the "cmd" package is the core packaged used to reference and manage all grumble integrated commands/features of the application.
 //
 // The "cmd" package houses all of the core "interface/application" code which is a mix of both user interface and logical functionality.
 package cmd
 
 import (
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
@@ -14,7 +15,7 @@ import (
 var lupoApp = grumble.New(&grumble.Config{
 	Name:                  "lupo",
 	Description:           "Lupo Modular C2",
-	HistoryFile:           "/tmp/lupo.log",
+	HistoryFile:           ".lupo.history",
 	Prompt:                "lupo ☾ ",
 	PromptColor:           color.New(color.FgCyan, color.Bold),
 	HelpHeadlineColor:     color.New(color.FgWhite),
@@ -31,6 +32,9 @@ var App = lupoApp
 
 // init - initializes the primary Lupo cli application
 func init() {
+
+	core.LogData("Lupo C2 started!")
+
 	App.SetPrintASCIILogo(func(a *grumble.App) {
 		a.Println("     _                  _")
 		a.Println("    | '-.            .-' |")

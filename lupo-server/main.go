@@ -3,6 +3,7 @@ package main
 
 import (
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/cmd"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/desertbit/grumble"
 )
 
@@ -10,4 +11,5 @@ import (
 func main() {
 
 	grumble.Main(cmd.App)
+	core.LogData("Lupo C2 stopped!")
 }

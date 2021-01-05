@@ -65,7 +65,9 @@ func TCPServerHandler(conn net.Conn) {
 
 	netData, err := bufio.NewReader(conn).ReadString('\n')
 	if err != nil {
-		core.ErrorColorBold.Println("Error reading TCP connection from implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID))
+		errorString := "Error reading TCP connection from implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
+		core.LogData(errorString)
+		core.ErrorColorBold.Println(errorString)
 		fmt.Println(err)
 		return
 	}
@@ -73,12 +75,15 @@ func TCPServerHandler(conn net.Conn) {
 	err = json.Unmarshal([]byte(netData), &tcpParams)
 
 	if err != nil {
+		core.LogData("error: Problem occurred while parsing input from a TCP based implant")
 		core.ErrorColorBold.Println("There was an error with parsing input from a TCP based implant, check the error below:")
 		fmt.Println(err)
 	}
 
 	if tcpParams.PSK == "" {
-		returnErr := errors.New("TCP Request did not provide PSK, request ignored")
+		errorString := "TCP Request did not provide PSK, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
@@ -111,30 +116,38 @@ func TCPServerHandler(conn net.Conn) {
 			jsonResp, err := json.Marshal(response)
 
 			if err != nil {
-				core.ErrorColorBold.Println("Error converting TCP response to JSON")
+				errorString := "Error converting TCP response to JSON"
+				core.LogData(errorString)
+				core.ErrorColorBold.Println(errorString)
 			}
 
 			conn.Write([]byte(jsonResp))
 
 			core.SuccessColorBold.Println("\nNew implant registered successfully!")
+			core.LogData("Session: " + strconv.Itoa(newSession) + " established")
 			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
 
 			return
 
 		}
 	} else {
-		returnErr := errors.New("TCP Request Invalid PSK, request ignored")
+		errorString := "TCP Request Invalid PSK, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
 
 	if core.Sessions[tcpParams.SessionID].Implant.ID != tcpParams.UUID || tcpParams.UUID == core.ZeroedUUID {
-		returnErr := errors.New("TCP Request Invalid UUID, request ignored")
+		errorString := "TCP Request Invalid UUID, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
 
 	if tcpParams.Data != "" {
+		core.LogData("Session " + strconv.Itoa(tcpParams.SessionID) + " returned:\n" + tcpParams.Data)
 		fmt.Println("\nSession " + strconv.Itoa(tcpParams.SessionID) + " returned:\n" + tcpParams.Data)
 	}
 
@@ -151,7 +164,9 @@ func TCPServerHandler(conn net.Conn) {
 	jsonResp, err := json.Marshal(response)
 
 	if err != nil {
-		core.ErrorColorBold.Println("Error converting TCP cmd to JSON")
+		errorString := "Error converting TCP cmd to JSON"
+		core.LogData(errorString)
+		core.ErrorColorBold.Println(errorString)
 	}
 
 	core.UpdateImplant(tcpParams.SessionID, tcpParams.Update, additionalFunctions)

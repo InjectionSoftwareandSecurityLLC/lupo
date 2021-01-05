@@ -48,11 +48,10 @@ var SessionID int = 0
 
 // SessionAppConfig - Primary session nested grumble CLI config construction
 // This sets up the lupo "session" nested/sub-prompt and color scheme, defines a history logfile, and toggles various grumble sepcific parameters for help command options.
-
 var SessionAppConfig = &grumble.Config{
 	Name:                  "session",
 	Description:           "Interactive Session CLI",
-	HistoryFile:           "/tmp/lupo.log",
+	HistoryFile:           ".lupo.history",
 	Prompt:                "lupo session " + strconv.Itoa(activeSession) + " ☾ ",
 	PromptColor:           color.New(color.FgGreen, color.Bold),
 	HelpHeadlineColor:     color.New(color.FgWhite),
@@ -79,6 +78,8 @@ func RegisterSession(sessionID int, protocol string, implant Implant, rhost stri
 	}
 
 	SessionID++
+
+	LogData("Registered new session with ID: " + strconv.Itoa(sessionID))
 }
 
 // SessionCheckIn - Updates the Last Check In anytime a verified session calls back
@@ -94,6 +95,8 @@ func SessionCheckIn(sessionID int) {
 	sessionUpdate.Checkin = timeFormatted
 
 	Sessions[sessionID] = sessionUpdate
+
+	LogData("Session " + strconv.Itoa(sessionID) + " checked in")
 }
 
 // SessionStatusUpdate - Updates the current status of a session
@@ -104,6 +107,8 @@ func SessionStatusUpdate(sessionID int, status string) {
 	sessionUpdate.Status = status
 
 	Sessions[sessionID] = sessionUpdate
+
+	LogData("Updated status of session " + strconv.Itoa(sessionID) + " session is: " + status)
 }
 
 // InitializeSessionCLI - Initialize the nested session CLI arguments
@@ -123,12 +128,24 @@ func SessionStatusUpdate(sessionID int, status string) {
 // 	"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
 func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
+	var operator string
+
+	operator = "server"
+
+	LogData(operator + " started interaction with session: " + strconv.Itoa(activeSession))
+
 	backCmd := &grumble.Command{
 		Name:     "back",
 		Help:     "go back to core lupo cli (or use the exit command)",
 		LongHelp: "Exit interactive session cli and return to lupo cli (The 'exit' command is an optional built-in to go back as well) ",
 		Run: func(c *grumble.Context) error {
 			activeSession = -1
+
+			var operator string
+
+			operator = "server"
+
+			LogData(operator + " executed: back")
 
 			sessionApp.Close()
 
@@ -146,6 +163,12 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		},
 		Run: func(c *grumble.Context) error {
 			activeSession = c.Args.Int("id")
+
+			var operator string
+
+			operator = "server"
+
+			LogData(operator + " executed: session " + strconv.Itoa(activeSession))
 
 			_, sessionExists := Sessions[activeSession]
 
@@ -174,6 +197,12 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			cmdString := strings.Join(cmd, " ")
 
+			var operator string
+
+			operator = "server"
+
+			LogData(operator + " executed: cmd " + cmdString)
+
 			QueueImplantCommand(activeSession, cmdString)
 
 			return nil
@@ -193,9 +222,19 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			id := c.Args.Int("id")
 
+			var operator string
+
+			operator = "server"
+
+			LogData(operator + " executed: kill " + strconv.Itoa(id))
+
 			delete(Sessions, id)
 
-			WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
+			warningString := "Session " + strconv.Itoa(id) + " has been terminated..."
+
+			LogData(warningString)
+
+			WarningColorBold.Println(warningString)
 
 			return nil
 		},
@@ -208,6 +247,13 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Help:     "loads custom functions for a given implant",
 		LongHelp: "Loads custom functions registered by an implant tied to the current session if any exist",
 		Run: func(c *grumble.Context) error {
+
+			var operator string
+
+			operator = "server"
+
+			LogData(operator + " executed: load")
+
 			for key, value := range Sessions[activeSession].Implant.Functions {
 
 				command := key
@@ -225,6 +271,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 				}
 
 				sessionApp.AddCommand(implantFunction)
+				LogData("Session " + strconv.Itoa(activeSession) + " loaded extended function: " + command)
 
 			}
 

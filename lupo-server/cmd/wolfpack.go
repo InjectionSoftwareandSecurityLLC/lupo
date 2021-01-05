@@ -60,6 +60,12 @@ func init() {
 			tlsKey := c.Flags.String("key")
 			tlsCert := c.Flags.String("cert")
 
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: wolfpack start -l " + lhost + " -p " + strconv.Itoa(lport) + " -k " + tlsKey + " -c " + tlsCert)
+
 			app := App
 
 			startWolfPackServer(listenerID, lhost, lport, listenString, psk, tlsKey, tlsCert, app)
@@ -74,6 +80,12 @@ func init() {
 		Help:     "stops the wolfpack server",
 		LongHelp: "Stops the wolfpack teamserver",
 		Run: func(c *grumble.Context) error {
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: wolfpack stop")
 
 			wolfPackServer.httpInstance.Close()
 
@@ -93,7 +105,15 @@ func init() {
 
 			userName := c.Args.String("user")
 
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: wolfpack deregister " + userName)
+
 			delete(core.Wolves, userName)
+
+			core.LogData("User " + userName + " was deregistered")
 
 			core.SuccessColorBold.Println("User Deregistered!")
 
@@ -105,10 +125,9 @@ func init() {
 	wolfPackRegisterCmd := &grumble.Command{
 		Name:     "register",
 		Help:     "registers a wolfpack user",
-		LongHelp: "Registers a wolfpack user and provides a client binary for them connect",
+		LongHelp: "Registers a wolfpack user and provides a client config for them connect via the Lupo Client",
 		Flags: func(f *grumble.Flags) {
-			f.String("o", "out", "wolfpack-client", "path/name to output the wolfpack client binary")
-			f.String("a", "arch", "linux", "architecture to compile the wolfpack client binary for linux (DEFAULT), darwin, or windows")
+			f.String("o", "out", "wolfpack.json", "path/name to output the wolfpack client config")
 		},
 		Args: func(a *grumble.Args) {
 			a.String("user", "A name for the user")
@@ -117,7 +136,6 @@ func init() {
 		Run: func(c *grumble.Context) error {
 
 			outFile := c.Flags.String("out")
-			arch := c.Flags.String("arch")
 
 			userName := c.Args.String("user")
 
@@ -130,15 +148,21 @@ func init() {
 				Response: "",
 			}
 
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: wolfpack register -o " + outFile + " " + userName + " <redacted>")
+
 			core.Wolves[userName] = wolf
+
+			core.LogData("Registered User " + userName)
 
 			core.SuccessColorBold.Println("User Registered!")
 
 			// TODO: Generate client config
 
 			generateLupoClientConfig()
-
-			fmt.Println(outFile + arch)
 
 			return nil
 		},
@@ -150,6 +174,12 @@ func init() {
 		Help:     "show wolfpack server status and registered user information",
 		LongHelp: "Displays the status of the wolfpack server along with information about registered wolfpack users",
 		Run: func(c *grumble.Context) error {
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: wolfpack show")
 
 			var status string
 			var listenString string
@@ -195,6 +225,8 @@ func startWolfPackServer(id int, lhost string, lport int, listenString string, p
 
 	server.WolfPackApp = app
 
+	core.LogData("Starting new WolfPack server on " + listenString)
+
 	newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.WolfPackServerHandler)}
 
 	wolfPackServer.lhost = lhost
@@ -207,6 +239,7 @@ func startWolfPackServer(id int, lhost string, lport int, listenString string, p
 		err := newServer.ListenAndServeTLS(tlsCert, tlsKey)
 		if err != nil {
 			println("")
+			core.LogData("error: failed to start WolfPack server")
 			core.ErrorColorBold.Println(err)
 			wolfPackServer.status = false
 			return
@@ -216,6 +249,9 @@ func startWolfPackServer(id int, lhost string, lport int, listenString string, p
 }
 
 func generateLupoClientConfig() {
+
+	core.LogData("Generated lupo client config for <placeholder>")
+
 	lupoClient := []byte(`
 		{
 			"data":"one day i'll be a config"

@@ -51,8 +51,10 @@ type TCPData struct {
 var DefaultPSK = GeneratePSK()
 
 // GeneratePSK - Generates a random 32 character string, encodes it with SHA256 as a PSK that is set by default on startup unless the user specifies a static PSK
-
 func GeneratePSK() string {
+
+	LogData("Generated new random Lupo C2 PSK")
+
 	rand.Seed(time.Now().UnixNano())
 	chars := []rune("ABCDEFGHIJKLMOPQRSTUVWXYZ" +
 		"abcdefghijklmnopqrstuvwxyz" +
