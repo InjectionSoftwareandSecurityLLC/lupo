@@ -10,8 +10,8 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/server"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/server"
 	"github.com/desertbit/grumble"
 )
 

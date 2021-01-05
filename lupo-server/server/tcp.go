@@ -9,7 +9,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 )
 
 // StartTCPServer - starts a tcp server with given parameters specified during Listener creation

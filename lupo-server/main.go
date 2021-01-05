@@ -2,7 +2,7 @@
 package main
 
 import (
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/cmd"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/cmd"
 	"github.com/desertbit/grumble"
 )
 

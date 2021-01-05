@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/desertbit/grumble"
 )
 

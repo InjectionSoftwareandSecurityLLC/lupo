@@ -5,13 +5,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/server"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/server"
 	"github.com/desertbit/grumble"
 )
 
@@ -135,9 +134,9 @@ func init() {
 
 			core.SuccessColorBold.Println("User Registered!")
 
-			// TODO: Generate client binary
+			// TODO: Generate client config
 
-			generateLupoClient()
+			generateLupoClientConfig()
 
 			fmt.Println(outFile + arch)
 
@@ -216,18 +215,15 @@ func startWolfPackServer(id int, lhost string, lport int, listenString string, p
 
 }
 
-func generateLupoClient() {
+func generateLupoClientConfig() {
 	lupoClient := []byte(`
-	package main
-
-	import "fmt"
-	
-	func main(){
-		fmt.Println("Hello I am going to be a Lupo client one day!")
-	}`)
+		{
+			"data":"one day i'll be a config"
+		}
+	`)
 
 	lupoClientDir := "lupo_client/src/"
-	lupoClientSrcFile := "lupo_client.go"
+	lupoClientSrcFile := "lupo_client.json"
 
 	err := os.MkdirAll(lupoClientDir, 0755)
 	if err != nil {
@@ -238,13 +234,4 @@ func generateLupoClient() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
-	cmd := exec.Command("go", "build", "-o", "lupo-client", lupoClientDir+lupoClientSrcFile)
-	stdout, err := cmd.Output()
-
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-	fmt.Println(string(stdout))
 }

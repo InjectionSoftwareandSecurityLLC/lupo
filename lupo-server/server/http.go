@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 )
 
 // HTTPServerHandler - Handles all HTTPS/HTTPServer requests by passing data to handler sub-functions based on request type.

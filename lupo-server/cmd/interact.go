@@ -9,7 +9,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/desertbit/grumble"
 )
 
