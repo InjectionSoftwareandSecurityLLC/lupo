@@ -48,6 +48,9 @@ var listenerID int = 0
 // didDisplayPsk - a boolean to check if the pre-generated PSK was already given to the user so it is not printed each time
 var didDisplayPsk = false
 
+// PSK - global PSK for listeners to manage and set the server PSK
+var PSK string
+
 // init - Initializes the primary "listener" grumble command
 //
 // "listener" has no arguments and serves as a base for several subcommands.
@@ -109,7 +112,7 @@ func init() {
 				fmt.Println("")
 			}
 
-			server.PSK = psk
+			PSK = psk
 
 			return nil
 		},
@@ -149,17 +152,17 @@ func init() {
 
 			core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
 
-			if server.PSK == "" && !didDisplayPsk {
+			if PSK == "" && !didDisplayPsk {
 				core.SuccessColorBold.Println("Your randomly generated PSK is:")
 				fmt.Println(core.DefaultPSK)
 				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
 				fmt.Println("")
 				core.SuccessColorBold.Println("If you would like to set your own PSK, you can rotate the current key using the 'listener manage' sub command")
 				didDisplayPsk = true
-				psk = core.DefaultPSK
+				PSK = core.DefaultPSK
 			}
 
-			startListener(listenerID, lhost, lport, protocol, listenString, psk, tlsKey, tlsCert)
+			startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
 
 			listenerID++
 
@@ -280,9 +283,9 @@ func init() {
 // TCP Servers are started by executing a StartTCPServer function via goroutine. To maintain concurrency a subsequent goroutine is executed to handle the data for all TCP connections via TCPServerHandler() function.
 //
 // All listeners are concurrent and support multiple simultaneous connections.
-func startListener(id int, lhost string, lport int, protocol string, listenString string, psk string, tlsKey string, tlsCert string) {
+func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string) {
 
-	server.PSK = psk
+	server.PSK = PSK
 
 	var newListener Listener
 

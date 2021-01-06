@@ -66,7 +66,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	var getData string
 	var getAdditionalFunctions string
 	var additionalFunctions map[string]interface{}
-	var register bool
+	register := false
 	var err error
 
 	// Get the Remote Address of the Implant from the request
@@ -249,7 +249,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	var postData string
 	var postAdditionalFunctions string
 	var additionalFunctions map[string]interface{}
-	var register bool
+	register := false
 	var err error
 
 	// Get the Remote Address of the Implant from the request

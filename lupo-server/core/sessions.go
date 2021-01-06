@@ -201,7 +201,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			operator = "server"
 
-			LogData(operator + " executed: cmd " + cmdString)
+			LogData(operator + " executed on session " + strconv.Itoa(activeSession) + ": cmd " + cmdString)
 
 			QueueImplantCommand(activeSession, cmdString)
 

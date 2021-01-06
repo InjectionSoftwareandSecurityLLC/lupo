@@ -58,6 +58,8 @@ func TCPServerHandler(conn net.Conn) {
 
 	var tcpParams core.TCPData
 	var remoteAddr string
+	tcpParams.Register = false
+
 	if addr, ok := conn.RemoteAddr().(*net.TCPAddr); ok {
 		remoteAddr = addr.IP.String()
 	}
