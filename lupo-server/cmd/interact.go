@@ -61,9 +61,9 @@ func init() {
 
 			}
 
-			App = grumble.New(core.SessionAppConfig)
+			App = grumble.New(SessionAppConfig)
 			App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
-			core.InitializeSessionCLI(App, activeSession)
+			InitializeSessionCLI(App, activeSession)
 
 			grumble.Main(App)
 
