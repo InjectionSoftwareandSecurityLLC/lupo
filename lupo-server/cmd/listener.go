@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -89,30 +91,36 @@ func init() {
 
 			var operator string
 
-			operator = "server"
+			if server.IsWolfPackExec {
+				response, currentPSK, instruction := core.ManagePSK(psk, randPSK, operator)
 
-			if psk == "" {
-				if randPSK {
-					core.LogData(operator + " executed: listener manage -r true")
-					psk = core.GeneratePSK()
-					core.SuccessColorBold.Println("Your new random PSK is:")
-					fmt.Println(psk)
-					core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
+				resp := core.Response{
+					Response:    response,
+					CurrentPSK:  currentPSK,
+					Instruction: instruction,
+				}
+
+				jsonResp, err := json.Marshal(resp)
+
+				if err != nil {
+					return errors.New("could not creat JSON response.")
+				}
+
+				server.WolfPackResponse = string(jsonResp)
+			} else {
+				operator = "server"
+				response, currentPSK, instruction := core.ManagePSK(psk, randPSK, operator)
+
+				if instruction == "" {
+					core.WarningColorBold.Println(response)
 					fmt.Println("")
 				} else {
-					core.LogData(operator + " executed: listener manage")
-					core.WarningColorBold.Println("Warning, you did not provide a PSK, this will keep the current PSK. You can ignore this if you did not want to update the PSK.")
-					psk = core.DefaultPSK
+					core.SuccessColorBold.Println(currentPSK)
+					fmt.Println(currentPSK)
+					core.SuccessColorBold.Println(instruction)
+					fmt.Println("")
 				}
-			} else {
-				core.LogData(operator + " executed: listener manage -k <redacted>")
-				core.SuccessColorBold.Println("Your new PSK is:")
-				fmt.Println(psk)
-				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
-				fmt.Println("")
 			}
-
-			PSK = psk
 
 			return nil
 		},

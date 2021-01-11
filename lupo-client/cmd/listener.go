@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
+
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-client/core"
 
 	"github.com/desertbit/grumble"
 )
@@ -47,30 +52,47 @@ func init() {
 
 			// Call out to server to generate new PSK
 
-			/*
-				if psk == "" {
-					if randPSK {
-						core.LogData(operator + " executed: listener manage -r true")
-						psk = core.GeneratePSK()
-						core.SuccessColorBold.Println("Your new random PSK is:")
-						fmt.Println(psk)
-						core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
-						fmt.Println("")
-					} else {
-						core.LogData(operator + " executed: listener manage")
-						core.WarningColorBold.Println("Warning, you did not provide a PSK, this will keep the current PSK. You can ignore this if you did not want to update the PSK.")
-						psk = core.DefaultPSK
-					}
-				} else {
-					core.LogData(operator + " executed: listener manage -k <redacted>")
-					core.SuccessColorBold.Println("Your new PSK is:")
-					fmt.Println(psk)
-					core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
-					fmt.Println("")
-				}
+			resp, err := core.WolfPackHTTP.Get("https://localhost:3074/?psk=wolfpack&user=3ndG4me&command=" + url.QueryEscape("listener manage -r"))
 
-				PSK = psk
-			*/
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			type Response struct {
+				Response    string
+				CurrentPSK  string
+				Instruction string
+			}
+
+			var serverResponse *Response
+
+			// Parse the JSON response
+			err = json.Unmarshal(jsonData, &serverResponse)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			fmt.Println(serverResponse.CurrentPSK)
+
+			if serverResponse.Instruction == "" {
+				core.WarningColorBold.Println(serverResponse.Response)
+				fmt.Println("")
+			} else {
+				core.SuccessColorBold.Println(serverResponse.Response)
+				fmt.Println(serverResponse.CurrentPSK)
+				core.SuccessColorBold.Println(serverResponse.Instruction)
+				fmt.Println("")
+			}
 
 			return nil
 		},
