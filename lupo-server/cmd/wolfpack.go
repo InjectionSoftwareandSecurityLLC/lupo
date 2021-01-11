@@ -162,7 +162,7 @@ func init() {
 
 			// TODO: Generate client config
 
-			generateLupoClientConfig()
+			//generateLupoClientConfig()
 
 			return nil
 		},

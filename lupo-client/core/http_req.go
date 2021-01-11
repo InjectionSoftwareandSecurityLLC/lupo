@@ -21,9 +21,13 @@ var WolfPackServerConfig *WolfPackServer
 
 var WolfPackHTTP *http.Client
 
-var rootCert string = `some cert here
+var rootCert string = `
+
 
 `
+
+// AuthURL - Global variable used to handle requests through the client, additional paramaters can be appended on to it
+var AuthURL = "https://localhost:3074/?psk=wolfpack&user=3ndG4me"
 
 func InitializeWolfPackRequests() {
 	WolfPackServerConfig = &WolfPackServer{

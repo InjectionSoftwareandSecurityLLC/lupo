@@ -103,7 +103,7 @@ func init() {
 				jsonResp, err := json.Marshal(resp)
 
 				if err != nil {
-					return errors.New("could not creat JSON response.")
+					return errors.New("could not creat JSON response")
 				}
 
 				server.WolfPackResponse = string(jsonResp)

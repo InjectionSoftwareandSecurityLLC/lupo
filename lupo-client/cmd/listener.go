@@ -47,12 +47,23 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			//psk := c.Flags.String("psk")
-			//randPSK := c.Flags.Bool("rand")
+			psk := c.Flags.String("psk")
+			randPSK := c.Flags.Bool("rand")
 
 			// Call out to server to generate new PSK
 
-			resp, err := core.WolfPackHTTP.Get("https://localhost:3074/?psk=wolfpack&user=3ndG4me&command=" + url.QueryEscape("listener manage -r"))
+			reqString := "&command="
+			commandString := "listener manage"
+
+			if psk != "" {
+				commandString += " -k " + psk
+			} else if randPSK {
+				commandString += " -r"
+			}
+
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
 
 			if err != nil {
 				fmt.Println(err)
@@ -75,14 +86,17 @@ func init() {
 			var serverResponse *Response
 
 			// Parse the JSON response
-			err = json.Unmarshal(jsonData, &serverResponse)
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to map to the expected
+			// listener manage Response struct
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			err = json.Unmarshal([]byte(coreResponse["response"].(string)), &serverResponse)
 
 			if err != nil {
 				fmt.Println(err)
 				return nil
 			}
-
-			fmt.Println(serverResponse.CurrentPSK)
 
 			if serverResponse.Instruction == "" {
 				core.WarningColorBold.Println(serverResponse.Response)

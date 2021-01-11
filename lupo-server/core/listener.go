@@ -1,7 +1,5 @@
 package core
 
-import "fmt"
-
 // PSK - global PSK for listeners to manage and set the server PSK
 var PSK string
 
@@ -31,7 +29,6 @@ func ManagePSK(psk string, isRandom bool, operator string) (response string, cur
 	} else {
 		LogData(operator + " executed: listener manage -k <redacted>")
 		response := "Your new PSK is:"
-		fmt.Println(PSK)
 		PSK = psk
 		currentPSK := PSK
 		instruction := "Embed the PSK into any implants to connect to any listeners in this instance."
