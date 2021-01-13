@@ -47,12 +47,6 @@ var listeners = make(map[int]Listener)
 // listenerID - a global listener ID. Listener IDs are unique and auto-increment on creation. This value is kept track of throughout a Listener's life cycle so it can be incremented/decremented automatically wherever appropriate.
 var listenerID int = 0
 
-// didDisplayPsk - a boolean to check if the pre-generated PSK was already given to the user so it is not printed each time
-var didDisplayPsk = false
-
-// PSK - global PSK for listeners to manage and set the server PSK
-var PSK string
-
 // init - Initializes the primary "listener" grumble command
 //
 // "listener" has no arguments and serves as a base for several subcommands.
@@ -92,9 +86,14 @@ func init() {
 			var operator string
 
 			if server.IsWolfPackExec {
+
+				operator = server.CurrentOperator
+
 				response, currentPSK, instruction := core.ManagePSK(psk, randPSK, operator)
 
-				resp := core.Response{
+				currentWolf := core.Wolves[operator]
+
+				resp := core.ManageResponse{
 					Response:    response,
 					CurrentPSK:  currentPSK,
 					Instruction: instruction,
@@ -106,7 +105,8 @@ func init() {
 					return errors.New("could not creat JSON response")
 				}
 
-				server.WolfPackResponse = string(jsonResp)
+				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, string(jsonResp))
+
 			} else {
 				operator = "server"
 				response, currentPSK, instruction := core.ManagePSK(psk, randPSK, operator)
@@ -115,7 +115,7 @@ func init() {
 					core.WarningColorBold.Println(response)
 					fmt.Println("")
 				} else {
-					core.SuccessColorBold.Println(currentPSK)
+					core.SuccessColorBold.Println(response)
 					fmt.Println(currentPSK)
 					core.SuccessColorBold.Println(instruction)
 					fmt.Println("")
@@ -155,24 +155,63 @@ func init() {
 				tlsCert = ""
 			}
 			var operator string
+			var listenSuccess = "Starting listener: " + strconv.Itoa(listenerID)
 
-			operator = "server"
+			if server.IsWolfPackExec {
 
-			core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
+				core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
 
-			if PSK == "" && !didDisplayPsk {
-				core.SuccessColorBold.Println("Your randomly generated PSK is:")
-				fmt.Println(core.DefaultPSK)
-				core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
-				fmt.Println("")
-				core.SuccessColorBold.Println("If you would like to set your own PSK, you can rotate the current key using the 'listener manage' sub command")
-				didDisplayPsk = true
-				PSK = core.DefaultPSK
+				response, psk, instructions, help := core.GetFirstUsePSK()
+
+				var resp core.StartResponse
+
+				if response != "" {
+					resp = core.StartResponse{
+						Response:    response,
+						CurrentPSK:  psk,
+						Instruction: instructions,
+						Help:        help,
+						Status:      "",
+					}
+				}
+
+				resp.Status = listenSuccess
+				startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
+
+				listenerID++
+				currentWolf := core.Wolves[operator]
+
+				jsonResp, err := json.Marshal(resp)
+
+				if err != nil {
+					return errors.New("could not creat JSON response")
+				}
+
+				fmt.Println(string(jsonResp))
+
+				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, string(jsonResp))
+
+			} else {
+				operator = "server"
+
+				core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
+
+				response, psk, instructions, help := core.GetFirstUsePSK()
+
+				core.SuccessColorBold.Println(listenSuccess)
+
+				if response != "" {
+					core.SuccessColorBold.Println(response)
+					fmt.Println(psk)
+					core.SuccessColorBold.Println(instructions)
+					fmt.Println("")
+					core.SuccessColorBold.Println(help)
+
+				}
+				startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
+
+				listenerID++
 			}
-
-			startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
-
-			listenerID++
 
 			return nil
 		},
@@ -192,22 +231,6 @@ func init() {
 			core.LogData(operator + " executed: listener show")
 
 			if server.IsWolfPackExec {
-
-				server.WolfPackResponse = fmt.Sprintf("ID\tHost\tPort\tProtocol\t\n")
-				server.WolfPackResponse += fmt.Sprintf("%s\t%s\t%s\t%s\t\n",
-					strings.Repeat("=", len("ID")),
-					strings.Repeat("=", len("Host")),
-					strings.Repeat("=", len("Port")),
-					strings.Repeat("=", len("Protocol")))
-
-				for i := range listeners {
-					server.WolfPackResponse += fmt.Sprintf("%s\t%s\t%s\t%s\t\n",
-						strconv.Itoa(listeners[i].id),
-						listeners[i].lhost,
-						strconv.Itoa(listeners[i].lport),
-						listeners[i].protocol)
-				}
-
 				return nil
 			}
 
@@ -251,7 +274,6 @@ func init() {
 			core.LogData(operator + " executed: listener kill " + strconv.Itoa(killID))
 
 			if server.IsWolfPackExec {
-				server.WolfPackResponse = "hello from the wolfpack 2"
 				return nil
 			}
 
@@ -293,7 +315,7 @@ func init() {
 // All listeners are concurrent and support multiple simultaneous connections.
 func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string) {
 
-	server.PSK = PSK
+	server.PSK = core.PSK
 
 	var newListener Listener
 
@@ -312,7 +334,7 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 		listeners[id] = newListener
 
-		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+		//core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
 
 		switch protocol {
 		case "HTTP":
@@ -363,7 +385,7 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 		listeners[id] = newListener
 
-		core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+		//core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
 
 		go server.StartTCPServer(newServer)
 

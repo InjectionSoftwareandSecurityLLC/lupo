@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -16,8 +17,8 @@ var WolfPackApp *grumble.App
 // IsWolfPackExec - global value to let grumble run functions determine if the current command is being executed in the context of a
 var IsWolfPackExec bool
 
-// WolfPackResponse - global value for grumble run functions to populate a response in the context of a command execution loop (may need to be re-evaluated due to concurrency but works for testing)
-var WolfPackResponse string
+// CurrentOperator - keeps track of the current user that is actively interacting with the WolfPack server during the request flow
+var CurrentOperator string
 
 // WolfPackServerHandler - Handles all Wolfpack server requests over HTTPS by passing data to handler sub-functions
 //
@@ -88,17 +89,29 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	core.UpdateWolf(getUsername, remoteAddr)
+	CurrentOperator = getUsername
 	IsWolfPackExec = true
 	core.LogData(getUsername + "@" + remoteAddr + " executed: " + strings.Join(getCommand, " "))
 
 	WolfPackApp.RunCommand(getCommand)
 
-	response := map[string]interface{}{
-		"response": WolfPackResponse,
+	currentWolf := core.Wolves[getUsername]
+
+	fmt.Println(currentWolf.Response)
+
+	if currentWolf.Response == "" {
+		response := map[string]interface{}{
+			"response": "",
+		}
+		json.NewEncoder(w).Encode(response)
+	} else {
+		response := map[string]interface{}{
+			"response": currentWolf.Response,
+		}
+		json.NewEncoder(w).Encode(response)
+		// Clear the response once returned
+		core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "")
 	}
 
-	json.NewEncoder(w).Encode(response)
-
 	IsWolfPackExec = false
-	WolfPackResponse = ""
 }

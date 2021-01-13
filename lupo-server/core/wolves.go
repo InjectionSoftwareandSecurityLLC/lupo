@@ -43,3 +43,15 @@ func UpdateWolf(username string, rhost string) {
 	LogData("Wolf structure for user: " + username + "@" + rhost + " was updated")
 
 }
+
+// AssignWolfResponse - this function takes in a username and rhost to keep track of the user being assigned the response.
+// The response parameter is then updated and linked to a wolf which will be returned by the WolfPack Server.
+func AssignWolfResponse(username string, rhost string, response string) {
+	updateWolf := Wolves[username]
+
+	updateWolf.Response = response
+
+	Wolves[username] = updateWolf
+
+	LogData("Wolf response for user: " + username + "@" + rhost + " was added")
+}

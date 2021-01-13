@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -70,6 +71,8 @@ func init() {
 				return nil
 			}
 
+			defer resp.Body.Close()
+
 			jsonData, err := ioutil.ReadAll(resp.Body)
 
 			if err != nil {
@@ -90,6 +93,11 @@ func init() {
 			// listener manage Response struct
 			var coreResponse map[string]interface{}
 			err = json.Unmarshal(jsonData, &coreResponse)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
 
 			err = json.Unmarshal([]byte(coreResponse["response"].(string)), &serverResponse)
 
@@ -126,6 +134,85 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
+			lhost := c.Flags.String("lhost")
+			lport := c.Flags.Int("lport")
+			protocol := c.Flags.String("protocol")
+
+			// Call out to server to start a new listener, consider how to specify new certs whether we will send them upstream or require them to be on the server already
+
+			var tlsKey string
+			var tlsCert string
+			if protocol == "HTTPS" {
+				tlsKey = c.Flags.String("key")
+				tlsCert = c.Flags.String("cert")
+			} else {
+				tlsKey = ""
+				tlsCert = ""
+			}
+			// Call out to server to generate new PSK
+
+			reqString := "&command="
+			commandString := "listener start"
+			commandString += " -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert
+
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			fmt.Println(string(jsonData))
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			type Response struct {
+				Response    string
+				CurrentPSK  string
+				Instruction string
+				Help        string
+				Status      string
+			}
+
+			var serverResponse *Response
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to map to the expected
+			// listener manage Response struct
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			err = json.Unmarshal([]byte(coreResponse["response"].(string)), &serverResponse)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			if serverResponse.Response != "" {
+				core.SuccessColorBold.Println(serverResponse.Response)
+				fmt.Println(serverResponse.CurrentPSK)
+				core.SuccessColorBold.Println(serverResponse.Instruction)
+				fmt.Println("")
+				core.SuccessColorBold.Println(serverResponse.Help)
+			}
+
+			core.SuccessColorBold.Println(serverResponse.Status)
+
 			//lhost := c.Flags.String("lhost")
 			//lport := c.Flags.Int("lport")
 			//protocol := c.Flags.String("protocol")
@@ -142,7 +229,7 @@ func init() {
 				} else {
 					tlsKey = ""
 					tlsCert = ""
-
+				}
 
 				core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
 
