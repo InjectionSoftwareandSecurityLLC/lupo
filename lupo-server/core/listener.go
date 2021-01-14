@@ -1,6 +1,42 @@
 package core
 
-import "fmt"
+import (
+	"fmt"
+	"net"
+	"net/http"
+	"strconv"
+)
+
+// Listener - defines a listener structure composed of:
+//
+// id - unique identifier that is autoincremented on creation of a new listener
+//
+// lhost - the "listening" host address. This tells a listener what interface to listen on based on the address it is tied to.
+//
+// lport - the "listening" port. This tells a listener what port the lhost of the listener should open to receive connections on.
+//
+// protocol - the protocol to use when listening for incoming connections. Currenlty supports HTTP(S) and TCP.
+//
+// httpInstance - a pointer to an instance of the http.Server struct. This is used to reference the core HTTP Server itself when conducting operations such as starting/stopping a listener.
+//
+// tcpInstance - a copy of the net.Listener struct. This is used to interact with the core TCP Server itself when conducting operations such as starting/stopping a listener.
+type Listener struct {
+	ID           int
+	Lhost        string
+	Lport        int
+	Protocol     string
+	HTTPInstance *http.Server
+	TCPInstance  net.Listener
+}
+
+// ListenerStrings - more loose structure for handling listener data, primarily used to hand off as JSON to the lupo client.
+// Contains all the same fields as a Listener structure but as string data types and omits the HTTP/TCPInstance values.
+type ListenerStrings struct {
+	ID       string
+	Lhost    string
+	Lport    string
+	Protocol string
+}
 
 // PSK - global PSK for listeners to manage and set the server PSK
 var PSK string
@@ -21,6 +57,9 @@ type StartResponse struct {
 
 // DidDisplayPsk - a boolean to check if the pre-generated PSK was already given to the user so it is not printed each time
 var DidDisplayPsk = false
+
+// Listeners - a map of Listeners. This is used to manage listeners that are created by the user. The map structure makes it easy to search, add, modify, and delete a large amount of Listeners.
+var Listeners = make(map[int]Listener)
 
 func ManagePSK(psk string, isRandom bool, operator string) (response string, currentPSK string, instruction string) {
 	if psk == "" && !isRandom {
@@ -69,6 +108,24 @@ func GetFirstUsePSK() (response string, psk string, instructions string, help st
 	} else {
 		return "", "", "", ""
 	}
+}
+
+// ShowListeners - returns a string map  of Listeners and their details
+func ShowListeners() map[string]ListenerStrings {
+
+	var stringListeners = make(map[string]ListenerStrings)
+
+	for i := range Listeners {
+		tempListener := ListenerStrings{
+			ID:       strconv.Itoa(Listeners[i].ID),
+			Lhost:    Listeners[i].Lhost,
+			Lport:    strconv.Itoa(Listeners[i].Lport),
+			Protocol: Listeners[i].Protocol,
+		}
+		stringListeners[strconv.Itoa(i)] = tempListener
+	}
+
+	return stringListeners
 }
 
 /*

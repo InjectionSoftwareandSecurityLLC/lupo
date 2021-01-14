@@ -19,31 +19,6 @@ import (
 // psk - Global psk variable utilized by the listener for storing the Pre-Shared key established from the core "lupo" psk flag.
 var psk string
 
-// Listener - defines a listener structure composed of:
-//
-// id - unique identifier that is autoincremented on creation of a new listener
-//
-// lhost - the "listening" host address. This tells a listener what interface to listen on based on the address it is tied to.
-//
-// lport - the "listening" port. This tells a listener what port the lhost of the listener should open to receive connections on.
-//
-// protocol - the protocol to use when listening for incoming connections. Currenlty supports HTTP(S) and TCP.
-//
-// httpInstance - a pointer to an instance of the http.Server struct. This is used to reference the core HTTP Server itself when conducting operations such as starting/stopping a listener.
-//
-// tcpInstance - a copy of the net.Listener struct. This is used to interact with the core TCP Server itself when conducting operations such as starting/stopping a listener.
-type Listener struct {
-	id           int
-	lhost        string
-	lport        int
-	protocol     string
-	httpInstance *http.Server
-	tcpInstance  net.Listener
-}
-
-// listeners - a map of Listeners. This is used to manage listeners that are created by the user. The map structure makes it easy to search, add, modify, and delete a large amount of Listeners.
-var listeners = make(map[int]Listener)
-
 // listenerID - a global listener ID. Listener IDs are unique and auto-increment on creation. This value is kept track of throughout a Listener's life cycle so it can be incremented/decremented automatically wherever appropriate.
 var listenerID int = 0
 
@@ -155,9 +130,10 @@ func init() {
 				tlsCert = ""
 			}
 			var operator string
-			var listenSuccess = "Starting listener: " + strconv.Itoa(listenerID)
 
 			if server.IsWolfPackExec {
+
+				operator = server.CurrentOperator
 
 				core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
 
@@ -175,10 +151,14 @@ func init() {
 					}
 				}
 
-				resp.Status = listenSuccess
-				startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
+				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
 
-				listenerID++
+				if err != nil {
+					resp.Status = "error: could not start listener"
+				} else {
+					resp.Status = status
+				}
+
 				currentWolf := core.Wolves[operator]
 
 				jsonResp, err := json.Marshal(resp)
@@ -186,8 +166,6 @@ func init() {
 				if err != nil {
 					return errors.New("could not creat JSON response")
 				}
-
-				fmt.Println(string(jsonResp))
 
 				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, string(jsonResp))
 
@@ -198,8 +176,6 @@ func init() {
 
 				response, psk, instructions, help := core.GetFirstUsePSK()
 
-				core.SuccessColorBold.Println(listenSuccess)
-
 				if response != "" {
 					core.SuccessColorBold.Println(response)
 					fmt.Println(psk)
@@ -208,9 +184,14 @@ func init() {
 					core.SuccessColorBold.Println(help)
 
 				}
-				startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
+				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
 
-				listenerID++
+				if err != nil {
+					return err
+				} else {
+					core.SuccessColorBold.Println(status)
+				}
+
 			}
 
 			return nil
@@ -228,29 +209,46 @@ func init() {
 
 			operator = "server"
 
-			core.LogData(operator + " executed: listener show")
-
 			if server.IsWolfPackExec {
-				return nil
-			}
+				operator = server.CurrentOperator
 
-			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintf(table, "ID\tHost\tPort\tProtocol\t\n")
-			fmt.Fprintf(table, "%s\t%s\t%s\t%s\t\n",
-				strings.Repeat("=", len("ID")),
-				strings.Repeat("=", len("Host")),
-				strings.Repeat("=", len("Port")),
-				strings.Repeat("=", len("Protocol")))
+				core.LogData(operator + " executed: listener show")
 
-			for i := range listeners {
+				currentWolf := core.Wolves[operator]
+
+				listenerMap := core.ShowListeners()
+
+				jsonResp, err := json.Marshal(listenerMap)
+
+				if err != nil {
+					return errors.New("could not create JSON response")
+				}
+
+				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, string(jsonResp))
+
+			} else {
+
+				core.LogData(operator + " executed: listener show")
+
+				table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+				fmt.Fprintf(table, "ID\tHost\tPort\tProtocol\t\n")
 				fmt.Fprintf(table, "%s\t%s\t%s\t%s\t\n",
-					strconv.Itoa(listeners[i].id),
-					listeners[i].lhost,
-					strconv.Itoa(listeners[i].lport),
-					listeners[i].protocol)
+					strings.Repeat("=", len("ID")),
+					strings.Repeat("=", len("Host")),
+					strings.Repeat("=", len("Port")),
+					strings.Repeat("=", len("Protocol")))
+
+				for i := range core.Listeners {
+					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t\n",
+						strconv.Itoa(core.Listeners[i].ID),
+						core.Listeners[i].Lhost,
+						strconv.Itoa(core.Listeners[i].Lport),
+						core.Listeners[i].Protocol)
+				}
+				table.Flush()
+
 			}
 
-			table.Flush()
 			return nil
 		},
 	}
@@ -277,15 +275,15 @@ func init() {
 				return nil
 			}
 
-			if _, ok := listeners[killID]; ok {
-				if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
-					httpServer := listeners[killID].httpInstance
+			if _, ok := core.Listeners[killID]; ok {
+				if core.Listeners[killID].Protocol == "HTTP" || core.Listeners[killID].Protocol == "HTTPS" {
+					httpServer := core.Listeners[killID].HTTPInstance
 					httpServer.Close()
-				} else if listeners[killID].protocol == "TCP" {
-					tcpServer := listeners[killID].tcpInstance
+				} else if core.Listeners[killID].Protocol == "TCP" {
+					tcpServer := core.Listeners[killID].TCPInstance
 					tcpServer.Close()
 				}
-				delete(listeners, killID)
+				delete(core.Listeners, killID)
 				responseMessage := "Killed listener: " + strconv.Itoa(killID)
 				core.LogData(responseMessage)
 				core.SuccessColorBold.Println(responseMessage)
@@ -313,57 +311,54 @@ func init() {
 // TCP Servers are started by executing a StartTCPServer function via goroutine. To maintain concurrency a subsequent goroutine is executed to handle the data for all TCP connections via TCPServerHandler() function.
 //
 // All listeners are concurrent and support multiple simultaneous connections.
-func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string) {
+func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string) (string, error) {
 
 	server.PSK = core.PSK
 
-	var newListener Listener
+	var newListener core.Listener
 
 	core.LogData("Starting new " + protocol + " listener on " + listenString)
 
 	if protocol == "HTTP" || protocol == "HTTPS" {
 		newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
-		newListener = Listener{
-			id:           id,
-			lhost:        lhost,
-			lport:        lport,
-			protocol:     protocol,
-			httpInstance: newServer,
-			tcpInstance:  nil,
+		newListener = core.Listener{
+			ID:           id,
+			Lhost:        lhost,
+			Lport:        lport,
+			Protocol:     protocol,
+			HTTPInstance: newServer,
+			TCPInstance:  nil,
 		}
 
-		listeners[id] = newListener
-
-		//core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
+		core.Listeners[id] = newListener
 
 		switch protocol {
 		case "HTTP":
-			go func(newListener Listener) {
+			go func(newListener core.Listener) {
 				err := newServer.ListenAndServe()
 				if err != nil {
 					println("")
 					core.LogData("error: failed to start HTTP server")
 					core.ErrorColorBold.Println(err)
-					delete(listeners, newListener.id)
+					delete(core.Listeners, newListener.ID)
 					listenerID--
 					return
 				}
 			}(newListener)
 		case "HTTPS":
-			go func(newListener Listener) {
+			go func(newListener core.Listener) {
 				err := newServer.ListenAndServeTLS(tlsCert, tlsKey)
 				if err != nil {
 					println("")
 					core.LogData("error: failed to start HTTPS server")
 					core.ErrorColorBold.Println(err)
-					delete(listeners, newListener.id)
+					delete(core.Listeners, newListener.ID)
 					listenerID--
 					return
 				}
 			}(newListener)
 		default:
-			// Invalid request type, stay silent don't respond to anything that isn't pre-defined
-			return
+			return "", errors.New("failed to start listener due to invalid request type")
 		}
 
 	} else if protocol == "TCP" {
@@ -372,18 +367,18 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 		if err != nil {
 			core.LogData("error: failed to start TCP server")
 			core.ErrorColorBold.Println(err)
-			return
+			return "", err
 		}
-		newListener = Listener{
-			id:           id,
-			lhost:        lhost,
-			lport:        lport,
-			protocol:     protocol,
-			httpInstance: nil,
-			tcpInstance:  newServer,
+		newListener = core.Listener{
+			ID:           id,
+			Lhost:        lhost,
+			Lport:        lport,
+			Protocol:     protocol,
+			HTTPInstance: nil,
+			TCPInstance:  newServer,
 		}
 
-		listeners[id] = newListener
+		core.Listeners[id] = newListener
 
 		//core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
 
@@ -391,9 +386,13 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 	} else {
 		errorString := "Unsupported listener protocol specified: " + protocol + " is not implemented"
-		core.LogData("error: " + errorString)
+		//core.LogData("error: " + errorString)
 		core.ErrorColorUnderline.Println(errorString)
-		return
+		return "", errors.New(errorString)
 	}
+
+	listenerID++
+
+	return "Starting listener: " + strconv.Itoa(newListener.ID), nil
 
 }

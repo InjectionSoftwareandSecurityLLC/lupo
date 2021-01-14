@@ -89,8 +89,7 @@ func init() {
 			var serverResponse *Response
 
 			// Parse the JSON response
-			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to map to the expected
-			// listener manage Response struct
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to map to the expected listener manage Response struct
 			var coreResponse map[string]interface{}
 			err = json.Unmarshal(jsonData, &coreResponse)
 
@@ -129,8 +128,8 @@ func init() {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
 			f.Int("p", "lport", 1337, "listening host port")
 			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)")
-			f.String("k", "key", "lupo-server.key", "path to TLS private key")
-			f.String("c", "cert", "lupo-server.crt", "path to TLS cert")
+			f.String("k", "key", "lupo-server.key", "(ALPHA NOTICE: FILE MUST BE ON THE SERVER) path to TLS private key")
+			f.String("c", "cert", "lupo-server.crt", "(ALPHA NOTICE: FILE MUST BE ON THE SERVER) path to TLS cert")
 		},
 		Run: func(c *grumble.Context) error {
 
@@ -168,8 +167,6 @@ func init() {
 
 			jsonData, err := ioutil.ReadAll(resp.Body)
 
-			fmt.Println(string(jsonData))
-
 			if err != nil {
 				fmt.Println(err)
 				return nil
@@ -186,8 +183,7 @@ func init() {
 			var serverResponse *Response
 
 			// Parse the JSON response
-			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to map to the expected
-			// listener manage Response struct
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to map to the expected listener start Response struct
 			var coreResponse map[string]interface{}
 			err = json.Unmarshal(jsonData, &coreResponse)
 
@@ -209,45 +205,10 @@ func init() {
 				core.SuccessColorBold.Println(serverResponse.Instruction)
 				fmt.Println("")
 				core.SuccessColorBold.Println(serverResponse.Help)
+				fmt.Println("")
 			}
 
 			core.SuccessColorBold.Println(serverResponse.Status)
-
-			//lhost := c.Flags.String("lhost")
-			//lport := c.Flags.Int("lport")
-			//protocol := c.Flags.String("protocol")
-			//listenString := lhost + ":" + strconv.Itoa(lport)
-
-			// Call out to server to start a new listener, consider how to specify new certs whether we will send them upstream or require them to be on the server already
-
-			/*
-				var tlsKey string
-				var tlsCert string
-				if protocol == "HTTPS" {
-					tlsKey = c.Flags.String("key")
-					tlsCert = c.Flags.String("cert")
-				} else {
-					tlsKey = ""
-					tlsCert = ""
-				}
-
-				core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
-
-				if PSK == "" && !didDisplayPsk {
-					core.SuccessColorBold.Println("Your randomly generated PSK is:")
-					fmt.Println(core.DefaultPSK)
-					core.SuccessColorBold.Println("Embed the PSK into any implants to connect to any listeners in this instance.")
-					fmt.Println("")
-					core.SuccessColorBold.Println("If you would like to set your own PSK, you can rotate the current key using the 'listener manage' sub command")
-					didDisplayPsk = true
-					PSK = core.DefaultPSK
-				}
-
-				startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
-
-				listenerID++
-
-			*/
 
 			return nil
 		},
@@ -260,7 +221,46 @@ func init() {
 		LongHelp: "Display all running listeners",
 		Run: func(c *grumble.Context) error {
 
-			// Exec command to server to get list of listeners and output below
+			reqString := "&command="
+			commandString := "listener show"
+
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to reference for output below. Since this data is nested and mostly "complex" strings, we use the interface maps to parse the response to a secondary map of the same nature which is then used to access the core values. Keeps things dynamic so we only have to parse twice instead of several times via a loop.
+			var coreResponseInitial map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponseInitial)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+			coreResponseData := coreResponseInitial["response"].(string)
+
+			coreResponse := make(map[string]interface{})
+
+			err = json.Unmarshal([]byte(coreResponseData), &coreResponse)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 
 			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 			fmt.Fprintf(table, "ID\tHost\tPort\tProtocol\t\n")
@@ -270,15 +270,15 @@ func init() {
 				strings.Repeat("=", len("Port")),
 				strings.Repeat("=", len("Protocol")))
 
-			/*
-				for i := range listeners {
-					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t\n",
-						strconv.Itoa(listeners[i].id),
-						listeners[i].lhost,
-						strconv.Itoa(listeners[i].lport),
-						listeners[i].protocol)
-				}
-			*/
+			for i := range coreResponse {
+
+				fmt.Fprintf(table, "%s\t%s\t%s\t%s\t\n",
+					coreResponse[i].(map[string]interface{})["ID"],
+					coreResponse[i].(map[string]interface{})["Lhost"],
+					coreResponse[i].(map[string]interface{})["Lport"],
+					coreResponse[i].(map[string]interface{})["Protocol"])
+			}
+
 			table.Flush()
 			return nil
 		},
