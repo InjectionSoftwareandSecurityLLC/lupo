@@ -269,31 +269,39 @@ func init() {
 
 			operator = "server"
 
-			core.LogData(operator + " executed: listener kill " + strconv.Itoa(killID))
-
 			if server.IsWolfPackExec {
-				return nil
+				operator = server.CurrentOperator
+
+				core.LogData(operator + " executed: listener kill " + strconv.Itoa(killID))
+
+				currentWolf := core.Wolves[operator]
+
+				success, fail := core.KillListener(killID)
+
+				if success != "" {
+					core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "true")
+				} else if fail != "" {
+					core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "false")
+				} else {
+					return nil
+				}
+
+			} else {
+				core.LogData(operator + " executed: listener kill " + strconv.Itoa(killID))
+
+				success, fail := core.KillListener(killID)
+
+				if success != "" {
+					core.SuccessColorBold.Println(success)
+				} else if fail != "" {
+					core.ErrorColorBold.Println(fail)
+				} else {
+					return nil
+				}
+
 			}
 
-			if _, ok := core.Listeners[killID]; ok {
-				if core.Listeners[killID].Protocol == "HTTP" || core.Listeners[killID].Protocol == "HTTPS" {
-					httpServer := core.Listeners[killID].HTTPInstance
-					httpServer.Close()
-				} else if core.Listeners[killID].Protocol == "TCP" {
-					tcpServer := core.Listeners[killID].TCPInstance
-					tcpServer.Close()
-				}
-				delete(core.Listeners, killID)
-				responseMessage := "Killed listener: " + strconv.Itoa(killID)
-				core.LogData(responseMessage)
-				core.SuccessColorBold.Println(responseMessage)
-				return nil
-			} else {
-				responseMessage := "Listener: " + strconv.Itoa(killID) + " does not exist"
-				core.LogData(responseMessage)
-				core.ErrorColorBold.Println(responseMessage)
-				return nil
-			}
+			return nil
 
 		},
 	}

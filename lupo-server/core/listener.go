@@ -128,6 +128,28 @@ func ShowListeners() map[string]ListenerStrings {
 	return stringListeners
 }
 
+// KillListener - kills a listener with the specified id and returns the response
+func KillListener(id int) (responseSuccess string, responseFail string) {
+
+	if _, ok := Listeners[id]; ok {
+		if Listeners[id].Protocol == "HTTP" || Listeners[id].Protocol == "HTTPS" {
+			httpServer := Listeners[id].HTTPInstance
+			httpServer.Close()
+		} else if Listeners[id].Protocol == "TCP" {
+			tcpServer := Listeners[id].TCPInstance
+			tcpServer.Close()
+		}
+		delete(Listeners, id)
+		responseMessage := "Killed listener: " + strconv.Itoa(id)
+		LogData(responseMessage)
+		return responseMessage, ""
+	} else {
+		responseMessage := "Listener: " + strconv.Itoa(id) + " does not exist"
+		LogData(responseMessage)
+		return "", responseMessage
+	}
+}
+
 /*
 // StartListener - Creates a listener based on parameters generated via the "listener start" subcommand.
 //

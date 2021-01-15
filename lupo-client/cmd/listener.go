@@ -294,33 +294,49 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			//killID := c.Args.Int("id")
+			killID := c.Args.Int("id")
 
 			// Exec to server to get listeners list
 
-			/*
+			reqString := "&command="
+			commandString := "listener kill " + strconv.Itoa(killID)
 
-				if _, ok := listeners[killID]; ok {
-					if listeners[killID].protocol == "HTTP" || listeners[killID].protocol == "HTTPS" {
-						httpServer := listeners[killID].httpInstance
-						httpServer.Close()
-					} else if listeners[killID].protocol == "TCP" {
-						tcpServer := listeners[killID].tcpInstance
-						tcpServer.Close()
-					}
-					delete(listeners, killID)
-					responseMessage := "Killed listener: " + strconv.Itoa(killID)
-					core.LogData(responseMessage)
-					core.SuccessColorBold.Println(responseMessage)
-					return nil
-				} else {
-					responseMessage := "Listener: " + strconv.Itoa(killID) + " does not exist"
-					core.LogData(responseMessage)
-					core.ErrorColorBold.Println(responseMessage)
-					return nil
-				}
-			*/
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is just a raw string response that can be printed to the output
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			fmt.Println(coreResponse)
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			if coreResponse["response"].(string) == "true" {
+				core.SuccessColorBold.Println("Killed listener: " + strconv.Itoa(killID))
+
+			} else {
+				core.ErrorColorBold.Println("Listener: " + strconv.Itoa(killID) + " does not exist")
+
+			}
 			return nil
 
 		},
