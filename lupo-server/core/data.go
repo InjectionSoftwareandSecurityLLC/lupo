@@ -1,6 +1,14 @@
 package core
 
-import "github.com/google/uuid"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"math/rand"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // TCPData - structure to contain parsable TCP initialization data received from TCP implants.
 //
@@ -37,4 +45,28 @@ type TCPData struct {
 	Data                string
 	AdditionalFunctions string
 	Register            bool
+}
+
+// DefaultPSK = Globally generated PSK to set as default if the user does not specify one
+var DefaultPSK = GeneratePSK()
+
+// GeneratePSK - Generates a random 32 character string, encodes it with SHA256 as a PSK that is set by default on startup unless the user specifies a static PSK
+func GeneratePSK() string {
+
+	LogData("Generated new random Lupo C2 PSK")
+
+	rand.Seed(time.Now().UnixNano())
+	chars := []rune("ABCDEFGHIJKLMOPQRSTUVWXYZ" +
+		"abcdefghijklmnopqrstuvwxyz" +
+		"0123456789" +
+		"~`!@#$%^&*()\\/,.<>?+=")
+	length := 12
+	var b strings.Builder
+	for i := 0; i < length; i++ {
+		b.WriteRune(chars[rand.Intn(len(chars))])
+	}
+	str := b.String()
+	hasher := sha256.New()
+	hash := hex.EncodeToString(hasher.Sum([]byte(str)))
+	return hash
 }

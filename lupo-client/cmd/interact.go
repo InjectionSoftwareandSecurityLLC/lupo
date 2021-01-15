@@ -1,15 +1,12 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
-	"time"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
 	"github.com/desertbit/grumble"
 )
 
@@ -43,15 +40,22 @@ func init() {
 
 			activeSession = c.Args.Int("id")
 
-			_, sessionExists := core.Sessions[activeSession]
+			// Exec interact with server goes here to get a list of current sessions
+
+			/*_, sessionExists := core.Sessions[activeSession]
 
 			if !sessionExists {
-				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
-			}
 
-			App = grumble.New(core.SessionAppConfig)
+				errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
+
+				return errors.New(errorMessage)
+
+			}
+			*/
+
+			App = grumble.New(SessionAppConfig)
 			App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
-			core.InitializeSessionCLI(App, activeSession)
+			InitializeSessionCLI(App, activeSession)
 
 			grumble.Main(App)
 
@@ -69,7 +73,9 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			filterID := c.Args.Int("id")
+			//filterID := c.Args.Int("id")
+
+			// Exec interact with server goes here to get a list of current sessions
 
 			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 			fmt.Fprintf(table, "ID\tRemote Host\tArch\tProtocol\tLast Check In\tUpdate Interval\tStatus\t\n")
@@ -82,49 +88,21 @@ func init() {
 				strings.Repeat("=", len("Update Interval")),
 				strings.Repeat("=", len("Status")))
 
-			if filterID != -1 {
+			// Populate this based on returned data
+			/*
+				if filterID != -1 {
 
-				_, sessionExists := core.Sessions[filterID]
+					_, sessionExists := core.Sessions[filterID]
 
-				if !sessionExists {
-					return errors.New("cannot filter show on session " + strconv.Itoa(activeSession) + " because the session does not exist")
-				}
+					if !sessionExists {
 
-				updateInterval := core.Sessions[filterID].Implant.Update
-				lastCheckIn := core.Sessions[filterID].RawCheckin
+						errorMessage := "cannot filter show on session " + strconv.Itoa(activeSession) + " because the session does not exist"
 
-				status, err := calculateSessionStatus(updateInterval, lastCheckIn)
+						return errors.New(errorMessage)
+					}
 
-				var textStatus string
-
-				if err != nil {
-					textStatus = "UNKNOWN"
-					core.SessionStatusUpdate(filterID, "UNKNOWN")
-				} else if status {
-					textStatus = core.GreenColorIns("ALIVE")
-					core.SessionStatusUpdate(filterID, "ALIVE")
-				} else if !status {
-					textStatus = core.RedColorIns("DEAD")
-					core.SessionStatusUpdate(filterID, "DEAD")
-				} else {
-					textStatus = core.ErrorColorBoldIns("ERROR")
-					core.SessionStatusUpdate(filterID, "ERROR")
-				}
-
-				fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-					strconv.Itoa(core.Sessions[filterID].ID),
-					core.Sessions[filterID].Rhost,
-					core.Sessions[filterID].Implant.Arch,
-					core.Sessions[filterID].Protocol,
-					core.Sessions[filterID].Checkin,
-					core.Sessions[filterID].Implant.Update,
-					textStatus)
-
-			} else {
-				for i := range core.Sessions {
-
-					updateInterval := core.Sessions[i].Implant.Update
-					lastCheckIn := core.Sessions[i].RawCheckin
+					updateInterval := core.Sessions[filterID].Implant.Update
+					lastCheckIn := core.Sessions[filterID].RawCheckin
 
 					status, err := calculateSessionStatus(updateInterval, lastCheckIn)
 
@@ -132,28 +110,65 @@ func init() {
 
 					if err != nil {
 						textStatus = "UNKNOWN"
-						core.SessionStatusUpdate(i, "UNKNOWN")
+						core.SessionStatusUpdate(filterID, "UNKNOWN")
 					} else if status {
 						textStatus = core.GreenColorIns("ALIVE")
-						core.SessionStatusUpdate(i, "ALIVE")
+						core.SessionStatusUpdate(filterID, "ALIVE")
 					} else if !status {
 						textStatus = core.RedColorIns("DEAD")
-						core.SessionStatusUpdate(i, "DEAD")
+						core.SessionStatusUpdate(filterID, "DEAD")
 					} else {
 						textStatus = core.ErrorColorBoldIns("ERROR")
-						core.SessionStatusUpdate(i, "ERROR")
+						core.SessionStatusUpdate(filterID, "ERROR")
 					}
 
 					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-						strconv.Itoa(core.Sessions[i].ID),
-						core.Sessions[i].Rhost,
-						core.Sessions[i].Implant.Arch,
-						core.Sessions[i].Protocol,
-						core.Sessions[i].Checkin,
-						core.Sessions[i].Implant.Update,
+						strconv.Itoa(core.Sessions[filterID].ID),
+						core.Sessions[filterID].Rhost,
+						core.Sessions[filterID].Implant.Arch,
+						core.Sessions[filterID].Protocol,
+						core.Sessions[filterID].Checkin,
+						core.Sessions[filterID].Implant.Update,
 						textStatus)
+
+				} else {
+					core.LogData(operator + " executed: interact show")
+
+					for i := range core.Sessions {
+
+						updateInterval := core.Sessions[i].Implant.Update
+						lastCheckIn := core.Sessions[i].RawCheckin
+
+						status, err := calculateSessionStatus(updateInterval, lastCheckIn)
+
+						var textStatus string
+
+						if err != nil {
+							textStatus = "UNKNOWN"
+							core.SessionStatusUpdate(i, "UNKNOWN")
+						} else if status {
+							textStatus = core.GreenColorIns("ALIVE")
+							core.SessionStatusUpdate(i, "ALIVE")
+						} else if !status {
+							textStatus = core.RedColorIns("DEAD")
+							core.SessionStatusUpdate(i, "DEAD")
+						} else {
+							textStatus = core.ErrorColorBoldIns("ERROR")
+							core.SessionStatusUpdate(i, "ERROR")
+						}
+
+						fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
+							strconv.Itoa(core.Sessions[i].ID),
+							core.Sessions[i].Rhost,
+							core.Sessions[i].Implant.Arch,
+							core.Sessions[i].Protocol,
+							core.Sessions[i].Checkin,
+							core.Sessions[i].Implant.Update,
+							textStatus)
+					}
 				}
-			}
+
+			*/
 
 			table.Flush()
 
@@ -171,11 +186,14 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			id := c.Args.Int("id")
+			//id := c.Args.Int("id")
 
-			delete(core.Sessions, id)
+			// Exec command on server to return sessions
+			/*
+				delete(core.Sessions, id)
 
-			core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
+				core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
+			*/
 
 			return nil
 		},
@@ -188,16 +206,21 @@ func init() {
 		LongHelp: "Kills all sessions marked as DEAD to clear up the session list.",
 		Run: func(c *grumble.Context) error {
 
-			for i := range core.Sessions {
+			// Exec to get sessions
 
-				sessionStatus := core.Sessions[i].Status
+			/*
 
-				if sessionStatus == "DEAD" {
-					delete(core.Sessions, i)
-					core.WarningColorBold.Println("Session " + strconv.Itoa(i) + " has been terminated...")
+				for i := range core.Sessions {
+
+					sessionStatus := core.Sessions[i].Status
+
+					if sessionStatus == "DEAD" {
+						delete(core.Sessions, i)
+						core.WarningColorBold.Println("Session " + strconv.Itoa(i) + " has been terminated...")
+					}
+
 				}
-
-			}
+			*/
 
 			return nil
 		},
@@ -205,28 +228,4 @@ func init() {
 
 	interactCmd.AddCommand(cleanCmd)
 
-}
-
-// calculateSessionStatus - Uses an update interval in seconds that is registered by an implant.
-//
-// The update interval is then compared to the difference in the last "Check-In" time and the current time.
-//
-// The result of this comparison + a 5 second buffer is checked. If the difference exceeds the expected update interval + 5 the function returns false.
-func calculateSessionStatus(updateInterval float64, lastCheckIn time.Time) (bool, error) {
-
-	if updateInterval == 0 {
-		return true, errors.New("No update internal provided, could not be calculated")
-	}
-
-	currentTime := time.Now()
-
-	delay := currentTime.Sub(lastCheckIn)
-
-	floatDelay := float64(time.Duration(delay) / time.Second)
-
-	if floatDelay > updateInterval+5 {
-		return false, nil
-	}
-
-	return true, nil
 }

@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 )
 
 // HTTPServerHandler - Handles all HTTPS/HTTPServer requests by passing data to handler sub-functions based on request type.
@@ -66,7 +66,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	var getData string
 	var getAdditionalFunctions string
 	var additionalFunctions map[string]interface{}
-	var register bool
+	register := false
 	var err error
 
 	// Get the Remote Address of the Implant from the request
@@ -76,7 +76,9 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["psk"]) > 0 {
 		getPSK = getParams["psk"][0]
 	} else {
-		returnErr := errors.New("http GET Request did not provide PSK, request ignored")
+		errorString := "http GET Request did not provide PSK, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
@@ -84,7 +86,9 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["register"]) > 0 {
 		register, err = strconv.ParseBool(getParams["register"][0])
 		if err != nil {
-			returnErr := errors.New("http GET Request to register implant was not a valid Boolean, request ignored")
+			errorString := "http GET Request to register implant was not a valid Boolean, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -93,7 +97,9 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["sessionID"]) > 0 {
 		getSessionID, err = strconv.Atoi(getParams["sessionID"][0])
 		if err != nil {
-			returnErr := errors.New("http GET Request session ID was not a valid number, request ignored")
+			errorString := "http GET Request session ID was not a valid number, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -104,7 +110,9 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["UUID"]) > 0 {
 		getUUID, err = uuid.Parse(getParams["UUID"][0])
 		if err != nil {
-			returnErr := errors.New("http GET Request UUID was not a UUID, request ignored")
+			errorString := "http GET Request UUID was not a UUID, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -121,7 +129,9 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["update"]) > 0 {
 		getUpdate, err = strconv.ParseFloat(getParams["update"][0], 64)
 		if err != nil {
-			returnErr := errors.New("http GET Request update internval was not a valid number, request ignored")
+			errorString := "http GET Request update internval was not a valid number, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -161,24 +171,30 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(response)
 
 			core.SuccessColorBold.Println("\nNew implant registered successfully!")
+			core.LogData("Session: " + strconv.Itoa(newSession) + " established")
 			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
 
 			return
 
 		}
 	} else {
-		returnErr := errors.New("http GET Request Invalid PSK, request ignored")
+		errorString := "http GET Request Invalid PSK, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
 
 	if core.Sessions[getSessionID].Implant.ID != getUUID || getUUID == core.ZeroedUUID {
-		returnErr := errors.New("http GET Request Invalid UUID, request ignored")
+		errorString := "http GET Request Invalid UUID, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
 
 	if getData != "" {
+		core.LogData("Session " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
 		fmt.Println("\nSession " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
 	}
 
@@ -233,7 +249,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	var postData string
 	var postAdditionalFunctions string
 	var additionalFunctions map[string]interface{}
-	var register bool
+	register := false
 	var err error
 
 	// Get the Remote Address of the Implant from the request
@@ -243,7 +259,9 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	if len(postParams["psk"]) > 0 {
 		postPSK = postParams["psk"][0]
 	} else {
-		returnErr := errors.New("http POST Request did not provide PSK, request ignored")
+		errorString := "http POST Request did not provide PSK, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
@@ -251,7 +269,9 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	if len(postParams["register"]) > 0 {
 		register, err = strconv.ParseBool(postParams["register"][0])
 		if err != nil {
-			returnErr := errors.New("http POST Request to register implant was not a valid Boolean, request ignored")
+			errorString := "http POST Request to register implant was not a valid Boolean, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -260,7 +280,9 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	if len(postParams["sessionID"]) > 0 {
 		postSessionID, err = strconv.Atoi(postParams["sessionID"][0])
 		if err != nil {
-			returnErr := errors.New("http POST Request session ID was not a valid number, request ignored")
+			errorString := "http POST Request session ID was not a valid number, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -271,7 +293,9 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	if len(postParams["UUID"]) > 0 {
 		postUUID, err = uuid.Parse(postParams["UUID"][0])
 		if err != nil {
-			returnErr := errors.New("http POST Request UUID was not a UUID, request ignored")
+			errorString := "http POST Request UUID was not a UUID, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -288,7 +312,9 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	if len(postParams["update"]) > 0 {
 		postUpdate, err = strconv.ParseFloat(postParams["update"][0], 64)
 		if err != nil {
-			returnErr := errors.New("http POST Request update internval was not a valid number, request ignored")
+			errorString := "http POST Request update internval was not a valid number, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
 			return
 		}
@@ -327,24 +353,30 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(response)
 
 			core.SuccessColorBold.Println("\nNew implant registered successfully!")
+			core.LogData("Session: " + strconv.Itoa(newSession) + " established")
 			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
 
 			return
 
 		}
 	} else {
-		returnErr := errors.New("http POST Request Invalid PSK, request ignored")
+		errorString := "http POST Request Invalid PSK, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
 
 	if core.Sessions[postSessionID].Implant.ID != postUUID || postUUID == core.ZeroedUUID {
-		returnErr := errors.New("http POST Request Invalid UUID, request ignored")
+		errorString := "http POST Request Invalid UUID, request ignored"
+		core.LogData(errorString)
+		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
 
 	if postData != "" {
+		core.LogData("Session " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
 		fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
 	}
 
