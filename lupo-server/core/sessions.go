@@ -92,3 +92,18 @@ func SessionStatusUpdate(sessionID int, status string) {
 
 	LogData("Updated status of session " + strconv.Itoa(sessionID) + " session is: " + status)
 }
+
+// BroadcastSession - Broadcast a message that a new session has been established
+func BroadcastSession(session string) {
+
+	successMessage := "New implant registered successfully!"
+	message := "Session: " + session + " established"
+	SuccessColorBold.Println("\n" + successMessage)
+	LogData(message)
+	fmt.Println(message)
+
+	for key, _ := range Wolves {
+		broadcast := `{"successMessage":"` + successMessage + `","message":"` + message + `"}`
+		AssignWolfBroadcast(Wolves[key].Username, Wolves[key].Rhost, broadcast)
+	}
+}

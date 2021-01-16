@@ -170,9 +170,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 			json.NewEncoder(w).Encode(response)
 
-			core.SuccessColorBold.Println("\nNew implant registered successfully!")
-			core.LogData("Session: " + strconv.Itoa(newSession) + " established")
-			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
+			core.BroadcastSession(strconv.Itoa(newSession))
 
 			return
 
@@ -352,9 +350,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 
 			json.NewEncoder(w).Encode(response)
 
-			core.SuccessColorBold.Println("\nNew implant registered successfully!")
-			core.LogData("Session: " + strconv.Itoa(newSession) + " established")
-			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
+			core.BroadcastSession(strconv.Itoa(newSession))
 
 			return
 

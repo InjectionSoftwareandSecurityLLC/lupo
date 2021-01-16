@@ -1,12 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-client/core"
 	"github.com/desertbit/grumble"
 )
 
@@ -40,26 +45,56 @@ func init() {
 
 			activeSession = c.Args.Int("id")
 
-			// Exec interact with server goes here to get a list of current sessions
+			// Exec interact with server goes here to switch sessions
 
-			/*_, sessionExists := core.Sessions[activeSession]
+			reqString := "&command="
+			commandString := "interact " + strconv.Itoa(activeSession)
 
-			if !sessionExists {
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is just a raw string response that can be printed to the output
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			fmt.Println(coreResponse)
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			if coreResponse["response"].(string) == "true" {
+				App = grumble.New(SessionAppConfig)
+				App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
+				InitializeSessionCLI(App, activeSession)
+
+				grumble.Main(App)
+
+			} else {
 
 				errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
 
 				return errors.New(errorMessage)
 
 			}
-			*/
-
-			App = grumble.New(SessionAppConfig)
-			App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
-			InitializeSessionCLI(App, activeSession)
-
-			grumble.Main(App)
-
 			return nil
+
 		},
 	}
 	App.AddCommand(interactCmd)

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/server"
 	"github.com/desertbit/grumble"
 )
 
@@ -47,25 +48,41 @@ func init() {
 
 			operator = "server"
 
-			core.LogData(operator + " executed: interact " + strconv.Itoa(activeSession))
-
 			_, sessionExists := core.Sessions[activeSession]
 
-			if !sessionExists {
+			if server.IsWolfPackExec {
+				operator = server.CurrentOperator
 
-				errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
+				core.LogData(operator + " executed: interact " + strconv.Itoa(activeSession))
 
-				core.LogData("error: " + errorMessage)
+				currentWolf := core.Wolves[operator]
 
-				return errors.New(errorMessage)
+				if sessionExists {
+					core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "true")
+				} else {
+					core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "false")
+				}
+
+			} else {
+				core.LogData(operator + " executed: interact " + strconv.Itoa(activeSession))
+
+				if !sessionExists {
+
+					errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
+
+					core.LogData("error: " + errorMessage)
+
+					return errors.New(errorMessage)
+
+				}
+
+				App = grumble.New(SessionAppConfig)
+				App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
+				InitializeSessionCLI(App, activeSession)
+
+				grumble.Main(App)
 
 			}
-
-			App = grumble.New(SessionAppConfig)
-			App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
-			InitializeSessionCLI(App, activeSession)
-
-			grumble.Main(App)
 
 			return nil
 		},

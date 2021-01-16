@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
@@ -57,6 +58,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	var getPSK string
 	var getUsername string
 	var getCommand []string
+	var getPolling = false
 
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
@@ -65,7 +67,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["psk"]) > 0 {
 		getPSK = getParams["psk"][0]
 	} else {
-		errorString := "http GET Request did not provide PSK, request ignored"
+		errorString := "wolfpack GET Request did not provide PSK, request ignored"
 		core.LogData(errorString)
 		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
@@ -80,38 +82,68 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		getCommand = strings.Split(getParams["command"][0], " ")
 	}
 
+	if len(getParams["polling"]) > 0 {
+		polling, err := strconv.ParseBool(getParams["polling"][0])
+
+		if err != nil {
+			errorString := "wolfpack GET Request could not parse polling parameter as bool, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
+			ErrorHandler(returnErr)
+			return
+		}
+
+		getPolling = polling
+	}
+
 	if getPSK != core.Wolves[getUsername].WolfPSK {
-		errorString := "http GET Request Invalid PSK, request ignored"
+		errorString := "wolfpack GET Request Invalid PSK, request ignored"
 		core.LogData(errorString)
 		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
 	}
 
-	core.UpdateWolf(getUsername, remoteAddr)
-	CurrentOperator = getUsername
-	IsWolfPackExec = true
-	core.LogData(getUsername + "@" + remoteAddr + " executed: " + strings.Join(getCommand, " "))
+	if getPolling {
+		currentWolf := core.Wolves[getUsername]
 
-	WolfPackApp.RunCommand(getCommand)
+		if currentWolf.Broadcast != "" {
 
-	currentWolf := core.Wolves[getUsername]
+			fmt.Println(currentWolf.Broadcast)
 
-	fmt.Println(currentWolf.Response)
+			w.Write([]byte(currentWolf.Broadcast))
+			// Clear the response once returned
+			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, "")
 
-	if currentWolf.Response == "" {
-		response := map[string]interface{}{
-			"response": "",
 		}
-		json.NewEncoder(w).Encode(response)
-	} else {
-		response := map[string]interface{}{
-			"response": currentWolf.Response,
+
+	} else if !getPolling {
+		core.UpdateWolf(getUsername, remoteAddr)
+		CurrentOperator = getUsername
+		IsWolfPackExec = true
+		core.LogData(getUsername + "@" + remoteAddr + " executed: " + strings.Join(getCommand, " "))
+
+		WolfPackApp.RunCommand(getCommand)
+
+		currentWolf := core.Wolves[getUsername]
+
+		fmt.Println(currentWolf.Response)
+
+		if currentWolf.Response == "" {
+			response := map[string]interface{}{
+				"response": "",
+			}
+			json.NewEncoder(w).Encode(response)
+		} else {
+			response := map[string]interface{}{
+				"response": currentWolf.Response,
+			}
+			json.NewEncoder(w).Encode(response)
+			// Clear the response once returned
+			core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "")
 		}
-		json.NewEncoder(w).Encode(response)
-		// Clear the response once returned
-		core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "")
+
+		IsWolfPackExec = false
 	}
 
-	IsWolfPackExec = false
 }
