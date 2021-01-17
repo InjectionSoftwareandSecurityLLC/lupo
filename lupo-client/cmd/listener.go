@@ -324,7 +324,6 @@ func init() {
 			var coreResponse map[string]interface{}
 			err = json.Unmarshal(jsonData, &coreResponse)
 
-			fmt.Println(coreResponse)
 			if err != nil {
 				//fmt.Println(err)
 				return nil

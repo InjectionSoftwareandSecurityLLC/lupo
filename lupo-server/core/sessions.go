@@ -32,6 +32,19 @@ type Session struct {
 	Status     string
 }
 
+// SessionStrings - more loose structure for handling session data, primarily used to hand off as JSON to the lupo client.
+// Contains all the same fields as a Session structure but as string data types and omits the HTTP/TCPInstance values.
+type SessionStrings struct {
+	ID            string
+	Protocol      string
+	ImplantArch   string
+	ImplantUpdate string
+	Rhost         string
+	RawCheckin    string
+	Checkin       string
+	Status        string
+}
+
 // ActiveSession = global value to keep track of the current active session. Since session "0" is a valid session, this starts at "-1" to determine if no session is active.
 var ActiveSession = -1
 
@@ -106,4 +119,25 @@ func BroadcastSession(session string) {
 		broadcast := `{"successMessage":"` + successMessage + `","message":"` + message + `"}`
 		AssignWolfBroadcast(Wolves[key].Username, Wolves[key].Rhost, broadcast)
 	}
+}
+
+// ShowSessions - returns a map of Sessions and their details
+func ShowSessions() map[string]SessionStrings {
+	var stringSessions = make(map[string]SessionStrings)
+
+	for i := range Sessions {
+		tempSession := SessionStrings{
+			ID:            strconv.Itoa(Sessions[i].ID),
+			Protocol:      Sessions[i].Protocol,
+			ImplantArch:   Sessions[i].Implant.Arch,
+			ImplantUpdate: strconv.FormatFloat(Sessions[i].Implant.Update, 'f', -1, 64),
+			Rhost:         Sessions[i].Rhost,
+			RawCheckin:    Sessions[i].RawCheckin.String(),
+			Checkin:       Sessions[i].Checkin,
+			Status:        Sessions[i].Status,
+		}
+		stringSessions[strconv.Itoa(i)] = tempSession
+	}
+
+	return stringSessions
 }

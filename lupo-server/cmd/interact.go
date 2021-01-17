@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -98,32 +99,17 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
+			// Pre-caculate session statuses
+
 			filterID := c.Args.Int("id")
 
-			var operator string
-
-			operator = "server"
-
-			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
-			fmt.Fprintf(table, "ID\tRemote Host\tArch\tProtocol\tLast Check In\tUpdate Interval\tStatus\t\n")
-			fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t\n",
-				strings.Repeat("=", len("ID")),
-				strings.Repeat("=", len("Remote Host")),
-				strings.Repeat("=", len("Arch")),
-				strings.Repeat("=", len("Protocol")),
-				strings.Repeat("=", len("Last Check In")),
-				strings.Repeat("=", len("Update Interval")),
-				strings.Repeat("=", len("Status")))
-
 			if filterID != -1 {
-
-				core.LogData(operator + " executed: interact show" + strconv.Itoa(filterID))
 
 				_, sessionExists := core.Sessions[filterID]
 
 				if !sessionExists {
 
-					errorMessage := "cannot filter show on session " + strconv.Itoa(activeSession) + " because the session does not exist"
+					errorMessage := "cannot filter show on session " + strconv.Itoa(filterID) + " because the session does not exist"
 
 					core.LogData("error: " + errorMessage)
 
@@ -135,34 +121,17 @@ func init() {
 
 				status, err := calculateSessionStatus(updateInterval, lastCheckIn)
 
-				var textStatus string
-
 				if err != nil {
-					textStatus = "UNKNOWN"
 					core.SessionStatusUpdate(filterID, "UNKNOWN")
 				} else if status {
-					textStatus = core.GreenColorIns("ALIVE")
 					core.SessionStatusUpdate(filterID, "ALIVE")
 				} else if !status {
-					textStatus = core.RedColorIns("DEAD")
 					core.SessionStatusUpdate(filterID, "DEAD")
 				} else {
-					textStatus = core.ErrorColorBoldIns("ERROR")
 					core.SessionStatusUpdate(filterID, "ERROR")
 				}
 
-				fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-					strconv.Itoa(core.Sessions[filterID].ID),
-					core.Sessions[filterID].Rhost,
-					core.Sessions[filterID].Implant.Arch,
-					core.Sessions[filterID].Protocol,
-					core.Sessions[filterID].Checkin,
-					core.Sessions[filterID].Implant.Update,
-					textStatus)
-
 			} else {
-				core.LogData(operator + " executed: interact show")
-
 				for i := range core.Sessions {
 
 					updateInterval := core.Sessions[i].Implant.Update
@@ -170,34 +139,109 @@ func init() {
 
 					status, err := calculateSessionStatus(updateInterval, lastCheckIn)
 
-					var textStatus string
-
 					if err != nil {
-						textStatus = "UNKNOWN"
 						core.SessionStatusUpdate(i, "UNKNOWN")
 					} else if status {
-						textStatus = core.GreenColorIns("ALIVE")
 						core.SessionStatusUpdate(i, "ALIVE")
 					} else if !status {
-						textStatus = core.RedColorIns("DEAD")
 						core.SessionStatusUpdate(i, "DEAD")
 					} else {
-						textStatus = core.ErrorColorBoldIns("ERROR")
 						core.SessionStatusUpdate(i, "ERROR")
 					}
+				}
+				var operator string
 
-					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-						strconv.Itoa(core.Sessions[i].ID),
-						core.Sessions[i].Rhost,
-						core.Sessions[i].Implant.Arch,
-						core.Sessions[i].Protocol,
-						core.Sessions[i].Checkin,
-						core.Sessions[i].Implant.Update,
-						textStatus)
+				operator = "server"
+
+				if server.IsWolfPackExec {
+					operator = server.CurrentOperator
+
+					if filterID != -1 {
+						core.LogData(operator + " executed: listener show " + strconv.Itoa(filterID))
+					} else {
+						core.LogData(operator + " executed: listener show")
+
+					}
+
+					currentWolf := core.Wolves[operator]
+
+					sessionMap := core.ShowSessions()
+
+					jsonResp, err := json.Marshal(sessionMap)
+
+					if err != nil {
+						return errors.New("could not create JSON response")
+					}
+
+					core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, string(jsonResp))
+				} else {
+
+					table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
+					fmt.Fprintf(table, "ID\tRemote Host\tArch\tProtocol\tLast Check In\tUpdate Interval\tStatus\t\n")
+					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t\n",
+						strings.Repeat("=", len("ID")),
+						strings.Repeat("=", len("Remote Host")),
+						strings.Repeat("=", len("Arch")),
+						strings.Repeat("=", len("Protocol")),
+						strings.Repeat("=", len("Last Check In")),
+						strings.Repeat("=", len("Update Interval")),
+						strings.Repeat("=", len("Status")))
+
+					if filterID != -1 {
+
+						core.LogData(operator + " executed: interact show" + strconv.Itoa(filterID))
+
+						var textStatus string
+
+						if core.Sessions[filterID].Status == "UNKNOWN" {
+							textStatus = "UNKNOWN"
+						} else if core.Sessions[filterID].Status == "ALIVE" {
+							textStatus = core.GreenColorIns("ALIVE")
+						} else if core.Sessions[filterID].Status == "DEAD" {
+							textStatus = core.RedColorIns("DEAD")
+						} else {
+							textStatus = core.ErrorColorBoldIns("ERROR")
+						}
+
+						fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
+							strconv.Itoa(core.Sessions[filterID].ID),
+							core.Sessions[filterID].Rhost,
+							core.Sessions[filterID].Implant.Arch,
+							core.Sessions[filterID].Protocol,
+							core.Sessions[filterID].Checkin,
+							core.Sessions[filterID].Implant.Update,
+							textStatus)
+
+					} else {
+						core.LogData(operator + " executed: interact show")
+
+						for i := range core.Sessions {
+
+							var textStatus string
+
+							if core.Sessions[i].Status == "UNKNOWN" {
+								textStatus = "UNKNOWN"
+							} else if core.Sessions[i].Status == "ALIVE" {
+								textStatus = core.GreenColorIns("ALIVE")
+							} else if core.Sessions[i].Status == "DEAD" {
+								textStatus = core.RedColorIns("DEAD")
+							} else {
+								textStatus = core.ErrorColorBoldIns("ERROR")
+							}
+
+							fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
+								strconv.Itoa(core.Sessions[i].ID),
+								core.Sessions[i].Rhost,
+								core.Sessions[i].Implant.Arch,
+								core.Sessions[i].Protocol,
+								core.Sessions[i].Checkin,
+								core.Sessions[i].Implant.Update,
+								textStatus)
+						}
+					}
+					table.Flush()
 				}
 			}
-
-			table.Flush()
 
 			return nil
 		},
