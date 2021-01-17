@@ -1,12 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-client/core"
 	"github.com/desertbit/grumble"
 )
 
@@ -40,26 +45,55 @@ func init() {
 
 			activeSession = c.Args.Int("id")
 
-			// Exec interact with server goes here to get a list of current sessions
+			// Exec interact with server goes here to switch sessions
 
-			/*_, sessionExists := core.Sessions[activeSession]
+			reqString := "&command="
+			commandString := "interact " + strconv.Itoa(activeSession)
 
-			if !sessionExists {
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is just a raw string response that can be printed to the output
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			if coreResponse["response"].(string) == "true" {
+				App = grumble.New(SessionAppConfig)
+				App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
+				InitializeSessionCLI(App, activeSession)
+
+				grumble.Main(App)
+
+			} else {
 
 				errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
 
 				return errors.New(errorMessage)
 
 			}
-			*/
-
-			App = grumble.New(SessionAppConfig)
-			App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
-			InitializeSessionCLI(App, activeSession)
-
-			grumble.Main(App)
-
 			return nil
+
 		},
 	}
 	App.AddCommand(interactCmd)
@@ -73,9 +107,54 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			//filterID := c.Args.Int("id")
+			filterID := c.Args.Int("id")
 
 			// Exec interact with server goes here to get a list of current sessions
+
+			reqString := "&command="
+			commandString := "interact show"
+
+			if filterID != -1 {
+				commandString += " " + strconv.Itoa(filterID)
+			}
+
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to reference for output below. Since this data is nested and mostly "complex" strings, we use the interface maps to parse the response to a secondary map of the same nature which is then used to access the core values. Keeps things dynamic so we only have to parse twice instead of several times via a loop.
+			var coreResponseInitial map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponseInitial)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+			coreResponseData := coreResponseInitial["response"].(string)
+
+			coreResponse := make(map[string]interface{})
+
+			err = json.Unmarshal([]byte(coreResponseData), &coreResponse)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
 
 			table := tabwriter.NewWriter(os.Stdout, 0, 2, 2, ' ', 0)
 			fmt.Fprintf(table, "ID\tRemote Host\tArch\tProtocol\tLast Check In\tUpdate Interval\tStatus\t\n")
@@ -89,86 +168,64 @@ func init() {
 				strings.Repeat("=", len("Status")))
 
 			// Populate this based on returned data
-			/*
-				if filterID != -1 {
 
-					_, sessionExists := core.Sessions[filterID]
+			if filterID != -1 {
 
-					if !sessionExists {
+				_, sessionExists := coreResponse[strconv.Itoa(filterID)]
 
-						errorMessage := "cannot filter show on session " + strconv.Itoa(activeSession) + " because the session does not exist"
+				if !sessionExists {
 
-						return errors.New(errorMessage)
-					}
+					errorMessage := "cannot filter show on session " + strconv.Itoa(filterID) + " because the session does not exist"
 
-					updateInterval := core.Sessions[filterID].Implant.Update
-					lastCheckIn := core.Sessions[filterID].RawCheckin
+					return errors.New(errorMessage)
+				}
 
-					status, err := calculateSessionStatus(updateInterval, lastCheckIn)
+				var textStatus string
+
+				if coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["Status"] == "UNKNOWN" {
+					textStatus = "UNKNOWN"
+				} else if coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["Status"] == "ALIVE" {
+					textStatus = core.GreenColorIns("ALIVE")
+				} else if coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["Status"] == "DEAD" {
+					textStatus = core.RedColorIns("DEAD")
+				} else {
+					textStatus = core.ErrorColorBoldIns("ERROR")
+				}
+				fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t\n",
+					coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["ID"],
+					coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["Rhost"],
+					coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["ImplantArch"],
+					coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["Protocol"],
+					coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["Checkin"],
+					coreResponse[strconv.Itoa(filterID)].(map[string]interface{})["ImplantUpdate"],
+					textStatus)
+
+			} else {
+				for i := range coreResponse {
 
 					var textStatus string
 
-					if err != nil {
+					if coreResponse[i].(map[string]interface{})["Status"] == "UNKNOWN" {
 						textStatus = "UNKNOWN"
-						core.SessionStatusUpdate(filterID, "UNKNOWN")
-					} else if status {
+					} else if coreResponse[i].(map[string]interface{})["Status"] == "ALIVE" {
 						textStatus = core.GreenColorIns("ALIVE")
-						core.SessionStatusUpdate(filterID, "ALIVE")
-					} else if !status {
+					} else if coreResponse[i].(map[string]interface{})["Status"] == "DEAD" {
 						textStatus = core.RedColorIns("DEAD")
-						core.SessionStatusUpdate(filterID, "DEAD")
 					} else {
 						textStatus = core.ErrorColorBoldIns("ERROR")
-						core.SessionStatusUpdate(filterID, "ERROR")
 					}
 
-					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-						strconv.Itoa(core.Sessions[filterID].ID),
-						core.Sessions[filterID].Rhost,
-						core.Sessions[filterID].Implant.Arch,
-						core.Sessions[filterID].Protocol,
-						core.Sessions[filterID].Checkin,
-						core.Sessions[filterID].Implant.Update,
+					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t\n",
+						coreResponse[i].(map[string]interface{})["ID"],
+						coreResponse[i].(map[string]interface{})["Rhost"],
+						coreResponse[i].(map[string]interface{})["ImplantArch"],
+						coreResponse[i].(map[string]interface{})["Protocol"],
+						coreResponse[i].(map[string]interface{})["Checkin"],
+						coreResponse[i].(map[string]interface{})["ImplantUpdate"],
 						textStatus)
-
-				} else {
-					core.LogData(operator + " executed: interact show")
-
-					for i := range core.Sessions {
-
-						updateInterval := core.Sessions[i].Implant.Update
-						lastCheckIn := core.Sessions[i].RawCheckin
-
-						status, err := calculateSessionStatus(updateInterval, lastCheckIn)
-
-						var textStatus string
-
-						if err != nil {
-							textStatus = "UNKNOWN"
-							core.SessionStatusUpdate(i, "UNKNOWN")
-						} else if status {
-							textStatus = core.GreenColorIns("ALIVE")
-							core.SessionStatusUpdate(i, "ALIVE")
-						} else if !status {
-							textStatus = core.RedColorIns("DEAD")
-							core.SessionStatusUpdate(i, "DEAD")
-						} else {
-							textStatus = core.ErrorColorBoldIns("ERROR")
-							core.SessionStatusUpdate(i, "ERROR")
-						}
-
-						fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-							strconv.Itoa(core.Sessions[i].ID),
-							core.Sessions[i].Rhost,
-							core.Sessions[i].Implant.Arch,
-							core.Sessions[i].Protocol,
-							core.Sessions[i].Checkin,
-							core.Sessions[i].Implant.Update,
-							textStatus)
-					}
 				}
 
-			*/
+			}
 
 			table.Flush()
 
@@ -186,14 +243,47 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			//id := c.Args.Int("id")
+			id := c.Args.Int("id")
 
-			// Exec command on server to return sessions
-			/*
-				delete(core.Sessions, id)
+			// Exec command on server to return destroyed sessions
 
-				core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
-			*/
+			reqString := "&command="
+			commandString := "interact kill " + strconv.Itoa(id)
+
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to reference for output below. Since this data is nested and mostly "complex" strings, we use the interface maps to parse the response to a secondary map of the same nature which is then used to access the core values. Keeps things dynamic so we only have to parse twice instead of several times via a loop.
+			var coreResponseInitial map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponseInitial)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+			coreResponseData := coreResponseInitial["response"].(string)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+			core.WarningColorBold.Println(coreResponseData)
 
 			return nil
 		},
@@ -206,21 +296,44 @@ func init() {
 		LongHelp: "Kills all sessions marked as DEAD to clear up the session list.",
 		Run: func(c *grumble.Context) error {
 
-			// Exec to get sessions
+			// Exec to get cleaned sessions
+			reqString := "&command="
+			commandString := "interact clean"
 
-			/*
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
-				for i := range core.Sessions {
+			resp, err := core.WolfPackHTTP.Get(reqString)
 
-					sessionStatus := core.Sessions[i].Status
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 
-					if sessionStatus == "DEAD" {
-						delete(core.Sessions, i)
-						core.WarningColorBold.Println("Session " + strconv.Itoa(i) + " has been terminated...")
-					}
+			defer resp.Body.Close()
 
-				}
-			*/
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to reference for output below. Since this data is nested and mostly "complex" strings, we use the interface maps to parse the response to a secondary map of the same nature which is then used to access the core values. Keeps things dynamic so we only have to parse twice instead of several times via a loop.
+			var coreResponseInitial map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponseInitial)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+			coreResponseData := coreResponseInitial["response"].(string)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+			core.WarningColorBold.Println(coreResponseData)
 
 			return nil
 		},

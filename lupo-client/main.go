@@ -10,5 +10,6 @@ import (
 // main - executes the primary grumble application defined in the "cmd" package
 func main() {
 	core.InitializeWolfPackRequests()
+	go core.CheckForNewSession()
 	grumble.Main(cmd.App)
 }

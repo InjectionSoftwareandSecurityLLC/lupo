@@ -25,7 +25,7 @@ var rootCert string = `some cert here
 `
 
 // AuthURL - Primary auth URL scheme, needs to be parameterized
-var AuthURL = "https://localhost:3074/?psk=somepsk&user=someuser"
+var AuthURL = "https://localhost:3074/?psk=test&user=test"
 
 func InitializeWolfPackRequests() {
 	WolfPackServerConfig = &WolfPackServer{

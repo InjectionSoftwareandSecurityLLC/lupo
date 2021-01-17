@@ -125,9 +125,7 @@ func TCPServerHandler(conn net.Conn) {
 
 			conn.Write([]byte(jsonResp))
 
-			core.SuccessColorBold.Println("\nNew implant registered successfully!")
-			core.LogData("Session: " + strconv.Itoa(newSession) + " established")
-			fmt.Println("Session: " + strconv.Itoa(newSession) + " established")
+			core.BroadcastSession(strconv.Itoa(newSession))
 
 			return
 

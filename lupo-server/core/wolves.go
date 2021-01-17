@@ -15,11 +15,12 @@ import (
 //
 // Response - a response to transmit to the wolfpack user (may not be necessary if the server handler loop takes care of this once implemented)
 type Wolf struct {
-	WolfPSK  string
-	Username string
-	Rhost    string
-	Response string
-	Checkin  string
+	WolfPSK   string
+	Username  string
+	Rhost     string
+	Response  string
+	Broadcast string
+	Checkin   string
 }
 
 // Wolves - map of all operators (wolves). This is used to manage wolf pack server users that have been generated. The map structure makes it easy to search, add, modify, and delete a large amount of Wolves.
@@ -54,4 +55,16 @@ func AssignWolfResponse(username string, rhost string, response string) {
 	Wolves[username] = updateWolf
 
 	LogData("Wolf response for user: " + username + "@" + rhost + " was added")
+}
+
+// AssignWolfResponse - this function takes in a username and rhost to keep track of the user being assigned the response.
+// The response parameter is then updated and linked to a wolf which will be returned by the WolfPack Server.
+func AssignWolfBroadcast(username string, rhost string, response string) {
+	updateWolf := Wolves[username]
+
+	updateWolf.Broadcast = response
+
+	Wolves[username] = updateWolf
+
+	LogData("Wolf broadcast for user: " + username + "@" + rhost + " was added")
 }
