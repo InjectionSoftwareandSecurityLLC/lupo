@@ -261,14 +261,41 @@ func init() {
 
 			var operator string
 
-			operator = "server"
+			if server.IsWolfPackExec {
+				operator = server.CurrentOperator
 
-			core.LogData(operator + " executed: interact kill" + strconv.Itoa(id))
+				core.LogData(operator + " executed: interact kill" + strconv.Itoa(id))
 
-			delete(core.Sessions, id)
+				currentWolf := core.Wolves[operator]
 
-			core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
+				_, sessionExists := core.Sessions[id]
 
+				var response string
+				if sessionExists {
+					delete(core.Sessions, id)
+					response = "Session " + strconv.Itoa(id) + " has been terminated..."
+				} else {
+					response = "Session " + strconv.Itoa(id) + " does not exist..."
+				}
+
+				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, response)
+			} else {
+
+				operator = "server"
+
+				core.LogData(operator + " executed: interact kill" + strconv.Itoa(id))
+
+				_, sessionExists := core.Sessions[id]
+
+				if sessionExists {
+					delete(core.Sessions, id)
+					core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
+				} else {
+					core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " does not exist...")
+
+				}
+
+			}
 			return nil
 		},
 	}
@@ -282,19 +309,49 @@ func init() {
 
 			var operator string
 
-			operator = "server"
+			if server.IsWolfPackExec {
+				operator = server.CurrentOperator
 
-			core.LogData(operator + " executed: interact clean")
+				core.LogData(operator + " executed: interact clean")
 
-			for i := range core.Sessions {
+				currentWolf := core.Wolves[operator]
 
-				sessionStatus := core.Sessions[i].Status
+				var response string
+				var isFirstIteration = true
 
-				if sessionStatus == "DEAD" {
-					delete(core.Sessions, i)
-					core.WarningColorBold.Println("Session " + strconv.Itoa(i) + " has been terminated...")
+				for i := range core.Sessions {
+
+					sessionStatus := core.Sessions[i].Status
+
+					if sessionStatus == "DEAD" {
+						delete(core.Sessions, i)
+						if isFirstIteration {
+							response += "Session " + strconv.Itoa(i) + " has been terminated..."
+						} else {
+							response += "\nSession " + strconv.Itoa(i) + " has been terminated..."
+						}
+						isFirstIteration = false
+					}
+
 				}
 
+				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, response)
+
+			} else {
+				operator = "server"
+
+				core.LogData(operator + " executed: interact clean")
+
+				for i := range core.Sessions {
+
+					sessionStatus := core.Sessions[i].Status
+
+					if sessionStatus == "DEAD" {
+						delete(core.Sessions, i)
+						core.WarningColorBold.Println("Session " + strconv.Itoa(i) + " has been terminated...")
+					}
+
+				}
 			}
 
 			return nil

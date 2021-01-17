@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"time"
+
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 )
 
 // CheckForNewSession - Checks the Wolfpack server to see if a new session has been established.
@@ -15,8 +17,11 @@ func CheckForNewSession() {
 	resp, err := WolfPackHTTP.Get(reqString)
 
 	if err != nil {
-		fmt.Println(err)
-		return
+		core.ErrorColorBold.Println("\nPolling connection could not reach Wolpack server, server might be offline the error is:")
+		core.ErrorColorUnderline.Println(err)
+		core.WarningColorBold.Println("Trying again after 5 seconds...")
+		time.Sleep(time.Second * 5)
+		CheckForNewSession()
 	}
 
 	defer resp.Body.Close()

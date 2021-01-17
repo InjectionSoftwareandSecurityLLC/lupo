@@ -21,25 +21,11 @@ var WolfPackServerConfig *WolfPackServer
 
 var WolfPackHTTP *http.Client
 
-var rootCert string = `-----BEGIN CERTIFICATE-----
-MIICYjCCAeigAwIBAgIUW7t41gvdDM4PrOcQpERIamH7cvQwCgYIKoZIzj0EAwIw
-XTELMAkGA1UEBhMCVVMxDTALBgNVBAgMBEx1cG8xDTALBgNVBAcMBEx1cG8xDTAL
-BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xEjAQBgNVBAMMCWxvY2FsaG9zdDAe
-Fw0yMTAxMTEwMzAyMThaFw0zMTAxMDkwMzAyMThaMF0xCzAJBgNVBAYTAlVTMQ0w
-CwYDVQQIDARMdXBvMQ0wCwYDVQQHDARMdXBvMQ0wCwYDVQQKDARMdXBvMQ0wCwYD
-VQQLDARMdXBvMRIwEAYDVQQDDAlsb2NhbGhvc3QwdjAQBgcqhkjOPQIBBgUrgQQA
-IgNiAAR/5MWWRnNRZ7GbBx9oU98WrvYiXCWgRpkWvCaYZt4kFgnO7jZmYO5cae2W
-OBGfJHcaFa85K+NhURQdD/m1LN1Vqwzp3pCyjgadUU94Y3rz/2vBPfOOyL9Ch19d
-KNyDVMqjaTBnMB0GA1UdDgQWBBQAF4Pln4oYpsZ2z9sQTPF6B0PgbDAfBgNVHSME
-GDAWgBQAF4Pln4oYpsZ2z9sQTPF6B0PgbDAPBgNVHRMBAf8EBTADAQH/MBQGA1Ud
-EQQNMAuCCWxvY2FsaG9zdDAKBggqhkjOPQQDAgNoADBlAjEA8OO/tGsG9DY0Fqtd
-JOfhv1XW+H7gA5H+f/8nToNGXxvYuXZjD7SHfz0+0li1J9eXAjBD3b1A0PCcZaee
-3L92USeXWa2gFV4e1zjRmZbZTTwljLtydC8mSUOJH6KKzjn+tnQ=
------END CERTIFICATE-----
+var rootCert string = `some cert here
 `
 
 // AuthURL - Primary auth URL scheme, needs to be parameterized
-var AuthURL = "https://localhost:3074/?psk=wolfpack&user=3ndG4me"
+var AuthURL = "https://localhost:3074/?psk=test&user=test"
 
 func InitializeWolfPackRequests() {
 	WolfPackServerConfig = &WolfPackServer{
