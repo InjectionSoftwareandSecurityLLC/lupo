@@ -115,7 +115,7 @@ func BroadcastSession(session string) {
 	LogData(message)
 	fmt.Println(message)
 
-	for key, _ := range Wolves {
+	for key := range Wolves {
 		broadcast := `{"successMessage":"` + successMessage + `","message":"` + message + `"}`
 		AssignWolfBroadcast(Wolves[key].Username, Wolves[key].Rhost, broadcast)
 	}
@@ -140,4 +140,12 @@ func ShowSessions() map[string]SessionStrings {
 	}
 
 	return stringSessions
+}
+
+// SessionExists - returns if a session exists or not
+func SessionExists(session int) bool {
+
+	_, sessionExists := Sessions[session]
+
+	return sessionExists
 }

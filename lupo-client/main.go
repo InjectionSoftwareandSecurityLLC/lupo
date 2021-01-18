@@ -11,5 +11,6 @@ import (
 func main() {
 	core.InitializeWolfPackRequests()
 	go core.CheckForNewSession()
+	go core.CheckForSessionData()
 	grumble.Main(cmd.App)
 }

@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-client/core"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
@@ -51,6 +56,20 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			// Exec to server to send log
 
+			// Exec to server to get listeners list
+
+			reqString := "&isSessionShell=true&command="
+			commandString := "back"
+
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			_, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
 			sessionApp.Close()
 
 			return nil
@@ -66,18 +85,55 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			a.Int("id", "Session ID to interact with")
 		},
 		Run: func(c *grumble.Context) error {
-			activeSession = c.Args.Int("id")
+			ActiveSession = c.Args.Int("id")
 
 			// Exec on server to get sessions
-			/*
-				_, sessionExists := core.Sessions[activeSession]
 
-				if !sessionExists {
-					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
-				}
+			reqString := "&isSessionShell=true&command="
+			commandString := "session " + strconv.Itoa(ActiveSession)
 
-				sessionApp.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
-			*/
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is just a raw string response that can be printed to the output
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			if coreResponse["response"].(string) == "true" {
+				// Close to unload any session specific functions
+				sessionApp.Close()
+
+				App = grumble.New(SessionAppConfig)
+				App.SetPrompt("lupo session " + strconv.Itoa(ActiveSession) + " ☾ ")
+				InitializeSessionCLI(App, ActiveSession)
+
+				grumble.Main(App)
+
+			} else {
+				return errors.New("Session " + strconv.Itoa(ActiveSession) + " does not exist")
+
+			}
 			return nil
 		},
 	}
@@ -97,15 +153,18 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			cmdString := strings.Join(cmd, " ")
 
-			fmt.Println("MOCK exec: " + cmdString)
-
 			// Exec on server and send command
-			/*
-				core.LogData(operator + " executed on session " + strconv.Itoa(activeSession) + ": cmd " + cmdString)
+			reqString := "&isSessionShell=true&command=cmd&activeSession=" + strconv.Itoa(ActiveSession)
+			commandString := "&cmdString=" + url.QueryEscape(cmdString)
 
-				core.QueueImplantCommand(activeSession, cmdString)
-			*/
+			reqString = core.AuthURL + reqString + commandString
 
+			_, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 			return nil
 		},
 	}

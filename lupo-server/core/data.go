@@ -44,6 +44,7 @@ type TCPData struct {
 	Update              float64
 	Data                string
 	AdditionalFunctions string
+	Username            string
 	Register            bool
 }
 

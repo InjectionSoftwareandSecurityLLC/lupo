@@ -78,17 +78,23 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			var operator string
 
+			sessionExists := core.SessionExists(activeSession)
+
 			operator = "server"
-
 			core.LogData(operator + " executed: session " + strconv.Itoa(activeSession))
-
-			_, sessionExists := core.Sessions[activeSession]
 
 			if !sessionExists {
 				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
 			}
 
-			sessionApp.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
+			// Close to unload any session specific functions
+			sessionApp.Close()
+
+			App = grumble.New(SessionAppConfig)
+			App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
+			InitializeSessionCLI(App, activeSession)
+
+			grumble.Main(App)
 
 			return nil
 		},
@@ -115,7 +121,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			core.LogData(operator + " executed on session " + strconv.Itoa(activeSession) + ": cmd " + cmdString)
 
-			core.QueueImplantCommand(activeSession, cmdString)
+			core.QueueImplantCommand(activeSession, cmdString, "server")
 
 			return nil
 		},
@@ -166,26 +172,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			core.LogData(operator + " executed: load")
 
-			for key, value := range core.Sessions[activeSession].Implant.Functions {
-
-				command := key
-				info := value.(string)
-
-				implantFunction := &grumble.Command{
-					Name: command,
-					Help: info,
-					Run: func(c *grumble.Context) error {
-
-						core.QueueImplantCommand(activeSession, command)
-
-						return nil
-					},
-				}
-
-				sessionApp.AddCommand(implantFunction)
-				core.LogData("Session " + strconv.Itoa(activeSession) + " loaded extended function: " + command)
-
-			}
+			loadExtendedFunctions(sessionApp)
 
 			return nil
 		},
@@ -193,4 +180,28 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	sessionApp.AddCommand(sessionLoadCmd)
 
+}
+
+// loadExtendedFunctions - Loads the functions registered by an implant
+func loadExtendedFunctions(sessionApp *grumble.App) {
+	for key, value := range core.Sessions[activeSession].Implant.Functions {
+
+		command := key
+		info := value.(string)
+
+		implantFunction := &grumble.Command{
+			Name: command,
+			Help: info,
+			Run: func(c *grumble.Context) error {
+
+				core.QueueImplantCommand(activeSession, command, "server")
+
+				return nil
+			},
+		}
+
+		sessionApp.AddCommand(implantFunction)
+		core.LogData("Session " + strconv.Itoa(activeSession) + " loaded extended function: " + command)
+
+	}
 }
