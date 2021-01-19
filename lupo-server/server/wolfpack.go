@@ -165,7 +165,12 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
 			} else if getCommand[0] == "session" {
 
-				session, err := strconv.Atoi(getCommand[1])
+				var sessionID string
+				if len(getParams["id"]) > 0 {
+					sessionID = getParams["id"][0]
+				}
+
+				session, err := strconv.Atoi(sessionID)
 
 				if err != nil {
 					errorString := "wolfpack GET Request could not convert session ID to int, request ignored..."
@@ -178,11 +183,11 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
 				if sessionExists {
 					core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, "true")
-					core.LogData(CurrentOperator + " executed: session " + getCommand[1])
+					core.LogData(CurrentOperator + " executed: session " + sessionID)
 
 				} else {
 					core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, "false")
-					core.LogData(CurrentOperator + " executed: session " + getCommand[1])
+					core.LogData(CurrentOperator + " executed: session " + sessionID)
 				}
 
 			} else if getCommand[0] == "cmd" {
@@ -194,10 +199,47 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 				core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": cmd " + cmdString)
 				core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
 
+			} else if getCommand[0] == "kill" {
+
+				var sessionID string
+				if len(getParams["id"]) > 0 {
+					sessionID = getParams["id"][0]
+				}
+
+				session, err := strconv.Atoi(sessionID)
+
+				if err != nil {
+					errorString := "wolfpack GET Request could not convert session ID to int, request ignored..."
+					core.LogData(errorString)
+					returnErr := errors.New(errorString)
+					ErrorHandler(returnErr)
+					return
+				}
+
+				sessionExists := core.SessionExists(session)
+
+				core.LogData(CurrentOperator + " executed: kill " + sessionID)
+
+				var response string
+
+				if !sessionExists {
+					response = "Session " + sessionID + " does not exist"
+					core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, response)
+				} else {
+
+					delete(core.Sessions, session)
+
+					response = "Session " + sessionID + " has been terminated..."
+
+					core.LogData(response)
+
+					core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, response)
+
+				}
+
 			}
 		} else {
 			WolfPackApp.RunCommand(getCommand)
-
 		}
 
 		currentWolf := core.Wolves[getUsername]

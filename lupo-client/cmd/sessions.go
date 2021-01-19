@@ -89,8 +89,8 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			// Exec on server to get sessions
 
-			reqString := "&isSessionShell=true&command="
-			commandString := "session " + strconv.Itoa(ActiveSession)
+			reqString := "&isSessionShell=true&command=session&id="
+			commandString := strconv.Itoa(ActiveSession)
 
 			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
@@ -180,22 +180,47 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		},
 		Run: func(c *grumble.Context) error {
 
-			//id := c.Args.Int("id")
+			id := c.Args.Int("id")
 
-			// Exec on server and get sessions
-			/*
-				core.LogData(operator + " executed: kill " + strconv.Itoa(id))
+			// Exec on server to kill sessions
 
-				delete(core.Sessions, id)
+			reqString := "&isSessionShell=true&command=kill&id="
+			commandString := strconv.Itoa(id)
 
-				warningString := "Session " + strconv.Itoa(id) + " has been terminated..."
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
-				core.LogData(warningString)
+			resp, err := core.WolfPackHTTP.Get(reqString)
 
-				core.WarningColorBold.Println(warningString)
-			*/
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is just a raw string response that can be printed to the output
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			if coreResponse["response"].(string) != "" {
+				core.WarningColorBold.Println(coreResponse["response"].(string))
+
+			}
 			return nil
+
 		},
 	}
 

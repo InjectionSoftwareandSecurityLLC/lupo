@@ -146,6 +146,12 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			core.LogData(operator + " executed: kill " + strconv.Itoa(id))
 
+			sessionExists := core.SessionExists(id)
+
+			if !sessionExists {
+				return errors.New("Session " + strconv.Itoa(id) + " does not exist")
+			}
+
 			delete(core.Sessions, id)
 
 			warningString := "Session " + strconv.Itoa(id) + " has been terminated..."

@@ -32,7 +32,6 @@ type lupoImplant struct {
 var implant *lupoImplant
 
 var rootCert string = `some cert here
-
 `
 
 func main() {
