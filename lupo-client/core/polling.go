@@ -45,11 +45,58 @@ func CheckForNewSession() {
 			return
 		}
 
-		SuccessColorBold.Println("\n" + coreResponse["successMessage"].(string))
-		fmt.Println(coreResponse["message"].(string))
+		_, messageExists := coreResponse["message"]
+
+		if messageExists {
+			SuccessColorBold.Println("\n" + coreResponse["successMessage"].(string))
+			fmt.Println(coreResponse["message"].(string))
+		}
 	}
 
 	time.Sleep(time.Second * 1)
 	CheckForNewSession()
 
+}
+
+// CheckForSessionData - polls the wolfpack server to see if an session's implant has returned any data
+func CheckForSessionData() {
+	reqString := AuthURL + "&polling=true"
+
+	resp, err := WolfPackHTTP.Get(reqString)
+
+	if err != nil {
+		core.ErrorColorBold.Println("\nPolling connection could not reach Wolpack server, server might be offline the error is:")
+		core.ErrorColorUnderline.Println(err)
+		core.WarningColorBold.Println("Trying again after 5 seconds...")
+		time.Sleep(time.Second * 5)
+		CheckForSessionData()
+	}
+
+	defer resp.Body.Close()
+
+	jsonData, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		//fmt.Println(err)
+		return
+	}
+	// Parse the JSON response
+	// We are expecting a JSON string that is totally dynamic here due to the nature of broadcasts, but for implant response data we expect a "data" key in the JSON object.
+	var coreResponse map[string]interface{}
+
+	if string(jsonData) != "" {
+		err = json.Unmarshal(jsonData, &coreResponse)
+
+		if err != nil {
+			//fmt.Println(err)
+			return
+		}
+		_, dataExists := coreResponse["data"]
+		if dataExists {
+			fmt.Println(coreResponse["data"].(string))
+		}
+	}
+
+	time.Sleep(time.Second * 1)
+	CheckForSessionData()
 }

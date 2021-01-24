@@ -15,10 +15,10 @@ import (
 	"github.com/desertbit/grumble"
 )
 
-// activeSession - Active session that is being interacted with by the user
+// ActiveSession - Active session that is being interacted with by the user
 //
 // This data is supplied as a parameter when switching sessions with either the "interact" command or "session" sub-shell
-var activeSession int
+var ActiveSession = -1
 
 // init - Initializes the primary "interact" grumble command
 //
@@ -43,12 +43,12 @@ func init() {
 		},
 		Run: func(c *grumble.Context) error {
 
-			activeSession = c.Args.Int("id")
+			ActiveSession = c.Args.Int("id")
 
 			// Exec interact with server goes here to switch sessions
 
 			reqString := "&command="
-			commandString := "interact " + strconv.Itoa(activeSession)
+			commandString := "interact " + strconv.Itoa(ActiveSession)
 
 			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
@@ -80,14 +80,14 @@ func init() {
 
 			if coreResponse["response"].(string) == "true" {
 				App = grumble.New(SessionAppConfig)
-				App.SetPrompt("lupo session " + strconv.Itoa(activeSession) + " ☾ ")
-				InitializeSessionCLI(App, activeSession)
+				App.SetPrompt("lupo session " + strconv.Itoa(ActiveSession) + " ☾ ")
+				InitializeSessionCLI(App, ActiveSession)
 
 				grumble.Main(App)
 
 			} else {
 
-				errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
+				errorMessage := "Session " + strconv.Itoa(ActiveSession) + " does not exist"
 
 				return errors.New(errorMessage)
 

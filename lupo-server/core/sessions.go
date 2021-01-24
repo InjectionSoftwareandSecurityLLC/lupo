@@ -1,9 +1,12 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/desertbit/grumble"
 )
 
 // Session - defines a session structure composed of:
@@ -115,7 +118,7 @@ func BroadcastSession(session string) {
 	LogData(message)
 	fmt.Println(message)
 
-	for key, _ := range Wolves {
+	for key := range Wolves {
 		broadcast := `{"successMessage":"` + successMessage + `","message":"` + message + `"}`
 		AssignWolfBroadcast(Wolves[key].Username, Wolves[key].Rhost, broadcast)
 	}
@@ -140,4 +143,58 @@ func ShowSessions() map[string]SessionStrings {
 	}
 
 	return stringSessions
+}
+
+// SessionExists - returns if a session exists or not
+func SessionExists(session int) bool {
+
+	_, sessionExists := Sessions[session]
+
+	return sessionExists
+}
+
+// LoadExtendedFunctions - Loads the functions registered by an implant
+func LoadExtendedFunctions(sessionApp *grumble.App, activeSession int) {
+	for key, value := range Sessions[activeSession].Implant.Functions {
+
+		command := key
+		info := value.(string)
+
+		implantFunction := &grumble.Command{
+			Name: command,
+			Help: info,
+			Run: func(c *grumble.Context) error {
+
+				QueueImplantCommand(activeSession, command, "server")
+
+				return nil
+			},
+		}
+
+		sessionApp.AddCommand(implantFunction)
+		LogData("Session " + strconv.Itoa(activeSession) + " loaded extended function: " + command)
+
+	}
+}
+
+// ClientLoadExtendedFunctions - Loads the functions registered by an implant and returns those functions for the lupo client to load
+func ClientLoadExtendedFunctions(activeSession int) []byte {
+
+	sessionFunctions, err := json.Marshal(Sessions[activeSession].Implant.Functions)
+
+	if err != nil {
+		ErrorColorBold.Println("Error: could not parse session function JSON")
+		return nil
+	}
+
+	for key, _ := range Sessions[activeSession].Implant.Functions {
+
+		command := key
+
+		LogData("Session " + strconv.Itoa(activeSession) + " loaded extended function: " + command)
+
+	}
+
+	return sessionFunctions
+
 }

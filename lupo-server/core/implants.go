@@ -22,10 +22,20 @@ import (
 type Implant struct {
 	ID        uuid.UUID
 	Arch      string
-	Commands  []string
+	Commands  []Commands
 	Update    float64
 	response  string
 	Functions map[string]interface{}
+}
+
+// Commands - defines the structure of Commands
+//
+// Command - the actual command to be executed
+//
+// Operator - an operator or "wolf" that is executing the specific command
+type Commands struct {
+	Command  string
+	Operator string
 }
 
 // ZeroedUUID - zeroed global used to clear UUIDs wherever applicable
@@ -79,10 +89,15 @@ func UpdateImplant(sessionID int, updateInterval float64, functions map[string]i
 }
 
 // QueueImplantCommand - inserts a command to the command queue to be executed by a specified implant on the next check in
-func QueueImplantCommand(sessionID int, cmd string) {
+func QueueImplantCommand(sessionID int, cmd string, operator string) {
 	var sessionUpdate = Sessions[sessionID]
 
-	sessionUpdate.Implant.Commands = append(sessionUpdate.Implant.Commands, cmd)
+	newCommand := Commands{
+		Command:  cmd,
+		Operator: operator,
+	}
+
+	sessionUpdate.Implant.Commands = append(sessionUpdate.Implant.Commands, newCommand)
 
 	Sessions[sessionID] = sessionUpdate
 

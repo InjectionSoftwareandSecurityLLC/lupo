@@ -51,6 +51,8 @@ func StartTCPServer(tcpServer net.Listener) {
 //
 // AdditionalFunctions - additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that is loaded into the CLI if successfully registered. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
 //
+// Username - a username provided so the handler knows who the request is destined for, defaults to "server" if the implant does not specify in the request.
+//
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 func TCPServerHandler(conn net.Conn) {
 
@@ -98,6 +100,10 @@ func TCPServerHandler(conn net.Conn) {
 		json.Unmarshal([]byte(tcpParams.AdditionalFunctions), &additionalFunctions)
 	} else {
 		additionalFunctions = nil
+	}
+
+	if tcpParams.Username == "" {
+		tcpParams.Username = "server"
 	}
 
 	if tcpParams.PSK == PSK {
@@ -148,17 +154,26 @@ func TCPServerHandler(conn net.Conn) {
 
 	if tcpParams.Data != "" {
 		core.LogData("Session " + strconv.Itoa(tcpParams.SessionID) + " returned:\n" + tcpParams.Data)
-		fmt.Println("\nSession " + strconv.Itoa(tcpParams.SessionID) + " returned:\n" + tcpParams.Data)
+		if tcpParams.Username == "server" {
+			fmt.Println("\nSession " + strconv.Itoa(tcpParams.SessionID) + " returned:\n" + tcpParams.Data)
+		} else {
+			currentWolf := core.Wolves[tcpParams.Username]
+			jsonData := `{"data":"` + tcpParams.Data + `"}`
+			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+		}
 	}
 
 	var cmd string
+	var user string
 
 	if core.Sessions[tcpParams.SessionID].Implant.Commands != nil {
-		cmd = core.Sessions[tcpParams.SessionID].Implant.Commands[0]
+		cmd = core.Sessions[tcpParams.SessionID].Implant.Commands[0].Command
+		user = core.Sessions[tcpParams.SessionID].Implant.Commands[0].Operator
 	}
 
 	response := map[string]interface{}{
-		"cmd": cmd,
+		"user": user,
+		"cmd":  cmd,
 	}
 
 	jsonResp, err := json.Marshal(response)
