@@ -232,31 +232,80 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		LongHelp: "Loads custom functions registered by an implant tied to the current session if any exist",
 		Run: func(c *grumble.Context) error {
 
-			// Exec on server and get sessions
+			// Exec on server and get session functions
 
-			/*
-				for key, value := range core.Sessions[activeSession].Implant.Functions {
+			reqString := "&isSessionShell=true&command=load&id="
+			commandString := strconv.Itoa(activeSession)
 
-					command := key
-					info := value.(string)
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
-					implantFunction := &grumble.Command{
-						Name: command,
-						Help: info,
-						Run: func(c *grumble.Context) error {
+			resp, err := core.WolfPackHTTP.Get(reqString)
 
-							core.QueueImplantCommand(activeSession, command)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 
-							return nil
-						},
+			defer resp.Body.Close()
+
+			jsonData, err := ioutil.ReadAll(resp.Body)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is a JSON response of functions for a particular session
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
+
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			var sessionFunctions map[string]interface{}
+
+			if coreResponse["response"].(string) != "" {
+				err = json.Unmarshal([]byte(coreResponse["response"].(string)), &sessionFunctions)
+
+				if err != nil {
+					//fmt.Println(err)
+					return nil
+				} else {
+					for key, value := range sessionFunctions {
+
+						command := key
+						info := value.(string)
+
+						implantFunction := &grumble.Command{
+							Name: command,
+							Help: info,
+							Run: func(c *grumble.Context) error {
+
+								// Exec on server and send command
+								reqString := "&isSessionShell=true&command=cmd&activeSession=" + strconv.Itoa(ActiveSession)
+								commandString := "&cmdString=" + command
+
+								reqString = core.AuthURL + reqString + commandString
+
+								_, err := core.WolfPackHTTP.Get(reqString)
+
+								if err != nil {
+									fmt.Println(err)
+									return nil
+								}
+								return nil
+
+							},
+						}
+						sessionApp.AddCommand(implantFunction)
+
 					}
-
-					sessionApp.AddCommand(implantFunction)
-					core.LogData("Session " + strconv.Itoa(activeSession) + " loaded extended function: " + command)
-
 				}
-			*/
 
+			}
 			return nil
 		},
 	}

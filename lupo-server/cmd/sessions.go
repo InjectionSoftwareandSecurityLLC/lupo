@@ -178,7 +178,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			core.LogData(operator + " executed: load")
 
-			loadExtendedFunctions(sessionApp)
+			core.LoadExtendedFunctions(sessionApp, activeSession)
 
 			return nil
 		},
@@ -186,28 +186,4 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	sessionApp.AddCommand(sessionLoadCmd)
 
-}
-
-// loadExtendedFunctions - Loads the functions registered by an implant
-func loadExtendedFunctions(sessionApp *grumble.App) {
-	for key, value := range core.Sessions[activeSession].Implant.Functions {
-
-		command := key
-		info := value.(string)
-
-		implantFunction := &grumble.Command{
-			Name: command,
-			Help: info,
-			Run: func(c *grumble.Context) error {
-
-				core.QueueImplantCommand(activeSession, command, "server")
-
-				return nil
-			},
-		}
-
-		sessionApp.AddCommand(implantFunction)
-		core.LogData("Session " + strconv.Itoa(activeSession) + " loaded extended function: " + command)
-
-	}
 }

@@ -237,6 +237,27 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
 				}
 
+			} else if getCommand[0] == "load" {
+
+				var sessionID string
+				if len(getParams["id"]) > 0 {
+					sessionID = getParams["id"][0]
+				}
+
+				session, err := strconv.Atoi(sessionID)
+
+				if err != nil {
+					errorString := "wolfpack GET Request could not convert session ID to int, request ignored..."
+					core.LogData(errorString)
+					returnErr := errors.New(errorString)
+					ErrorHandler(returnErr)
+					return
+				}
+
+				response := core.ClientLoadExtendedFunctions(session)
+
+				core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, string(response))
+
 			}
 		} else {
 			WolfPackApp.RunCommand(getCommand)
