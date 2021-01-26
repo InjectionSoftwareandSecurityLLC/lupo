@@ -35,8 +35,9 @@ TODO:
 - [x] Implement TCP listener
 - [ ] ~~Consider Implementing UDP listener~~ (Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API)
 - [ ] ~~Consider Implementing Proxying~~ (Cool for v2 should be easy with a go revproxy lib)
-- [ ] Implement "wolfpack" teamserver with client binary generation
+- [x] Implement "wolfpack" teamserver with client binary generation
 - [ ] Implement extended functions like upload/download and any other seemingly "universal" switches
+- [ ] Implement config file for lupo server to auto supply configs
 - [ ] Implement a webshell handler for bind webshells
 - [ ] Implement optional encryption flag for TCP/UDP
 - [x] Consider random PSK generation rather than a default base key
