@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -115,7 +114,6 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
 		if len(getParams["activeSession"]) > 0 {
 
-			fmt.Println(getParams["activeSession"][0])
 			activeSession, err := strconv.Atoi(getParams["activeSession"][0])
 
 			if err != nil {
@@ -143,8 +141,6 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		currentWolf := core.Wolves[getUsername]
 
 		if currentWolf.Broadcast != "" {
-
-			fmt.Println(currentWolf.Broadcast)
 
 			w.Write([]byte(currentWolf.Broadcast))
 			// Clear the response once returned
@@ -264,8 +260,6 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		}
 
 		currentWolf := core.Wolves[getUsername]
-
-		fmt.Println(currentWolf.Response)
 
 		if currentWolf.Response == "" {
 			response := map[string]interface{}{

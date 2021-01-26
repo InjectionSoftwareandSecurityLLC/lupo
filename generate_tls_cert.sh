@@ -13,18 +13,18 @@ if [ ! -z "$DAYS" ];
 then
 echo "Generating a cert with the following parameters:"
 echo ""
-echo "openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days $DAYS -subj \"/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost\"  -addext \"subjectAltName = DNS:localhost\""
+echo "openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days $DAYS -subj \"/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost\"  -addext \"subjectAltName = DNS:localhost, IP:127.0.0.1\""
 echo ""
-openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days $DAYS -subj "/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost"  -addext "subjectAltName = DNS:localhost" 
+openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days $DAYS -subj "/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost"  -addext "subjectAltName = DNS:localhost, IP:127.0.0.1" 
 else
 echo "Generating a cert with the following parameters:"
 echo ""
-echo "openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days 3650 -subj \"/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost\"  -addext \"subjectAltName = DNS:localhost\""
+echo "openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days 3650 -subj \"/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost\"  -addext \"subjectAltName = DNS:localhost, IP:127.0.0.1\""
 echo ""
 echo "To change the number of days pass in a parameter to the script and re-run it"
 echo "example: generate_tls_cert.sh <days>"
 echo ""
-openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days 3650 -subj "/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost" -addext "subjectAltName = DNS:localhost" 
+openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days 3650 -subj "/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=localhost" -addext "subjectAltName = DNS:localhost, IP:127.0.0.1" 
 fi
 echo ""
 echo "Generating PEM file to use with Lupo implants/clients..."
