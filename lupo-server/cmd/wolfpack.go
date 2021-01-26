@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/tabwriter"
@@ -32,6 +33,8 @@ type WolfPackServer struct {
 
 var wolfPackServer WolfPackServer
 
+var tlsCert string
+
 func init() {
 
 	wolfPackCmd := &grumble.Command{
@@ -58,7 +61,7 @@ func init() {
 			listenString := lhost + ":" + strconv.Itoa(lport)
 
 			tlsKey := c.Flags.String("key")
-			tlsCert := c.Flags.String("cert")
+			tlsCert = c.Flags.String("cert")
 
 			var operator string
 
@@ -154,15 +157,19 @@ func init() {
 
 			core.LogData(operator + " executed: wolfpack register -o " + outFile + " " + userName + " <redacted>")
 
-			core.Wolves[userName] = wolf
+			//Generate client config
 
-			core.LogData("Registered User " + userName)
+			err := generateLupoClientConfig(wolf, outFile)
 
-			core.SuccessColorBold.Println("User Registered!")
+			if err != nil {
+				core.ErrorColorBold.Println("User Was Not Registered!")
+			} else {
+				core.Wolves[userName] = wolf
 
-			// TODO: Generate client config
+				core.LogData("Registered User " + userName)
 
-			//generateLupoClientConfig()
+				core.SuccessColorBold.Println("User Registered!")
+			}
 
 			return nil
 		},
@@ -248,26 +255,60 @@ func startWolfPackServer(id int, lhost string, lport int, listenString string, p
 
 }
 
-func generateLupoClientConfig() {
+func generateLupoClientConfig(wolf core.Wolf, outFile string) error {
 
-	core.LogData("Generated lupo client config for <placeholder>")
+	certFile, err := os.Open(tlsCert)
+
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		core.ErrorColorUnderline.Println("could not read tlsCert file, did you start the Wolfpack server?")
+		return err
+	}
+
+	certData, _ := ioutil.ReadAll(certFile)
+
+	certFile.Close()
+
+	certDataString := string(certData)
+
+	re := regexp.MustCompile(`\n`)
+	certDataString = re.ReplaceAllString(certDataString, "\\n")
 
 	lupoClient := []byte(`
-		{
-			"data":"one day i'll be a config"
-		}
+	{
+		"protocol" : "https://",
+		"rhost" :"` + wolfPackServer.lhost + `",
+		"rport" :` + strconv.Itoa(wolfPackServer.lport) + `,
+		"userName" :"` + wolf.Username + `",
+		"psk" :"` + wolf.WolfPSK + `",
+		"cert" :"` + certDataString + `"
+	}
 	`)
 
-	lupoClientDir := "lupo_client/src/"
-	lupoClientSrcFile := "lupo_client.json"
+	lupoClientDir := "wolfpack_configs/"
+	lupoClientSrcFile := outFile
 
-	err := os.MkdirAll(lupoClientDir, 0755)
+	err = os.MkdirAll(lupoClientDir, 0755)
 	if err != nil {
-		fmt.Println(err)
+		core.ErrorColorBold.Println(err)
+		return err
+
 	}
 
-	err = ioutil.WriteFile(lupoClientDir+lupoClientSrcFile, lupoClient, 777)
+	configFile, err := os.Create(lupoClientDir + lupoClientSrcFile)
+
 	if err != nil {
-		fmt.Println(err)
+		core.ErrorColorBold.Println(err)
+		return err
 	}
+
+	configFile.WriteString(string(lupoClient))
+
+	configFile.Close()
+
+	core.LogData("Generated lupo client config for " + wolf.Username)
+	core.SuccessColorBold.Println("Generated lupo client config for " + wolf.Username + " (" + outFile + ")")
+
+	return nil
+
 }

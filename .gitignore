@@ -19,4 +19,5 @@
 
 .lupo.history
 .lupo.log
-lupo_client.json
+wolfpack.json
+wolfpack_configs/*

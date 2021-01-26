@@ -2,6 +2,9 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-client/cmd"
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-client/core"
 	"github.com/desertbit/grumble"
@@ -9,7 +12,18 @@ import (
 
 // main - executes the primary grumble application defined in the "cmd" package
 func main() {
-	core.InitializeWolfPackRequests()
+
+	var configFile = flag.String("c", "wolfpack.json", "config file for lupo client, expects default filename to exist if not specified")
+
+	flag.Parse()
+
+	err := core.InitializeWolfPackRequests(configFile)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	go core.CheckForNewSession()
 	go core.CheckForSessionData()
 	grumble.Main(cmd.App)
