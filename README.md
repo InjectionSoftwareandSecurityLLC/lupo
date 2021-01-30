@@ -43,6 +43,7 @@ TODO:
 - [x] Consider random PSK generation rather than a default base key
 - [x] Document "API" and consider pre-generating API documentation.
 - [ ] Document core features: TLS generation, custom functions (part of API but notable), implant baseline implementation
+- [x] Add Exec command to allow local shell interaction while in the Lupo CLI
 - [ ] Reformat the ASCII art so it is printed a bit more cleanly
 - [ ] Create demo implants to show off all the feature/functionality - documentation too
 - [ ] Repo art update and open source!
