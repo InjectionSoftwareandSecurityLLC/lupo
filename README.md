@@ -2,7 +2,7 @@
 Modular C2 server to tame your pack of wolves
 
 <p align="center">
-  <img src="docs/lupo_logo.png" />
+  <img width=400px src="docs/lupo_logo.png" />
 </p>
 
 
