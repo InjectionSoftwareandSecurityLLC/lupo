@@ -31,3 +31,9 @@ var GreenColorIns = color.New(color.FgGreen).SprintFunc()
 
 // RedColorIns - insert variant for variables, red color for text output
 var RedColorIns = color.New(color.FgRed).SprintFunc()
+
+// MagentaColor - magenta color for text output
+var MagentaColor = color.New(color.FgMagenta)
+
+// MagentaColorBold - bold magenta color for text output
+var MagentaColorBold = color.New(color.FgMagenta).Add(color.Bold)

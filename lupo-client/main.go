@@ -24,7 +24,7 @@ func main() {
 		return
 	}
 
-	go core.CheckForNewSession()
-	go core.CheckForSessionData()
+	go core.Poll()
+
 	grumble.Main(cmd.App)
 }

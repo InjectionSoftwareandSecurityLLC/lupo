@@ -21,7 +21,7 @@ var SessionAppConfig = &grumble.Config{
 	Description:           "Interactive Session CLI",
 	HistoryFile:           ".lupo.history",
 	Prompt:                "lupo session " + strconv.Itoa(0) + " ☾ ", // placeholder, will get this value from the server
-	PromptColor:           color.New(color.FgGreen, color.Bold),
+	PromptColor:           color.New(color.FgMagenta, color.Bold),
 	HelpHeadlineColor:     color.New(color.FgWhite),
 	HelpHeadlineUnderline: true,
 	HelpSubCommands:       true,
@@ -44,6 +44,9 @@ var SessionAppConfig = &grumble.Config{
 // 	"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
 func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
+	// Initialize a new polling thread specific to this shell CLI so we still receive broadcasts messages
+	go core.SessionRelay()
+
 	// Send log to server
 	//core.LogData(operator + " started interaction with session: " + strconv.Itoa(activeSession))
 
@@ -53,8 +56,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		LongHelp: "Exit interactive session cli and return to lupo cli (The 'exit' command is an optional built-in to go back as well) ",
 		Run: func(c *grumble.Context) error {
 			activeSession = -1
-
-			// Exec to server to send log
 
 			// Exec to server to get listeners list
 
@@ -86,6 +87,8 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		},
 		Run: func(c *grumble.Context) error {
 			ActiveSession = c.Args.Int("id")
+
+			core.ActiveSession = ActiveSession
 
 			// Exec on server to get sessions
 
@@ -311,5 +314,87 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 	}
 
 	sessionApp.AddCommand(sessionLoadCmd)
+
+	sessionUploadCmd := &grumble.Command{
+		Name:     "upload",
+		Help:     "uploads a file to a session",
+		LongHelp: "Uploads a file to the host the session is running on",
+		Args: func(a *grumble.Args) {
+			a.String("infile", "path of the file to upload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("o", "outfile", "", "(optional) alternate name to save file as")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("infile")
+			fileName := c.Flags.String("outfile")
+
+			if fileName == "" {
+				fileName = uploadFile
+			}
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+
+				// Exec on server and get session functions
+
+				reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=upload"
+				commandString := "&filename=" + url.QueryEscape(fileName) + "&file=" + url.QueryEscape(fileb64)
+
+				reqString = core.AuthURL + reqString + commandString
+
+				resp, err := core.WolfPackHTTP.Get(reqString)
+
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+
+				defer resp.Body.Close()
+
+				core.SuccessColorBold.Println("File: " + fileName + " should now be uploaded!")
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionUploadCmd)
+
+	sessionDownloadCmd := &grumble.Command{
+		Name:     "download",
+		Help:     "downloads a file from a session",
+		LongHelp: "Downloads a file from the session to the server",
+		Args: func(a *grumble.Args) {
+			a.String("infile", "path of the file to upload")
+		},
+		Run: func(c *grumble.Context) error {
+
+			downloadFile := c.Args.String("infile")
+
+			// Exec on server and get session functions
+
+			reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=download&filename="
+			commandString := downloadFile
+
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			defer resp.Body.Close()
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionDownloadCmd)
 
 }

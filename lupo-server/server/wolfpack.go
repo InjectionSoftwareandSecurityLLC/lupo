@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -53,7 +54,10 @@ func WolfPackServerHandler(w http.ResponseWriter, r *http.Request) {
 // Polling - boolean status indicator to know if the incoming request was from the Lupo client polling functions or the user
 //
 // ActiveSession - the active session an operator is interacting with when executing commands, only applies to session sub-shell/nested shell commands
-
+//
+// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+//
+// File - a string value that is expected to be a base64 encoded string that is a file
 func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
 	// Construct variables for GET URL paramaters
@@ -64,6 +68,8 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	var getPolling = false
 	var getIsSessionShell = false
 	var getActiveSession int
+	var getFileName string
+	var getFile string
 
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
@@ -127,6 +133,14 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		}
 
 		getIsSessionShell = isSessionShell
+	}
+
+	if len(getParams["filename"]) > 0 {
+		getFileName = getParams["filename"][0]
+	}
+
+	if len(getParams["file"]) > 0 {
+		getFile = getParams["file"][0]
 	}
 
 	if getPSK != core.Wolves[getUsername].WolfPSK {
@@ -253,6 +267,30 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 				response := core.ClientLoadExtendedFunctions(session)
 
 				core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, string(response))
+
+			} else if getCommand[0] == "upload" {
+
+				if getFileName != "" {
+					core.LogData("Session " + strconv.Itoa(getActiveSession) + " returned the file:\n" + getFileName)
+
+					if getFile == "" {
+						core.LogData("Session " + strconv.Itoa(getActiveSession) + " file contents was empty, no file written for:\n" + getFileName)
+						fmt.Println("\nSession " + strconv.Itoa(getActiveSession) + " file contents was empty, no file written for:\n" + getFileName)
+					} else {
+						var cmdString = "upload " + getFileName + " " + getFile
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
+				}
+			} else if getCommand[0] == "download" {
+
+				if getFileName != "" {
+					var cmdString = "download " + getFileName
+					core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to download the file: " + getFileName)
+					core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+					core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+				}
 
 			}
 		} else {

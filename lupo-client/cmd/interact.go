@@ -45,6 +45,8 @@ func init() {
 
 			ActiveSession = c.Args.Int("id")
 
+			core.ActiveSession = ActiveSession
+
 			// Exec interact with server goes here to switch sessions
 
 			reqString := "&command="

