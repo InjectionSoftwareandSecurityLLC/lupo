@@ -20,7 +20,7 @@ import (
 // TCP Servers are started by executing a StartTCPServer function via goroutine. To maintain concurrency a subsequent goroutine is executed to handle the data for all TCP connections via TCPServerHandler() function.
 //
 // All connectors are concurrent and support multiple simultaneous connections.
-func StartConnector(id int, rhost string, rport int, protocol string, requestType string, command string, query string, connectString string, shellpath string) error {
+func StartConnector(id int, rhost string, rport int, protocol string, requestType string, command string, query string, connectString string, shellpath string) (string, error) {
 
 	LogData("Starting new " + protocol + " connector on " + connectString)
 
@@ -37,7 +37,7 @@ func StartConnector(id int, rhost string, rport int, protocol string, requestTyp
 	} else if protocol == "HTTP" {
 		connectString = "http://" + connectString
 	} else {
-		return errors.New("protocol specified not implemented by the connector")
+		return "protocol specified not implemented by the connector", errors.New("protocol specified not implemented by the connector")
 	}
 
 	if requestType == "GET" {
@@ -46,23 +46,23 @@ func StartConnector(id int, rhost string, rport int, protocol string, requestTyp
 
 		resp, err := client.Get(connectString)
 		if err != nil {
-			return errors.New("protocol not supported for bind connection execution")
+			return "protocol not supported for bind connection execution", errors.New("protocol not supported for bind connection execution")
 		}
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-			SuccessColorBold.Println("Got a " + strconv.Itoa(resp.StatusCode) + " response, setting up session...")
+			response := "Got a " + strconv.Itoa(resp.StatusCode) + " response, setting up session..."
 			implant := RegisterImplant("Web", 0, nil)
 			RegisterSession(SessionID, protocol, implant, rhost, rport, command, query, requestType, shellpath)
 			newSession := SessionID - 1
 			BroadcastSession(strconv.Itoa(newSession))
 
-			return nil
+			return response, nil
 		} else {
-			return errors.New("the shell doesn't appear to exist, response code was: " + strconv.Itoa(resp.StatusCode))
+			return "the shell doesn't appear to exist, response code was: " + strconv.Itoa(resp.StatusCode), errors.New("the shell doesn't appear to exist, response code was: " + strconv.Itoa(resp.StatusCode))
 		}
 	} else if requestType == "POST" {
-		return errors.New("POST not implemented yet")
+		return "POST not implemented yet", errors.New("POST not implemented yet")
 	} else {
-		return errors.New("the request type you specified is not implemented yet")
+		return "the request type you specified is not implemented yet", errors.New("the request type you specified is not implemented yet")
 	}
 }
 

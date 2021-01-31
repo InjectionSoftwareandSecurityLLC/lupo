@@ -75,19 +75,36 @@ func RegisterSession(sessionID int, protocol string, implant Implant, rhost stri
 		currentTime.Year(), currentTime.Month(), currentTime.Day(),
 		currentTime.Hour(), currentTime.Minute(), currentTime.Second())
 
-	Sessions[sessionID] = Session{
-		ID:           sessionID,
-		Protocol:     protocol,
-		Implant:      implant,
-		Rhost:        rhost,
-		RawCheckin:   currentTime,
-		Checkin:      timeFormatted,
-		Status:       "ALIVE",
-		Rport:        rport,
-		CommandQuery: command,
-		Query:        query,
-		RequestType:  requestType,
-		ShellPath:    shellpath,
+	if rport != 0 {
+		Sessions[sessionID] = Session{
+			ID:           sessionID,
+			Protocol:     protocol,
+			Implant:      implant,
+			Rhost:        rhost + ":" + strconv.Itoa(rport),
+			RawCheckin:   currentTime,
+			Checkin:      timeFormatted,
+			Status:       "ALIVE",
+			Rport:        rport,
+			CommandQuery: command,
+			Query:        query,
+			RequestType:  requestType,
+			ShellPath:    shellpath,
+		}
+	} else {
+		Sessions[sessionID] = Session{
+			ID:           sessionID,
+			Protocol:     protocol,
+			Implant:      implant,
+			Rhost:        rhost,
+			RawCheckin:   currentTime,
+			Checkin:      timeFormatted,
+			Status:       "ALIVE",
+			Rport:        rport,
+			CommandQuery: command,
+			Query:        query,
+			RequestType:  requestType,
+			ShellPath:    shellpath,
+		}
 	}
 
 	SessionID++

@@ -3,10 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/url"
 	"strconv"
 
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
-	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/server"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-client/core"
 	"github.com/desertbit/grumble"
 )
 
@@ -58,61 +60,66 @@ func init() {
 			query := c.Flags.String("query")
 			requestType := c.Flags.String("type")
 			path := c.Flags.String("path")
-			connectString := rhost + ":" + strconv.Itoa(rport) + "/" + path
 
-			var operator string
+			// Call out to server to generate new PSK
 
-			if server.IsWolfPackExec {
+			reqString := "&command="
+			commandString := "connector start"
+			commandString += " -r " + rhost + " -p " + strconv.Itoa(rport) + " -x " + protocol + " -c " + command + " -q " + query + " -t " + requestType + " -d " + path
 
-				operator = server.CurrentOperator
+			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
-				core.LogData(operator + " executed: connector start -r " + rhost + " -p " + strconv.Itoa(rport) + " -x " + protocol)
+			resp, err := core.WolfPackHTTP.Get(reqString)
 
-				response, err := core.StartConnector(connectorID, rhost, rport, protocol, requestType, command, query, connectString, path)
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 
-				var resp core.StartResponse
+			defer resp.Body.Close()
 
-				if err != nil {
-					if response != "" {
-						resp = core.StartResponse{
-							Response: "",
-							Status:   response,
-						}
-					}
-				} else {
-					if response != "" {
-						resp = core.StartResponse{
-							Response: response,
-						}
-					}
-				}
+			jsonData, err := ioutil.ReadAll(resp.Body)
 
-				currentWolf := core.Wolves[operator]
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 
-				jsonResp, err := json.Marshal(resp)
+			type Response struct {
+				Response    string
+				CurrentPSK  string
+				Instruction string
+				Help        string
+				Status      string
+			}
 
-				if err != nil {
-					return errors.New("could not creat JSON response")
-				}
+			var serverResponse *Response
 
-				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, string(jsonResp))
+			// Parse the JSON response
+			// We are expecting a JSON string with the key "response" by default, the value is a second JSON object that contains the specific fields needed to map to the expected listener start Response struct
+			var coreResponse map[string]interface{}
+			err = json.Unmarshal(jsonData, &coreResponse)
 
+			if err != nil {
+				//fmt.Println(err)
+				return nil
+			}
+
+			err = json.Unmarshal([]byte(coreResponse["response"].(string)), &serverResponse)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+
+			if serverResponse.Response != "" {
+				core.SuccessColorBold.Println(serverResponse.Response)
 			} else {
-				operator = "server"
-
-				core.LogData(operator + " executed: connector start -r " + rhost + " -p " + strconv.Itoa(rport) + " -x " + protocol)
-
-				response, err := core.StartConnector(connectorID, rhost, rport, protocol, requestType, command, query, connectString, path)
-
-				if err != nil {
-					return err
-				}
-
-				core.SuccessColorBold.Println(response)
-
+				return errors.New(serverResponse.Status)
 			}
 
 			return nil
+
 		},
 	}
 	connectCmd.AddCommand(connectStartCmd)

