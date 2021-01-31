@@ -105,7 +105,7 @@ func init() {
 				response, err := core.StartConnector(connectorID, rhost, rport, protocol, requestType, command, query, connectString, path)
 
 				if err != nil {
-					return err
+					return errors.New(response)
 				}
 
 				core.SuccessColorBold.Println(response)
