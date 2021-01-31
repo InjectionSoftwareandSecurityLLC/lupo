@@ -41,7 +41,7 @@ TODO:
 - [ ] Implement a webshell handler for bind webshells
 - [ ] Implement optional encryption flag for TCP/UDP
 - [x] Consider random PSK generation rather than a default base key
-- [] Document "API" and consider pre-generating API documentation.
+- [ ] Document "API" and consider pre-generating API documentation.
 - [ ] Document core features: TLS generation, custom functions (part of API but notable), implant baseline implementation
 - [x] Add Exec command to allow local shell interaction while in the Lupo CLI
 - [ ] Reformat the ASCII art so it is printed a bit more cleanly
