@@ -35,6 +35,10 @@ import (
 // AdditionalFunctions - additional function names that can be registered to a given session. These contain a JSON string of {"name":"description"} that is loaded into the CLI if successfully registered. Users can then execute these as unique session sub-commands. It is assumed that the implant has implemented these functions and will execute reserved actions once the registered keyword is received.
 //
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
+//
+// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+//
+// File - a string value that is expected to be a base64 encoded string that is a file
 
 type TCPData struct {
 	PSK                 string
@@ -46,6 +50,8 @@ type TCPData struct {
 	AdditionalFunctions string
 	Username            string
 	Register            bool
+	FileName            string
+	File                string
 }
 
 // DefaultPSK = Globally generated PSK to set as default if the user does not specify one

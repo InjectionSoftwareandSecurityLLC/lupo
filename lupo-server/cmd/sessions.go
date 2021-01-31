@@ -17,7 +17,7 @@ var SessionAppConfig = &grumble.Config{
 	Description:           "Interactive Session CLI",
 	HistoryFile:           ".lupo.history",
 	Prompt:                "lupo session " + strconv.Itoa(core.ActiveSession) + " ☾ ",
-	PromptColor:           color.New(color.FgGreen, color.Bold),
+	PromptColor:           color.New(color.FgMagenta, color.Bold),
 	HelpHeadlineColor:     color.New(color.FgWhite),
 	HelpHeadlineUnderline: true,
 	HelpSubCommands:       true,
@@ -185,5 +185,72 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 	}
 
 	sessionApp.AddCommand(sessionLoadCmd)
+
+	sessionUploadCmd := &grumble.Command{
+		Name:     "upload",
+		Help:     "uploads a file to a session",
+		LongHelp: "Uploads a file to the host the session is running on",
+		Args: func(a *grumble.Args) {
+			a.String("infile", "path of the file to upload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("o", "outfile", "", "(optional) alternate name to save file as")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("infile")
+
+			fileName := c.Flags.String("outfile")
+
+			if fileName == "" {
+				fileName = uploadFile
+			}
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: upload " + fileName)
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+				cmdString := "upload " + fileName + " " + fileb64
+				core.QueueImplantCommand(activeSession, cmdString, "server")
+				core.SuccessColorBold.Println("File: " + fileName + " should now be uploaded!")
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionUploadCmd)
+
+	sessionDownloadCmd := &grumble.Command{
+		Name:     "download",
+		Help:     "downloads a file from a session",
+		LongHelp: "Downloads a file from the session to the server",
+		Args: func(a *grumble.Args) {
+			a.String("infile", "path of the file to download")
+		},
+		Run: func(c *grumble.Context) error {
+
+			downloadFile := c.Args.String("infile")
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: download " + downloadFile)
+
+			cmdString := "download " + downloadFile
+
+			core.QueueImplantCommand(activeSession, cmdString, "server")
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionDownloadCmd)
 
 }

