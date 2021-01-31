@@ -26,13 +26,18 @@ import (
 // status - current activity status of the implant, can be ALIVE, DEAD, or UNKNOWN. UNKNOWN is defaulted to if no update interval is provided during implant communications.
 
 type Session struct {
-	ID         int
-	Protocol   string
-	Implant    Implant
-	Rhost      string
-	RawCheckin time.Time
-	Checkin    string
-	Status     string
+	ID           int
+	Protocol     string
+	Implant      Implant
+	Rhost        string
+	RawCheckin   time.Time
+	Checkin      string
+	Status       string
+	Rport        int
+	CommandQuery string
+	Query        string
+	RequestType  string
+	ShellPath    string
 }
 
 // SessionStrings - more loose structure for handling session data, primarily used to hand off as JSON to the lupo client.
@@ -46,6 +51,11 @@ type SessionStrings struct {
 	RawCheckin    string
 	Checkin       string
 	Status        string
+	Rport         string
+	CommandQuery  string
+	Query         string
+	RequestType   string
+	ShellPath     string
 }
 
 // ActiveSession = global value to keep track of the current active session. Since session "0" is a valid session, this starts at "-1" to determine if no session is active.
@@ -58,7 +68,7 @@ var Sessions = make(map[int]Session)
 var SessionID int = 0
 
 // RegisterSession - Registers a session and adds it to the session map and increments the global SessionID value
-func RegisterSession(sessionID int, protocol string, implant Implant, rhost string) {
+func RegisterSession(sessionID int, protocol string, implant Implant, rhost string, rport int, command string, query string, requestType string, shellpath string) {
 
 	currentTime := time.Now()
 	timeFormatted := fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d",
@@ -66,13 +76,18 @@ func RegisterSession(sessionID int, protocol string, implant Implant, rhost stri
 		currentTime.Hour(), currentTime.Minute(), currentTime.Second())
 
 	Sessions[sessionID] = Session{
-		ID:         sessionID,
-		Protocol:   protocol,
-		Implant:    implant,
-		Rhost:      rhost,
-		RawCheckin: currentTime,
-		Checkin:    timeFormatted,
-		Status:     "ALIVE",
+		ID:           sessionID,
+		Protocol:     protocol,
+		Implant:      implant,
+		Rhost:        rhost,
+		RawCheckin:   currentTime,
+		Checkin:      timeFormatted,
+		Status:       "ALIVE",
+		Rport:        rport,
+		CommandQuery: command,
+		Query:        query,
+		RequestType:  requestType,
+		ShellPath:    shellpath,
 	}
 
 	SessionID++
