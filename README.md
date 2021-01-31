@@ -2,23 +2,30 @@
 Modular C2 server to tame your pack of wolves
 
 <pre>
-  _                  _
-    | '-.            .-' |
-    | -. '..\\,.//,.' .- |
-    |   \  \\\||///  /   | 
-   /|    )M\/%%%%/\/(  . |\
-  (/\  MM\/%/\||/%\\/MM  /\)
-  (//M   \%\\\%%//%//   M\\)
-(// M________ /\ ________M \\)
- (// M\ \(',)|  |(',)/ /M \\) \\\\  
-  (\\ M\.  /,\\//,\  ./M //)
-    / MMmm( \\||// )mmMM \  \\\
-     // MMM\\\||///MMM \\ \\
-      \//''\)/||\(/''\\/ \\
-      mrf\\( \oo/ )\\\/\
-           \'-..-'\/\\
-              \\/ \\
-                      art by Morfina
+                    -.`                   `..                    
+                  `. -..`               `..  .                   
+                  .  .`.``            ```.-.  .                  
+                 ``  .. ```.........-.``` .-  .                  
+                 .`  `-` ``.`   `   `..` `..  .                  
+                 .    `-.`      .     `-.`.`  .`                 
+                 .  `.-`        .       `.-.  `.                 
+                 -`-.`          :          `-.`.                 
+                 -``        `   -   `        `..                 
+                -.      ````         ````      .-                
+               `-    ````+++- `   ` -/++````   `-                
+              `-`  ``` .``:+o``   ``o+:` . ```  `-               
+              -` ``  `` ``  `       `  `` `.  `` ..              
+              .`     ``     ` `   ` `     `.    `..              
+              -.     ``    `  `   `  `    `.   `.-.              
+              .-.`    `.`  ` ` ``` ` `  `.`    `.-`              
+               ..`      ``.  `yhddy`  .``    ``.-`               
+                `...      /. `mMMMm` ./`     `-.`                
+                  `..      .` -oyo- `.`   ``..`                  
+                     `..`    `.---.`     `.`                     
+                        ..``          `.``                       
+                          `..       ..`                          
+                            `...``..`                            
+                               ...                                
 </pre>
 
 
@@ -44,6 +51,6 @@ TODO:
 - [ ] Document "API" and consider pre-generating API documentation.
 - [ ] Document core features: TLS generation, custom functions (part of API but notable), implant baseline implementation
 - [x] Add Exec command to allow local shell interaction while in the Lupo CLI
-- [ ] Reformat the ASCII art so it is printed a bit more cleanly
+- [x] Reformat the ASCII art so it is printed a bit more cleanly
 - [ ] Create demo implants to show off all the feature/functionality - documentation too
 - [ ] Repo art update and open source!
