@@ -117,7 +117,7 @@ func TCPServerHandler(conn net.Conn) {
 
 			implant := core.RegisterImplant(tcpParams.ImplantArch, tcpParams.Update, additionalFunctions)
 
-			core.RegisterSession(core.SessionID, "TCP", implant, remoteAddr)
+			core.RegisterSession(core.SessionID, "TCP", implant, remoteAddr, 0, "", "", "", "")
 
 			newSession := core.SessionID - 1
 

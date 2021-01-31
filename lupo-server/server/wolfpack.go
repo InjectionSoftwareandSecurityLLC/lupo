@@ -207,7 +207,23 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 					cmdString = getParams["cmdString"][0]
 				}
 				core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": cmd " + cmdString)
-				core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+
+				if core.Sessions[getActiveSession].CommandQuery != "" {
+					data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType)
+					if err != nil {
+						data = "an error occurred executing the connection, is the shell still up?"
+					}
+
+					core.LogData("Session " + strconv.Itoa(getActiveSession) + " returned:\n" + data)
+
+					currentWolf := core.Wolves[CurrentOperator]
+					jsonData := `{"data":"` + data + `"}`
+					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+
+				} else {
+					core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+
+				}
 
 			} else if getCommand[0] == "kill" {
 

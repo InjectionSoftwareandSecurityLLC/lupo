@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -121,7 +122,21 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			core.LogData(operator + " executed on session " + strconv.Itoa(activeSession) + ": cmd " + cmdString)
 
-			core.QueueImplantCommand(activeSession, cmdString, "server")
+			if core.Sessions[activeSession].CommandQuery != "" {
+				session := core.Sessions[activeSession]
+
+				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType)
+				if err != nil {
+					return err
+				}
+
+				core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
+				if operator == "server" {
+					fmt.Println("\nSession " + strconv.Itoa(activeSession) + " returned:\n" + data)
+				}
+			} else {
+				core.QueueImplantCommand(activeSession, cmdString, "server")
+			}
 
 			return nil
 		},

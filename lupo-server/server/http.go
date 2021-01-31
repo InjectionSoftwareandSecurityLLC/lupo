@@ -183,7 +183,13 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 			implant := core.RegisterImplant(getImplantArch, getUpdate, additionalFunctions)
 
-			core.RegisterSession(core.SessionID, "HTTP", implant, remoteAddr)
+			var protocol string
+			if r.TLS == nil {
+				protocol = "HTTPS"
+			} else {
+				protocol = "HTTP"
+			}
+			core.RegisterSession(core.SessionID, protocol, implant, remoteAddr, 0, "", "", "", "")
 
 			newSession := core.SessionID - 1
 
@@ -416,7 +422,13 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 
 			implant := core.RegisterImplant(postImplantArch, postUpdate, additionalFunctions)
 
-			core.RegisterSession(core.SessionID, "HTTP", implant, remoteAddr)
+			var protocol string
+			if r.TLS == nil {
+				protocol = "HTTPS"
+			} else {
+				protocol = "HTTP"
+			}
+			core.RegisterSession(core.SessionID, protocol, implant, remoteAddr, 0, "", "", "", "")
 
 			newSession := core.SessionID - 1
 
