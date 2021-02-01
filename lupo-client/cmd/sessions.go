@@ -385,8 +385,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			resp, err := core.WolfPackHTTP.Get(reqString)
 
 			if err != nil {
-				fmt.Println(err)
-				return nil
+				return err
 			}
 
 			defer resp.Body.Close()

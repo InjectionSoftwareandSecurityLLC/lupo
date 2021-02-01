@@ -100,7 +100,7 @@ func StartConnector(id int, rhost string, rport int, protocol string, requestTyp
 }
 
 // ExecuteConnection - function to handle binding HTTP/HTTPS connections from connector sessions
-func ExecuteConnection(rhost string, rport int, protocol string, path string, commandQuery string, command string, query string, requestType string) (string, error) {
+func ExecuteConnection(rhost string, rport int, protocol string, path string, commandQuery string, command string, query string, requestType string, filename string, file string) (string, error) {
 
 	var data string
 
@@ -125,14 +125,20 @@ func ExecuteConnection(rhost string, rport int, protocol string, path string, co
 
 		connectString := protocol + rhost + "/" + path + "?" + commandQuery + url.QueryEscape(command) + query
 
+		if filename != "" {
+			connectString += "&filename=" + filename
+		}
+
+		if file != "" {
+			connectString += "&file=" + url.QueryEscape(file)
+		}
+
 		resp, err := http.Get(connectString)
 		if err != nil {
 			return "", errors.New("problem assigning response from server")
 		}
 
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
-			SuccessColorBold.Println("executing command... ")
-
 			//We Read the response body on the line below.
 			body, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
@@ -165,6 +171,14 @@ func ExecuteConnection(rhost string, rport int, protocol string, path string, co
 			postParams.Add(string(k), strings.Join(v, ""))
 		}
 
+		if filename != "" {
+			postParams.Add("filename", filename)
+		}
+
+		if file != "" {
+			postParams.Add("file", file)
+		}
+
 		resp, err := client.PostForm(connectString, postParams)
 
 		if err != nil {
@@ -189,4 +203,74 @@ func ExecuteConnection(rhost string, rport int, protocol string, path string, co
 		return "", errors.New("the request type you specified is not implemented yet")
 	}
 	return data, nil
+}
+
+// WebShellStatus - check in function called on show to see if the web shell still response
+func WebShellStatus(id int, rhost string, rport int, protocol string, requestType string, command string, query string, connectString string, shellpath string) (bool, error) {
+
+	sessionID := strconv.Itoa(Sessions[ActiveSession].ID)
+
+	LogData("Checking in on web session:  " + sessionID)
+
+	client := http.DefaultClient
+
+	if protocol == "HTTPS" {
+		connectString = "https://" + connectString
+
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client = &http.Client{Transport: tr}
+
+	} else if protocol == "HTTP" {
+		connectString = "http://" + connectString
+	} else {
+		return false, errors.New("protocol specified not implemented by the connector")
+	}
+
+	if requestType == "GET" {
+
+		connectString = connectString + "?" + command + query
+
+		resp, err := client.Get(connectString)
+
+		if err != nil {
+			return false, errors.New("problem reading GET request response")
+		}
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	} else if requestType == "POST" {
+
+		commandParse := strings.Replace(command, "=", "", -1)
+
+		data := url.Values{
+			commandParse: {""},
+		}
+
+		queryParse, err := url.ParseQuery(query)
+
+		if err != nil {
+			return false, errors.New("problem parsing extra query parameters for POST request")
+		}
+
+		for k, v := range queryParse {
+			data.Add(string(k), strings.Join(v, ""))
+		}
+
+		resp, err := client.PostForm(connectString, data)
+
+		if err != nil {
+			return false, errors.New("problem reading POST request response")
+		}
+		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
+			return true, nil
+		} else {
+			return false, nil
+		}
+	} else {
+		return false, errors.New("the request type you specified is not implemented yet")
+	}
 }
