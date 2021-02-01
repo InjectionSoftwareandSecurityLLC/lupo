@@ -125,7 +125,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			if core.Sessions[activeSession].CommandQuery != "" {
 				session := core.Sessions[activeSession]
 
-				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType)
+				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, "", "")
 				if err != nil {
 					return err
 				}
@@ -230,8 +230,21 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			fileb64 := core.UploadFile(uploadFile)
 
 			if fileb64 != "" {
-				cmdString := "upload " + fileName + " " + fileb64
-				core.QueueImplantCommand(activeSession, cmdString, "server")
+				if core.Sessions[activeSession].CommandQuery != "" {
+					cmdString := "upload"
+
+					session := core.Sessions[activeSession]
+
+					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, uploadFile, fileb64)
+					if err != nil {
+						return err
+					}
+
+				} else {
+					cmdString := "upload " + fileName + " " + fileb64
+					core.QueueImplantCommand(activeSession, cmdString, "server")
+				}
+
 				core.SuccessColorBold.Println("File: " + fileName + " should now be uploaded!")
 			}
 
@@ -258,9 +271,24 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			core.LogData(operator + " executed: download " + downloadFile)
 
-			cmdString := "download " + downloadFile
+			if core.Sessions[activeSession].CommandQuery != "" {
+				session := core.Sessions[activeSession]
 
-			core.QueueImplantCommand(activeSession, cmdString, "server")
+				cmdString := "download"
+
+				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, downloadFile, "")
+				if err != nil {
+					return err
+				}
+
+				core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
+				core.DownloadFile(downloadFile, data)
+			} else {
+				cmdString := "download " + downloadFile
+
+				core.QueueImplantCommand(activeSession, cmdString, "server")
+
+			}
 
 			return nil
 		},

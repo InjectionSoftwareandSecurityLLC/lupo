@@ -21,3 +21,4 @@
 .lupo.log
 wolfpack.json
 wolfpack_configs/*
+*.DS_Store

@@ -119,7 +119,18 @@ func init() {
 				updateInterval := core.Sessions[filterID].Implant.Update
 				lastCheckIn := core.Sessions[filterID].RawCheckin
 
-				status, err := calculateSessionStatus(updateInterval, lastCheckIn)
+				var status bool
+				var err error
+
+				session := core.Sessions[filterID]
+
+				connectString := session.Rhost + ":" + strconv.Itoa(session.Rport) + "/" + session.ShellPath
+
+				if session.CommandQuery != "" {
+					status, err = core.WebShellStatus(filterID, session.Rhost, session.Rport, session.Protocol, session.RequestType, session.CommandQuery, session.Query, connectString, session.ShellPath)
+				} else {
+					status, err = calculateSessionStatus(updateInterval, lastCheckIn)
+				}
 
 				if err != nil {
 					core.SessionStatusUpdate(filterID, "UNKNOWN")
@@ -137,7 +148,20 @@ func init() {
 					updateInterval := core.Sessions[i].Implant.Update
 					lastCheckIn := core.Sessions[i].RawCheckin
 
-					status, err := calculateSessionStatus(updateInterval, lastCheckIn)
+					var status bool
+					var err error
+
+					session := core.Sessions[i]
+
+					connectString := session.Rhost + "/" + session.ShellPath
+
+					if session.CommandQuery != "" {
+						status, err = core.WebShellStatus(filterID, session.Rhost, session.Rport, session.Protocol, session.RequestType, session.CommandQuery, session.Query, connectString, session.ShellPath)
+						fmt.Println(status)
+						fmt.Println(err)
+					} else {
+						status, err = calculateSessionStatus(updateInterval, lastCheckIn)
+					}
 
 					if err != nil {
 						core.SessionStatusUpdate(i, "UNKNOWN")
