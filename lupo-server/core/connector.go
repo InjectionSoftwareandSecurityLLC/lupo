@@ -104,7 +104,7 @@ func ExecuteConnection(rhost string, rport int, protocol string, path string, co
 
 	var data string
 
-	LogData("executing on session" + strconv.Itoa(ActiveSession) + ": " + command)
+	LogData("executing on session " + strconv.Itoa(SessionID-1) + ": " + command)
 
 	client := http.DefaultClient
 
