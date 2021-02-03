@@ -1,7 +1,7 @@
 {
     "name": "Lupo C2",
     "version": "0.1.0 (BETA)",
-    "platform": "all",
+    "platform": "all-desktop",
     "progress": "100%",
     "state": "done",
     "released": true,
