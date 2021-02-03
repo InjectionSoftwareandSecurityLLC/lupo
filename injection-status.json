@@ -1,0 +1,12 @@
+{
+    "name": "Lupo C2",
+    "version": "0.1.0 (BETA)",
+    "platform": "all",
+    "progress": "100%",
+    "state": "done",
+    "released": true,
+    "release_version": "0.1.0 (BETA)",
+    "download_url": "https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v0.1.0-beta",
+    "featured": true,
+    "featured_image": "https://raw.githubusercontent.com/InjectionSoftwareDevelopment/lupo/main/docs/assets/lupo_logo.png"
+}
