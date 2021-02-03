@@ -16,6 +16,8 @@ When Lupo serves HTTP(S) connections it can parse data from either GET/POST requ
     - data = a data payload, usually any response that the implant wants to send back. This will be reflected to the operator of the server and requires no special format.
     - functions = any additional functions built into the implant that it wants to register in Lupo. If your implant implements a custom function you can tell Lupo about it via JSON by specifying {"name":"description"} in this parameter. You can include multiple key value pairs to register any number of custom functions. These will be displayed to the user of the server when interacting with a session and executing the "load" command.
     - register = boolean true/false. Defaults to false, but if passed in as true it will attempt to register a new session.
+    - filename = a string value provided by an implant that is the filename for a file being sent to download or upload.
+    - file = a string value that is expected to be a base64 encoded string that is a file to download or upload.
 
 Below are some examples of the bare minimum parameters needed to get up and running. By default Lupo will always serve the next command in the command queue if the request is not a registration request. As such your basic implant loop should function as follows:
 
@@ -75,6 +77,8 @@ When Lupo serves TCP connections it expects the connecting implant to send all d
     - data = a data payload, usually any response that the implant wants to send back. This will be reflected to the operator of the server and requires no special format.
     - AdditionalFunctions = any additional functions built into the implant that it wants to register in Lupo. If your implant implements a custom function you can tell Lupo about it via JSON by specifying {"name":"description"} in this parameter. You can include multiple key value pairs to register any number of custom functions. These will be displayed to the user of the server when interacting with a session and executing the "load" command.
     - register = boolean true/false. Defaults to false, but if passed in as true it will attempt to register a new session.
+    - filename = a string value provided by an implant that is the filename for a file being sent to download or upload.
+    - file = a string value that is expected to be a base64 encoded string that is a file to download or upload.
 
 Below are some examples of the bare minimum parameters needed to get up and running. By default Lupo will always serve the next command in the command queue if the request is not a registration request. As such your basic implant loop should function as follows:
 
@@ -106,3 +110,14 @@ Once you've got an implant working, try using some of the other parameters to en
         - PAYLOAD: `{"psk":"<psk>","sessionID":<ID>,"UUID":"<UUID>","data":"<some_data>"}`
     - Response: `{"cmd":"<some_command>"}`
     - Data Output in Lupo: `lupo ☾ <some_data>` 
+
+## Connector API
+The Connector API is a "bind" API using HTTP/HTTPS. This means that these are parameters that your implant/web shell is expected to implement in order to integrate with the Lupo connector and establish a session.
+
+- Available Parameters:
+    - command query (REQUIRED - ALWAYS) = This is a primary command parameter. It can be GET/POST but must always be receivable by the target implant as all core commands are sent via this command regardless if they are extended functions or not just like how the HTTP/HTTPS and TCP servers post commands. In PHP a GET parameter example may look something like this `$_GET['cmd']` where the query ?cmd=(CMD) will be sent via the connector. This can be called anything but must be set correctly when starting a new connector. 
+    - query parameters = connector shells don't technically implement the "extended functions" that the listeners do, instead these functions can be implemented by the target shell as optional parameters. to make use of these in your connector shell simply pass them in as HTTP based parameters. They must be pre-populated with data meaning the values are static. Additional functions can still technically be implemented via the command query at an implant's discretion but they cannot be loaded into the Lupo Session CLI interface as a reference requiring the user to follow along with a given implant's source/documentation.
+    - filename = a string value provided by an implant that is the filename for a file being sent to download or upload.  
+    - file = a string value that is expected to be a base64 encoded string that is a file to download or upload.
+
+You can find a sample web shell in PHP that fully implements these functions in the `samples` section of the Lupo C2 repository. It should be noted that while proper HTTP responses are not _required_ by Lupo 2XX responses are used to measure whether or not a shell is active. As a result if you want somewhat accurate session status listings for connector based sessions your shell needs to return a 2XX response so Lupo knows it is alive. Not doing so will still allow you to interact with the session as long as it really exists, but will report an inaccurate status.

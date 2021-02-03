@@ -57,9 +57,9 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 //
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 //
-// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+// FileName - a string value provided by an implant that is the filename for a file being sent to download or upload.
 //
-// File - a string value that is expected to be a base64 encoded string that is a file
+// File - a string value that is expected to be a base64 encoded string that is a file to download or upload.
 
 func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
@@ -297,9 +297,9 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 //
 // Register - a boolean value that lets a listener know if an implant is attempting to register itself or not. If not provided registration is assumed to be false. If registration is attempted the listener will check for valid authentication via the PSK and attempt to register a new session.
 //
-// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+// FileName - a string value provided by an implant that is the filename for a file being sent to download or upload.
 //
-// File - a string value that is expected to be a base64 encoded string that is a file
+// File - a string value that is expected to be a base64 encoded string that is a file to download or upload.
 
 func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()

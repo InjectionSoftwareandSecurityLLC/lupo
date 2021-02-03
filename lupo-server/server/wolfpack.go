@@ -45,19 +45,22 @@ func WolfPackServerHandler(w http.ResponseWriter, r *http.Request) {
 //
 // HTTP GET Requests are expected to be provided as URL parameters like any other web request. The following parameters can be provided:
 //
-// PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
+// PSK - a string that is the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
 //
-// Username - a unique Username that is defined by the operator administering wolfpack server users. This is sent to identify what user is connecting.
+// Username - a string that is a unique Username that is defined by the operator administering wolfpack server users. This is sent to identify what user is connecting.
 //
-// Command - a command issued by a user to be transmitted and executed by the Lupo server
+// Command - a command string (slice) issued by a user to be transmitted and executed by the Lupo server
 //
 // Polling - boolean status indicator to know if the incoming request was from the Lupo client polling functions or the user
 //
-// ActiveSession - the active session an operator is interacting with when executing commands, only applies to session sub-shell/nested shell commands
+// IsSessionShell = a boolean value to indicate whether or not the current shell type being interacted with is a session or the core Lupo CLI. This is required to access session specific functions like executing commands and swapping sessions within the Wolfpack server.
 //
-// FileName - a string value provided by an implant that is the filename for a file being sent to download.
+// ActiveSession - an integer that is the active session an operator is interacting with when executing commands, only applies to session sub-shell/nested shell commands
 //
-// File - a string value that is expected to be a base64 encoded string that is a file
+// FileName - a string value provided by an implant that is the filename for a file being sent to download or upload.
+//
+// File - a string value that is expected to be a base64 encoded string that is a file to download or upload.
+
 func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
 	// Construct variables for GET URL paramaters
