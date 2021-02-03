@@ -42,6 +42,8 @@ Known Bugs:
 Version 1.0 TODO:
 - [ ] Implement config file for lupo server to auto supply configs
 - [ ] Implement optional encryption flag for TCP/UDP
+- [ ] wolfpack chat
+- [ ] config parser for server to improve automation capabilities
 
 
 Road Map:
