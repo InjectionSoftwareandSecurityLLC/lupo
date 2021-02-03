@@ -11,7 +11,7 @@ Modular C2 server to tame your pack of wolves.
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
-- [Source Code Docs]() # ADD GODOC LINK
+- [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo@v0.1.0)
 - [Contributing](contributing.md)
 
 
