@@ -44,8 +44,10 @@ Version 1.0 TODO:
 - [ ] Implement optional encryption flag for TCP/UDP
 - [ ] wolfpack chat
 - [ ] config parser for server to improve automation capabilities
+- [ ] implement automated builds with Travis CI
 
 
 Road Map:
 - [ ] Consider Implementing UDP listener (Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API)
 - [ ] Consider Implementing Proxying (Cool for v2 should be easy with a go revproxy lib)
+- [ ] Web interface for wolfpack server
