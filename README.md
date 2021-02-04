@@ -40,7 +40,7 @@ v0.1.0 (BETA) Features:
 - [x] Document core features
 - [x] Create demo implants to show off all the feature/functionality
 - [x] Repo art update and open source!
-
+- [x] implement automated builds with Travis CI
 
 Known Bugs:
 - [ ] Fix issue that prevents full config path from being read by client binary
@@ -52,7 +52,7 @@ Version 1.0 TODO:
 - [ ] Implement optional encryption flag for TCP/UDP
 - [ ] wolfpack chat
 - [ ] config parser for server to improve automation capabilities
-- [x] implement automated builds with Travis CI
+- [ ] implement automated releases with Travis CI
 
 
 Road Map:
