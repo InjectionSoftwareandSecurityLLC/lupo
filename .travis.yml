@@ -1,7 +1,7 @@
 language: go
 before_deploy:
-- make all
 - git tag v0.1.0
+script: make all
 deploy:
   provider: releases
   api_key:
