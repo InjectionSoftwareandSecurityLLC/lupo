@@ -52,7 +52,7 @@ Version 1.0 TODO:
 - [ ] Implement optional encryption flag for TCP/UDP
 - [ ] wolfpack chat
 - [ ] config parser for server to improve automation capabilities
-- [ ] implement automated builds with Travis CI
+- [x] implement automated builds with Travis CI
 
 
 Road Map:
