@@ -14,6 +14,12 @@ D=Darwin-x64
 # Make Directory to store executables
 $(shell mkdir -p ${DIR})
 
+# Install go dependencies
+$(shell go get ./lupo-server)
+$(shell go get ./lupo-client)
+$(shell go get ./sample)
+
+
 # Change default to just make for the host OS and add MAKE ALL to do this
 default: LUPO_SERVER-windows LUPO_SERVER-linux LUPO_SERVER-darwin LUPO_CLIENT-windows LUPO_CLIENT-linux LUPO_CLIENT-darwin
 
