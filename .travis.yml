@@ -1,4 +1,6 @@
 language: go
+go:
+  - 1.15.6
 before_deploy:
 - git tag v0.1.0
 deploy:
