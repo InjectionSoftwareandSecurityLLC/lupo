@@ -1,6 +1,14 @@
 # lupo
 Modular C2 server to tame your pack of wolves.
 
+## Build Status:
+- Main:
+
+  <a href="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=main"><img src="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=main"/></a>
+- Current Release v0.1.0 (BETA):
+
+  <a href="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=dev%2Fv0.1.0-beta-release"><img src="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=dev%2Fv0.1.0-beta-release"/></a>
+
 <p align="center">
   <img width=400px src="docs/assets/lupo_logo.png" />
 </p>
