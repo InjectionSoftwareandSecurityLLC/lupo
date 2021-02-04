@@ -1,12 +1,12 @@
 language: go
 go:
-  - 1.15.6
+    - 1.15.6
 deploy:
-  provider: releases
-  on:
-    branch: main
+    provider: releases
     api_key:
         secure: 4elJCjD7Fjy3NFZOuCPwlM3OLX0H1NKzlSaz8L1zRd2pnfb8WibxJw/IsX4Lsgl7o4V9P2mSkeeZw7oCMxUo8/NDpcjiPQMTD2/bUCr2jUpBh8dk68h5vetRGQNtxgiCTOE0y3pkCzmJMDAZ1FK18SIPRYXxu7G2tdxRxE0Tm6sonL6JQwKJYS/pE5Y/WKkUmAzg4IAjCdgqNwG72HfyZUu4fs5YzR4DJUzwP2Au99RV/9QkBUB55wzQ7Eyc6nOBaZxEQg92QHwx+unhh4FMoAQShK1Gjea/PbrhCJih3TvFgnsfsFx1qlXB/u5GQRixkg//SbnvX5C7w6Sol2V2Qh6pRw18/bQ53VpPaArgyo4vlQF957CrgJLxws8XbyN3SmIR4d2xwCbZL5Zl7sA+yINam0vcGlOtCMUMKCnLiRs6yI8NmjFG6dBpLdCcbSPqfJDidMITmXSD/XcHdjM9hr7roFw4ar4Lk3UmLsljoYpa6EwgTLPuDbdfHRw/+SMBXTBEOqBtzI/nbbXffOSYNCLyuxrw0HvcnVQA7Ij3tEPgArlb/Osdgs12OMe8gcWGtFlFM5//00X7m26qufdn9NSIgV+XGn4OnGK73T5zWosX24l2VNkgA+Moan8PyOCXBvQMdJZT2aCetSB0o/12VEMBfzad8q2A/J6gmLSH0cE=
     file: builds/*
     skip_cleanup: true
     overwrite: true
+    on:
+        branch: main
