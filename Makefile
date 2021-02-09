@@ -4,7 +4,6 @@
 DIR=builds/
 LUPO_SERVER=LUPO_SERVER
 LUPO_CLIENT=LUPO_CLIENT
-WIN_LDFLAGS=-ldflags "-H=windowsgui"
 W=Windows-x64
 L=Linux-x64
 A=Linux-arm
@@ -42,7 +41,7 @@ mips: LUPO_SERVER-mips LUPO_CLIENT-mips
 
 # Compile LUPO_SERVER - Windows x64
 LUPO_SERVER-windows:
-	export GOOS=windows GOARCH=amd64;go build ${WIN_LDFLAGS} -o ${DIR}/${LUPO_SERVER}-${W}.exe lupo-server/main.go
+	export GOOS=windows GOARCH=amd64;go build -o ${DIR}/${LUPO_SERVER}-${W}.exe lupo-server/main.go
 
 # Compile LUPO_SERVER - Linux x64
 LUPO_SERVER-linux:
@@ -62,7 +61,7 @@ LUPO_SERVER-arm:
 
 # Compile LUPO_CLIENT - Windows x64
 LUPO_CLIENT-windows:
-	export GOOS=windows GOARCH=amd64;go build ${WIN_LDFLAGS} -o ${DIR}/${LUPO_CLIENT}-${W}.exe lupo-client/main.go
+	export GOOS=windows GOARCH=amd64;go build -o ${DIR}/${LUPO_CLIENT}-${W}.exe lupo-client/main.go
 
 # Compile LUPO_CLIENT - Linux x64
 LUPO_CLIENT-linux:
