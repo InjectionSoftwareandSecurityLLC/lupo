@@ -15,6 +15,16 @@ jobs:
         include:
           - artifact_name: builds/LUPO_SERVER-Windows-x64.exe 
             asset_name: LUPO_SERVER-Windows-x64.exe 
+          - artifact_name: builds/LUPO_SERVER-Linux-x64.exe 
+            asset_name: LUPO_SERVER-Linux-x64.exe 
+          - artifact_name: builds/LUPO_SERVER-Darwin-x64.exe 
+            asset_name: LUPO_SERVER-Darwin-x64.exe 
+          - artifact_name: builds/LUPO_CLIENT-Windows-x64.exe 
+            asset_name: LUPO_CLIENT-Windows-x64.exe 
+          - artifact_name: builds/LUPO_CLIENT-Linux-x64.exe 
+            asset_name: LUPO_CLIENT-Linux-x64.exe 
+          - artifact_name: builds/LUPO_CLIENT-Darwin-x64.exe 
+            asset_name: LUPO_CLIENT-Darwin-x64.exe 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
