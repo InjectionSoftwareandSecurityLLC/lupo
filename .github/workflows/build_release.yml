@@ -5,15 +5,16 @@ on:
     - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 name: Upload Release Asset
+
 jobs:
   build:
-    strategy:
-    matrix:
-      include:
-        - artifact_name: LUPO_SERVER-Windows-x64.exe 
-          asset_name: builds/LUPO_SERVER-Windows-x64.exe 
     name: Upload Release Asset
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - artifact_name: builds/LUPO_SERVER-Windows-x64.exe 
+            asset_name: LUPO_SERVER-Windows-x64.exe 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
