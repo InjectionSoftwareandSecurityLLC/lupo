@@ -4,10 +4,10 @@ Modular C2 server to tame your pack of wolves.
 ## Build Status:
 - Main:
 
-  <a href="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=main"><img src="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=main"/></a>
+  ![main build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=main)
 - Current Release v0.1.0 (BETA):
 
-  <a href="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=dev%2Fv0.1.0-beta-release"><img src="https://travis-ci.com/InjectionSoftwareandSecurityLLC/lupo.svg?branch=dev%2Fv0.1.0-beta-release"/></a>
+  ![beta v0.1.0 build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=dev/v0.1.0-beta-release)
 
 <p align="center">
   <img width=400px src="docs/assets/lupo_logo.png" />
@@ -52,7 +52,7 @@ Version 1.0 TODO:
 - [ ] Implement optional encryption flag for TCP/UDP
 - [ ] wolfpack chat
 - [ ] config parser for server to improve automation capabilities
-- [ ] implement automated releases with Travis CI
+- [x] implement automated releases with Github actions
 
 
 Road Map:
