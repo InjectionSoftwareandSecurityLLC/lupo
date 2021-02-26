@@ -7,11 +7,12 @@ on:
 name: Upload Release Asset
 
 jobs:
-  strategy:
-  matrix:
-    include:
-      - artifact_name: LUPO_SERVER-Windows-x64.exe 
-        asset_name: builds/LUPO_SERVER-Windows-x64.exe 
+  publish:
+    strategy:
+    matrix:
+      include:
+        - artifact_name: LUPO_SERVER-Windows-x64.exe 
+          asset_name: builds/LUPO_SERVER-Windows-x64.exe 
   build:
     name: Upload Release Asset
     runs-on: ubuntu-latest
