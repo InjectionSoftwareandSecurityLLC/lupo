@@ -5,9 +5,9 @@ Modular C2 server to tame your pack of wolves.
 - Main:
 
   ![main build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=main)
-- Current Release v0.1.0 (BETA):
+- Current Release v0.1.1 (BETA):
 
-  ![beta v0.1.0 build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=dev/v0.1.0-beta-release)
+  ![beta v0.1.1 build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=dev/v0.1.1-beta-release)
 
 <p align="center">
   <img width=400px src="docs/assets/lupo_logo.png" />
@@ -15,7 +15,7 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v0.1.0 (BETA)](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v0.1.0-beta) - Beta release, see release notes for more details.
+- [v0.1.1 (BETA)](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v0.1.1-beta) - Beta release, see release notes for more details.
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
@@ -23,7 +23,7 @@ Modular C2 server to tame your pack of wolves.
 - [Contributing](contributing.md)
 
 
-v0.1.0 (BETA) Features:
+v0.1.1 (BETA) Features:
 - [x] Implement data response and check in status intervals
 - [x] Implement registering custom functions
 - [x] Consider creating a "color" library in core to handle custom colors across the entire application
