@@ -21,6 +21,7 @@ Modular C2 server to tame your pack of wolves.
 - [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo@v0.1.0)
 - [Contributing](contributing.md)
 
+
 v0.1.0 (BETA) Features:
 - [x] Implement data response and check in status intervals
 - [x] Implement registering custom functions
