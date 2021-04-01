@@ -23,6 +23,9 @@ var lupoApp = grumble.New(&grumble.Config{
 	HelpHeadlineColor:     color.New(color.FgWhite),
 	HelpHeadlineUnderline: true,
 	HelpSubCommands:       true,
+	Flags: func(f *grumble.Flags) {
+		f.String("c", "config", "wolfpack.json", "config file for lupo client, expects default filename to exist if not specified")
+	},
 })
 
 // App - Primary grumble CLI construction variable for switching nested app contexts
