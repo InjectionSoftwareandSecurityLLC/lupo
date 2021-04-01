@@ -43,7 +43,7 @@ v0.1.0 (BETA) Features:
 - [x] implement automated builds with Travis CI
 
 Known Bugs:
-- [ ] Fix issue that prevents full config path from being read by client binary
+- [x] Fix issue that prevents full config path from being read by client binary
 - [ ] Implement a cleaner mechanism for handling server shutdown if the user accidentally starts a second Wolfpack server so a dangling instance isn't left.
 
 
