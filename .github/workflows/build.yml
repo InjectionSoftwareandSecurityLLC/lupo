@@ -3,7 +3,7 @@ on:
     # Sequence of patterns matched against refs/tags
     branches:
       - '*'
-name: Build Status
+name: Build Test
 
 jobs:
   build:
