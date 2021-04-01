@@ -3,8 +3,8 @@ on:
     # Sequence of patterns matched against refs/tags
     branches:
       - 'dev/v.0.1.0-beta-release'
-    #tags:
-    #  - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
 name: Build Status
 jobs:
@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2ß
+        uses: actions/checkout@v2
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
