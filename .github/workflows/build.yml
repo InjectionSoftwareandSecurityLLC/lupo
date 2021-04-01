@@ -3,11 +3,11 @@ on:
     # Sequence of patterns matched against refs/tags
     branches:
       - '*'
-name: Build Status
+name: Build Test
 
 jobs:
   build:
-    name: Upload Release Asset
+    name: Build Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
