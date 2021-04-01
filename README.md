@@ -4,14 +4,16 @@ Modular C2 server to tame your pack of wolves.
 ## Build Status:
 - Main:
 
-  ![main build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=main)
+  [![main build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build.yml/badge.svg)](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build.yml)
+
 - Current Release v0.1.0 (BETA):
 
-  ![beta v0.1.0 build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=dev/v0.1.0-beta-release)
+  [![beta v0.1.0 build workflow](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml/badge.svg?branch=v0.1.0-beta)](https://github.com/InjectionSoftwareandSecurityLLC/lupo/actions/workflows/build_release.yml)
 
 <p align="center">
   <img width=400px src="docs/assets/lupo_logo.png" />
 </p>
+
 
 ## Current Release
 - [v0.1.0 (BETA)](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v0.1.0-beta) - Beta release, see release notes for more details.
