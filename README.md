@@ -42,10 +42,6 @@ v0.1.0 (BETA) Features:
 - [x] Repo art update and open source!
 - [x] implement automated builds with Travis CI
 
-Known Bugs:
-- [x] Fix issue that prevents full config path from being read by client binary
-- [ ] Implement a cleaner mechanism for handling server shutdown if the user accidentally starts a second Wolfpack server so a dangling instance isn't left.
-
 
 Version 1.0 TODO:
 - [ ] Implement config file for lupo server to auto supply configs

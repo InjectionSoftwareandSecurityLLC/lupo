@@ -69,9 +69,7 @@ func init() {
 
 			core.LogData(operator + " executed: wolfpack start -l " + lhost + " -p " + strconv.Itoa(lport) + " -k " + tlsKey + " -c " + tlsCert)
 
-			app := App
-
-			startWolfPackServer(listenerID, lhost, lport, listenString, psk, tlsKey, tlsCert, app)
+			startWolfPackServer(lhost, lport, listenString, tlsKey, tlsCert)
 
 			return nil
 		},
@@ -228,11 +226,16 @@ func init() {
 }
 
 // startWolfPackServer - Creates a wolfpack server based on parameters generated via the "wolfpack start" subcommand.
-func startWolfPackServer(id int, lhost string, lport int, listenString string, psk string, tlsKey string, tlsCert string, app *grumble.App) {
+func startWolfPackServer(lhost string, lport int, listenString string, tlsKey string, tlsCert string) {
 
-	server.WolfPackApp = app
+	if wolfPackServer.status == true {
+		var wolfPackInstanceError = "error: An instance of Wolfpack Server is already running, please run 'wolfpack stop' to kill the instance"
+		core.LogData(wolfPackInstanceError)
+		core.ErrorColorBold.Println(wolfPackInstanceError)
+		return
+	}
 
-	core.LogData("Starting new WolfPack server on " + listenString)
+	core.LogData("Starting new WolfPack server on: " + listenString)
 
 	newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.WolfPackServerHandler)}
 
