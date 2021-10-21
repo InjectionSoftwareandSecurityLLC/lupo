@@ -44,11 +44,10 @@ v0.1.0 (BETA) Features:
 
 
 Version 1.0 TODO:
-- [ ] Implement config file for lupo server to auto supply configs
+- [x] Implement config file for lupo server to auto supply configs (done via metasploit-style resource file for simpler automation)
 - [ ] Implement optional encryption flag for TCP/UDP
 - [ ] wolfpack chat
-- [ ] config parser for server to improve automation capabilities
-- [x] implement automated releases with Github actions
+- [ ] implement automated releases with Github actions
 
 
 Road Map:

@@ -306,6 +306,7 @@ func init() {
 		},
 	}
 	listenCmd.AddCommand(listenKillCmd)
+
 }
 
 // startListener - Creates a listener based on parameters generated via the "listener start" subcommand.
