@@ -38,7 +38,9 @@ import (
 //
 // FileName - a string value provided by an implant that is the filename for a file being sent to download.
 //
-// File - a string value that is expected to be a base64 encoded string that is a file
+// File - a string value that is expected to be a base64 encoded string that is a file.
+//
+// CryptoPSK - a string value that is a preshared key for encrypting/decrypting raw TCP payloads.
 
 type TCPData struct {
 	PSK                 string

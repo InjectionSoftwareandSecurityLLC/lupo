@@ -112,6 +112,7 @@ func init() {
 			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)")
 			f.String("k", "key", "lupo-server.key", "path to TLS private key")
 			f.String("c", "cert", "lupo-server.crt", "path to TLS cert")
+			f.String("e", "encrypt", "", "preshared encryption key for TCP only connections.")
 		},
 		Run: func(c *grumble.Context) error {
 
@@ -119,6 +120,7 @@ func init() {
 			lport := c.Flags.Int("lport")
 			protocol := c.Flags.String("protocol")
 			listenString := lhost + ":" + strconv.Itoa(lport)
+			cryptoPSK := c.Flags.String("encrypt")
 
 			var tlsKey string
 			var tlsCert string
@@ -151,7 +153,7 @@ func init() {
 					}
 				}
 
-				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
+				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert, cryptoPSK)
 
 				if err != nil {
 					resp.Status = "error: could not start listener"
@@ -184,7 +186,7 @@ func init() {
 					core.SuccessColorBold.Println(help)
 
 				}
-				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert)
+				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert, cryptoPSK)
 
 				if err != nil {
 					return err
@@ -306,6 +308,7 @@ func init() {
 		},
 	}
 	listenCmd.AddCommand(listenKillCmd)
+
 }
 
 // startListener - Creates a listener based on parameters generated via the "listener start" subcommand.
@@ -319,7 +322,7 @@ func init() {
 // TCP Servers are started by executing a StartTCPServer function via goroutine. To maintain concurrency a subsequent goroutine is executed to handle the data for all TCP connections via TCPServerHandler() function.
 //
 // All listeners are concurrent and support multiple simultaneous connections.
-func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string) (string, error) {
+func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string, cryptoPSK string) (string, error) {
 
 	server.PSK = core.PSK
 
@@ -377,6 +380,11 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 			core.ErrorColorBold.Println(err)
 			return "", err
 		}
+
+		if cryptoPSK != "" {
+			protocol = "TCP(ENC)"
+		}
+
 		newListener = core.Listener{
 			ID:           id,
 			Lhost:        lhost,
@@ -384,13 +392,14 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 			Protocol:     protocol,
 			HTTPInstance: nil,
 			TCPInstance:  newServer,
+			CryptoPSK:    cryptoPSK,
 		}
 
 		core.Listeners[id] = newListener
 
 		//core.SuccessColorBold.Println("Starting listener: " + strconv.Itoa(newListener.id))
 
-		go server.StartTCPServer(newServer)
+		go server.StartTCPServer(newServer, cryptoPSK)
 
 	} else {
 		errorString := "Unsupported listener protocol specified: " + protocol + " is not implemented"

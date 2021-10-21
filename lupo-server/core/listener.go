@@ -27,6 +27,7 @@ type Listener struct {
 	Protocol     string
 	HTTPInstance *http.Server
 	TCPInstance  net.Listener
+	CryptoPSK    string
 }
 
 // ListenerStrings - more loose structure for handling listener data, primarily used to hand off as JSON to the lupo client.

@@ -8,6 +8,10 @@ For general usage on both client and server see the the[General Usage (Server/Cl
 ](./general_cli.md) documentation. For usage specific to the client, see the [Client](../client/client.md) documentation.
 
 
+## Server Flags
+The Lupo Server client is a CLI program that serves as a front end CLI and back end C2 server to run all of Lupo C2's functionalities. Currently the client can take a flag for a resource file to automate lupo commands.
+- `-r` (Flag): this is the "resource file" flag. passing this flag the name of a saved resource file containing lupo commands. this will load in the file and execute each lupo command in sequence for automation.
+
 ## Wolfpack
 The Wolfpack server is a team server used to allow multi-operator collaboration when interacting with the C2. The Wolfpack server can only be managed by the core Lupo "server" user. It is used to generate/manage operators/configurations to allow connections to a given Wolfpack instance. The actual `wolfpack` sub command can only be managed by the server preventing clients from arbitrarily adding/removing operators.
 - wolfpack: base command for managing, starting, and stopping Wolfpack operators/wolfpack team server instances.

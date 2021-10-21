@@ -96,6 +96,92 @@ WHILE:
 
 Once you've got an implant working, try using some of the other parameters to enhance the functionality!
 
+
+# TCP Encryption
+TCP Protcols support encryption via AES pre-shared keys. Unless you obfuscate your implant these keys are *NOT* inherently secure once your payload touches disk. It is always possible that they can be extracted to decrypt data offline in the event your implant is compromised. However, it does provide a base level of encryption in transit that will prevent transmitting clear text data a raw TCP socket.
+
+To enable this use the `-e` flag when starting a TCP listener. All implants that connect to that listener are expected to send and receive raw hex data that is encrypted with the specified pre-shared key. This key must be embedded in your custom implant in order to work, but is *not* a new parameter that has to be sent. Simply configuring the listener, and embedding the relevant crypto functions in your implant is enough. A golang implementation that is used by the server is provided below, though it may be re-implemented in any language.
+
+Sample TCP Cryptography Encrypt: 
+```
+        func encryptRoutineSample(){
+                key := []byte(cryptoPSK)
+                data := []byte(jsonResp)
+
+                ciphertext, err := encrypt(data, key)
+                if err != nil {
+                    errorString := "Error encrypting TCP connection data for implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
+                    core.LogData(errorString)
+                    core.ErrorColorBold.Println(errorString)
+                    fmt.Println(err)
+                }
+                // Send Cipher Text Data PsuedoCode Example
+                connection.Send(ciphertext)
+        }
+
+        func encrypt(plaintext []byte, key []byte) ([]byte, error) {
+                c, err := aes.NewCipher(key)
+                if err != nil {
+                    return nil, err
+                }
+
+                gcm, err := cipher.NewGCM(c)
+                if err != nil {
+                    return nil, err
+                }
+
+                nonce := make([]byte, gcm.NonceSize())
+                if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+                    return nil, err
+                }
+
+                return gcm.Seal(nonce, nonce, plaintext, nil), nil
+            }
+
+```
+
+Sample TCP Cryptography Decrypt: 
+```
+        func decryptRoutineSample(){
+
+            data := []byte(recvData)
+            key := []byte(cryptoPSK)
+
+            plaintext, err := decrypt(data, key)
+            if err != nil {
+                errorString := "Error decrypting TCP connection data from implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
+                core.LogData(errorString)
+                core.ErrorColorBold.Println(errorString)
+                fmt.Println(err)
+            }
+            recvData = string(plaintext)
+            // Print the data or do something with it
+            fmt.Println(recvData)
+        }
+
+        func decrypt(ciphertext []byte, key []byte) ([]byte, error) {
+            c, err := aes.NewCipher(key)
+            if err != nil {
+                return nil, err
+            }
+
+            gcm, err := cipher.NewGCM(c)
+            if err != nil {
+                return nil, err
+            }
+
+            nonceSize := gcm.NonceSize()
+            if len(ciphertext) < nonceSize {
+                return nil, errors.New("ciphertext too short")
+            }
+
+            nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+            return gcm.Open(nil, nonce, ciphertext, nil)
+        }
+
+
+```
+
 ### TCP Connection Examples
 - Register a session:
     - Request:`connect to myserver 1337`

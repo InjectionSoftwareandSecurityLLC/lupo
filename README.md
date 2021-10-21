@@ -42,17 +42,12 @@ v0.1.0 (BETA) Features:
 - [x] Repo art update and open source!
 - [x] implement automated builds with Travis CI
 
-Known Bugs:
-- [x] Fix issue that prevents full config path from being read by client binary
-- [ ] Implement a cleaner mechanism for handling server shutdown if the user accidentally starts a second Wolfpack server so a dangling instance isn't left.
-
 
 Version 1.0 TODO:
-- [ ] Implement config file for lupo server to auto supply configs
-- [ ] Implement optional encryption flag for TCP/UDP
+- [x] Implement config file for lupo server to auto supply configs (done via metasploit-style resource file for simpler automation)
+- [x] Implement optional encryption flag for TCP
 - [ ] wolfpack chat
-- [ ] config parser for server to improve automation capabilities
-- [x] implement automated releases with Github actions
+- [ ] implement automated releases with Github actions
 
 
 Road Map:

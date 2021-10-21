@@ -13,7 +13,8 @@ import (
 // main - executes the primary grumble application defined in the "cmd" package
 func main() {
 
-	var configFile = flag.String("c", "wolfpack.json", "config file for lupo client, expects default filename to exist if not specified")
+	configFile := flag.String("c", "wolfpack.json", "config file for lupo client, expects default filename to exist if not specified")
+	resourceFile := flag.String("r", "", "resource file for lupo server, all commands in this file will be executed on startup")
 
 	flag.Parse()
 
@@ -24,6 +25,7 @@ func main() {
 		return
 	}
 
+	go cmd.ExecuteResourceFile(*resourceFile)
 	go core.Poll()
 
 	grumble.Main(cmd.App)

