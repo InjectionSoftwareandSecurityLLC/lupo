@@ -4,6 +4,12 @@
 package cmd
 
 import (
+	"bufio"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
@@ -25,6 +31,7 @@ var lupoApp = grumble.New(&grumble.Config{
 	HelpSubCommands:       true,
 	Flags: func(f *grumble.Flags) {
 		f.String("c", "config", "wolfpack.json", "config file for lupo client, expects default filename to exist if not specified")
+		f.String("r", "resource", "", "resource file for lupo server, all commands in this file will be executed on startup, expects default filename to exist if not specified")
 	},
 })
 
@@ -66,4 +73,36 @@ func init() {
 		a.Println()
 	})
 
+}
+
+// ExecuteResourceFile - executes a provided set of lupo commands from a specified file.
+func ExecuteResourceFile(resourceFile string) {
+
+	var rcFile *os.File
+	var err error
+
+	if resourceFile != "" {
+		rcFile, err = os.Open(resourceFile)
+	} else {
+		return
+	}
+
+	// if we os.Open returns an error then handle it
+	if err != nil {
+		return
+	}
+	time.Sleep(1 * time.Second)
+	core.LogData("Executing resource file: " + resourceFile)
+	core.SuccessColorBold.Println("Executing resource file: " + resourceFile)
+	time.Sleep(2 * time.Second)
+
+	// Create a new Scanner for the file.
+	scanner := bufio.NewScanner(rcFile)
+	// Loop over all lines in the file and execute them.
+	for scanner.Scan() {
+		line := scanner.Text()
+		cmd := strings.Fields(line)
+		App.RunCommand(cmd)
+	}
+	return
 }

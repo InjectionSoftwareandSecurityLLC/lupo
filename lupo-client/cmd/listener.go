@@ -229,6 +229,7 @@ func init() {
 			resp, err := core.WolfPackHTTP.Get(reqString)
 
 			if err != nil {
+				fmt.Println(reqString)
 				fmt.Println(err)
 				return nil
 			}
