@@ -16,6 +16,9 @@ When the Wolfpack server starts an HTTPS server is created that serves an API. T
     - activeSession = an integer value dictating which session is being interacted with for a given request.
     - filename = a string value provided by an implant that is the filename for a file being sent to download or upload. mostly for interacting with the upload/download commands.
     - file = a string value that is expected to be a base64 encoded string that is a file to download or upload. mostly for interacting with the upload/download commands.
+    - getChatLog - boolean status to determine whether or not a user has just entered the chat to send them the full chat log.
+    - isChatShell = a boolean value to indicate whether or not the current shell type being interacted with is the chat CLI or the core Lupo CLI. This is required to access the Wolfpack server chat and send/receive messages.
+
 
 ### GET Requests
 Below is a quick sample showing how to authenticate and execute a command with the Wolfpack server. The only extra requirement might be providing a private TLS certificate from the wolfpack JSON config depending on how your TLS cert was generated.

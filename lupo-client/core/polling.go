@@ -15,15 +15,17 @@ var RelayData []byte
 // ActiveSession - global copy of the currently active session for the polling library to track
 var ActiveSession int
 
+// Status check variable to know if user is in the chat CLI or not so messages can be displayed properly
+var ActiveChat = false
+
 // SessionRelay - function expected to be called by a goroutine in the context of the session subshell to check if any new data exists to be relayed
 func SessionRelay() {
-	if CheckForNewSession(RelayData) {
-		return
-	} else if CheckForSessionData(RelayData) {
-		return
-	} else if CheckForFileDownload(RelayData) {
-		return
-	}
+	Poll()
+}
+
+func ChatRelay() {
+
+	Poll()
 }
 
 // Poll - Executes all polling functions starting with
@@ -53,12 +55,19 @@ func Poll() {
 	RelayData = jsonData
 
 	time.Sleep(time.Second * 1)
-	if CheckForNewSession(jsonData) {
-		Poll()
-	} else if CheckForSessionData(jsonData) {
-		Poll()
-	} else if CheckForFileDownload(jsonData) {
-		Poll()
+
+	if !ActiveChat {
+		if CheckForNewSession(RelayData) {
+			Poll()
+		} else if CheckForSessionData(RelayData) {
+			Poll()
+		} else if CheckForFileDownload(RelayData) {
+			Poll()
+		}
+	} else if ActiveChat {
+		if CheckForNewChatData(RelayData) {
+			Poll()
+		}
 	}
 
 	Poll()
@@ -100,14 +109,14 @@ func CheckForSessionData(jsonData []byte) bool {
 	re := regexp.MustCompile(`\n`)
 	jsonDataString := re.ReplaceAllString(string(jsonData), "\\n")
 
-	jasonCleanData := []byte(jsonDataString)
+	jsonCleanData := []byte(jsonDataString)
 
 	// Parse the JSON response
 	// We are expecting a JSON string that is totally dynamic here due to the nature of broadcasts, but for implant response data we expect a "data" key in the JSON object.
 	var coreResponse map[string]interface{}
 
 	if string(jsonData) != "" {
-		err := json.Unmarshal(jasonCleanData, &coreResponse)
+		err := json.Unmarshal(jsonCleanData, &coreResponse)
 
 		if err != nil {
 			//fmt.Println(err)
@@ -146,6 +155,38 @@ func CheckForFileDownload(jsonData []byte) bool {
 				DownloadFile(coreResponse["filename"].(string), coreResponse["file"].(string))
 				return true
 			}
+		}
+	}
+
+	return false
+
+}
+
+// CheckForNewChatData - polls the wolfpack server to see if any new chat data has come through
+func CheckForNewChatData(jsonData []byte) bool {
+
+	// Clean up new lines from potentially JSON breaking output
+	re := regexp.MustCompile(`\n`)
+	jsonDataString := re.ReplaceAllString(string(jsonData), "\\n")
+
+	jsonCleanData := []byte(jsonDataString)
+
+	// Parse the JSON response
+	// We are expecting a JSON string that is totally dynamic here due to the nature of broadcasts, but for implant response data we expect a "data" key in the JSON object.
+	var coreResponse map[string]interface{}
+
+	if string(jsonData) != "" {
+		err := json.Unmarshal(jsonCleanData, &coreResponse)
+
+		if err != nil {
+			//fmt.Println(err)
+			return false
+		}
+		_, dataExists := coreResponse["chatData"]
+		if dataExists {
+
+			fmt.Println(coreResponse["chatData"].(string))
+			return true
 		}
 	}
 

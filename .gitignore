@@ -23,6 +23,7 @@ builds/*
 # Lupo specific excludes
 .lupo.history
 .lupo.log
+.lupo.chat.log
 wolfpack.json
 wolfpack_configs/*
 go.sum
