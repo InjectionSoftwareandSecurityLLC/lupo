@@ -57,7 +57,7 @@ func AssignWolfResponse(username string, rhost string, response string) {
 	LogData("Wolf response for user: " + username + "@" + rhost + " was added")
 }
 
-// AssignWolfResponse - this function takes in a username and rhost to keep track of the user being assigned the response.
+// AssignWolfBroadcast - this function takes in a username and rhost to keep track of the user being assigned the broadcast message.
 // The response parameter is then updated and linked to a wolf which will be returned by the WolfPack Server.
 func AssignWolfBroadcast(username string, rhost string, response string) {
 	updateWolf := Wolves[username]
@@ -67,4 +67,15 @@ func AssignWolfBroadcast(username string, rhost string, response string) {
 	Wolves[username] = updateWolf
 
 	LogData("Wolf broadcast for user: " + username + "@" + rhost + " was added")
+}
+
+// BroadcastWolfPackChat - this function takes in a chat message response and broadcasts it to all wolves, they will only receive it if making a request from the Chat CLI.
+// The response parameter is then updated and linked to each wolf which will be returned by the WolfPack Server.
+func BroadcastWolfPackChat(response string) {
+
+	for _, wolf := range Wolves {
+		wolf.Broadcast = response
+		Wolves[wolf.Username] = wolf
+		LogData("Wolf Chat broadcast for user: " + wolf.Username + "@" + wolf.Rhost + " was added")
+	}
 }

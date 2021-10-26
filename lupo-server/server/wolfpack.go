@@ -1,10 +1,14 @@
 package server
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -60,6 +64,10 @@ func WolfPackServerHandler(w http.ResponseWriter, r *http.Request) {
 // FileName - a string value provided by an implant that is the filename for a file being sent to download or upload.
 //
 // File - a string value that is expected to be a base64 encoded string that is a file to download or upload.
+//
+// IsGetChatLog - boolean status to determine whether or not a user has just entered the chat to send them the full chat log.
+//
+// IsChatShell = a boolean value to indicate whether or not the current shell type being interacted with is the chat CLI or the core Lupo CLI. This is required to access the Wolfpack server chat and send/receive messages.
 
 func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
@@ -70,9 +78,11 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	var getCommand []string
 	var getPolling = false
 	var getIsSessionShell = false
+	var getIsChatShell = false
 	var getActiveSession int
 	var getFileName string
 	var getFile string
+	var getIsGetChatLog = false
 
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
@@ -138,6 +148,103 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		getIsSessionShell = isSessionShell
 	}
 
+	if len(getParams["isChatShell"]) > 0 {
+		isChatShell, err := strconv.ParseBool(getParams["isChatShell"][0])
+
+		if err != nil {
+			errorString := "wolfpack GET Request could not parse getIsChatShell parameter as bool, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
+			ErrorHandler(returnErr)
+			return
+		}
+
+		getIsChatShell = isChatShell
+
+		if len(getParams["getChatLog"]) > 0 {
+			getIsGetChatLog, err = strconv.ParseBool(getParams["getChatLog"][0])
+
+			if err != nil {
+				errorString := "wolfpack GET Request could not parse getIsChatShell parameter as bool, request ignored"
+				core.LogData(errorString)
+				returnErr := errors.New(errorString)
+				ErrorHandler(returnErr)
+				return
+			}
+
+			if getIsGetChatLog {
+				chatLog, err := ioutil.ReadFile(".lupo.chat.log") // just pass the file name
+				if err != nil {
+					fmt.Print(err)
+				}
+
+				jsonData := `{"chatData":"` + string(chatLog) + `"}`
+				currentWolf := core.Wolves[getUsername]
+				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+			}
+		}
+
+		if getIsChatShell && !getIsGetChatLog {
+
+			currentWolf := core.Wolves[getUsername]
+
+			if len(getParams["message"]) > 0 {
+				message := getParams["message"][0]
+				wolfpackChat(message, currentWolf, w)
+			}
+
+			var previousOffset int64 = 0
+			file, err := os.Open(".lupo.chat.log")
+			if err != nil {
+				panic(err)
+			}
+
+			defer file.Close()
+
+			reader := bufio.NewReader(file)
+
+			// we need to calculate the size of the last line for file.ReadAt(offset) to work
+
+			// NOTE : not a very effective solution as we need to read
+			// the entire file at least for 1 pass :(
+
+			lastLineSize := 0
+
+			for {
+				line, _, err := reader.ReadLine()
+
+				if err == io.EOF {
+					break
+				}
+
+				lastLineSize = len(line)
+			}
+
+			fileInfo, err := os.Stat(".lupo.chat.log")
+
+			// make a buffer size according to the lastLineSize
+			buffer := make([]byte, lastLineSize)
+
+			// +1 to compensate for the initial 0 byte of the line
+			// otherwise, the initial character of the line will be missing
+
+			// instead of reading the whole file into memory, we just read from certain offset
+
+			offset := fileInfo.Size() - int64(lastLineSize+1)
+			numRead, err := file.ReadAt(buffer, offset)
+
+			if previousOffset != offset {
+
+				// print out last line content
+				buffer = buffer[:numRead]
+				jsonData := `{"chatData":"` + string(buffer) + `"}`
+				core.BroadcastWolfPackChat(jsonData)
+				previousOffset = offset
+			}
+		}
+
+	}
+
 	if len(getParams["filename"]) > 0 {
 		getFileName = getParams["filename"][0]
 	}
@@ -154,7 +261,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if getPolling {
+	if getPolling || getIsChatShell {
 		currentWolf := core.Wolves[getUsername]
 
 		if currentWolf.Broadcast != "" {
@@ -363,6 +470,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 			response := map[string]interface{}{
 				"response": currentWolf.Response,
 			}
+
 			json.NewEncoder(w).Encode(response)
 			// Clear the response once returned
 			core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, "")
@@ -371,4 +479,10 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		IsWolfPackExec = false
 	}
 
+}
+
+func wolfpackChat(data string, wolf core.Wolf, w http.ResponseWriter) {
+	chatData := wolf.Username + ": " + data
+	core.ChatLog(chatData)
+	core.AssignWolfResponse(wolf.Username, wolf.Rhost, chatData)
 }

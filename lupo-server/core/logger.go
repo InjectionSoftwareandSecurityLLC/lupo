@@ -19,3 +19,17 @@ func LogData(data string) error {
 
 	return nil
 }
+
+func ChatLog(data string) error {
+	file, err := os.OpenFile(".lupo.chat.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	log.SetOutput(file)
+	log.Print(data)
+
+	return nil
+}
