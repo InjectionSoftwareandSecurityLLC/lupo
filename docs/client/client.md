@@ -19,3 +19,4 @@ The Wolfpack team server supports a built in chat CLI that is encrypted over HTT
 - chat: base command to enter into the Chat CLI. Works identical to the Session CLI but is just for interacting with the chat. Once this command is ran a call to the Wolfpack API is made to pull down the latest chat log.
     - (sub command) back: exits the Lupo Chat CLI.
     - (sub command) message: allows you to send a message to the chat server that will be broadcast to everyone in the chat.
+![chat sample image](../assets/chat_sample.png)

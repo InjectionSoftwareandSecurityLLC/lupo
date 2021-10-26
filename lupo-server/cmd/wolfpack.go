@@ -230,6 +230,8 @@ func init() {
 // startWolfPackServer - Creates a wolfpack server based on parameters generated via the "wolfpack start" subcommand.
 func startWolfPackServer(id int, lhost string, lport int, listenString string, psk string, tlsKey string, tlsCert string, app *grumble.App) {
 
+	core.ChatLog("Wolfpack Chat Server Started!")
+
 	if wolfPackServer.status == true {
 		var wolfPackInstanceError = "error: An instance of Wolfpack Server is already running, please run 'wolfpack stop' to kill the instance"
 		core.LogData(wolfPackInstanceError)
