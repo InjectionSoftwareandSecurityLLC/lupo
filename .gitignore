@@ -1,5 +1,4 @@
 # Binaries for programs and plugins
-*.exe
 *.exe~
 *.dll
 *.so
@@ -11,9 +10,6 @@
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
-
-# Builds
-builds/*
 
 # Dev Keyfiles
 *.crt
@@ -27,3 +23,4 @@ builds/*
 wolfpack.json
 wolfpack_configs/*
 go.sum
+go.mod
