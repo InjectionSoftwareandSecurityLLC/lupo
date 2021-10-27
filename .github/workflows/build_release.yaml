@@ -3,23 +3,43 @@ on:
   release:
     types: [created]
 
+name: Build Status
 jobs:
-  releases-matrix:
-    name: Lupo Server Releases
+  build:
+    name: Upload Release Asset
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        # build and publish in parallel: linux/amd64, windows/amd64, darwin/amd64 
-        goos: [linux, windows, darwin]
-        goarch: [amd64]
     steps:
-    - uses: actions/checkout@v2
-    - uses: wangyoucao577/go-release-action@v1.20
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        goos: ${{ matrix.goos }}
-        goarch: ${{ matrix.goarch }}
-        goversion: "https://dl.google.com/go/go1.17.1.linux-amd64.tar.gz"
-        project_path: "./lupo-server"
-        binary_name: "Lupo-Server"
-        extra_files: LICENSE README.md
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.1
+      - name: Build
+        run: make 
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: true
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: builds/*
+          tag: ${{ github.ref }}
+          overwrite: true
+          file_glob: true
+          body: | 
+            # Version 1.0 Release
+            If you encounter any issues please submit them via the Issue/PR guidelines with the provided templates. Please note BETA == BUGS, and while the software is usable, there could be untested features that break things. Don't blame us if you lose your shells, you have been warned!
+            ## Features:
+            - [x] Full C2 Operations via HTTP/HTTPS, TCP, or Binding to Webshells/other bind services as long as it implements the Lupo API
+            - [x] Multi User C2 via the Wolfpack API. Includes concurrent interactions with sessions, a chat, and user management
+            - [x] Documented API
+            - [x] Extended API functions for upload/download and loading custom implant functions
