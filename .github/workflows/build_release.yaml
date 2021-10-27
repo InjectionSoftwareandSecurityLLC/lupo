@@ -1,7 +1,8 @@
 # .github/workflows/release.yaml
-on: 
-  release:
-    types: [created]
+on:
+  push:
+    tags:
+      - "*" # triggers only if push new tag version
 
 jobs:
   releases-matrix:
