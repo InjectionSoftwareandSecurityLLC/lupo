@@ -35,9 +35,8 @@ func init() {
 
 			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
-			//resp, err := core.WolfPackHTTP.Get(reqString)
+			resp, err := core.WolfPackHTTP.Get(reqString)
 
-			resp, err := core.WolfPackHTTP.Get("https://127.0.0.1:3074/?psk=wolfpackpsk&user=3ndG4me&command=exec+whoami")
 			if err != nil {
 				fmt.Println(err)
 				return nil
