@@ -16,7 +16,7 @@ import (
 
 // lupoApp - Primary lupo grumble CLI construction
 //
-// This sets up the lupo prompt and color scheme, defines a history logfile, and toggles various grumble sepcific parameters for help command options.
+// This sets up the lupo prompt and color scheme, defines a history logfile, and toggles various grumble specific parameters for help command options.
 var lupoApp = grumble.New(&grumble.Config{
 	Name:                  "lupo",
 	Description:           "Lupo Modular C2",
