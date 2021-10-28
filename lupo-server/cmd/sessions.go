@@ -22,6 +22,9 @@ var SessionAppConfig = &grumble.Config{
 	HelpHeadlineColor:     color.New(color.FgWhite),
 	HelpHeadlineUnderline: true,
 	HelpSubCommands:       true,
+	Flags: func(f *grumble.Flags) {
+		f.String("r", "resource", "", "resource file for lupo server, all commands in this file will be executed on startup, expects default filename to exist if not specified")
+	},
 }
 
 // InitializeSessionCLI - Initialize the nested session CLI arguments
