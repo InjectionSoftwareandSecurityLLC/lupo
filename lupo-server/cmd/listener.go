@@ -332,6 +332,8 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 	if protocol == "HTTP" || protocol == "HTTPS" {
 		newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
+		newServer.MaxHeaderBytes = 1000000000000000
+
 		newListener = core.Listener{
 			ID:           id,
 			Lhost:        lhost,
