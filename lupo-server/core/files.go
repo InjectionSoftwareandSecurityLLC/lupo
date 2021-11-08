@@ -32,7 +32,7 @@ func UploadFile(file string) string {
 // DownloadFile - Reads a base64 encoded string and writes it out to a local file
 func DownloadFile(filename string, fileb64 string) {
 
-	WarningColorBold.Println("\nDownlading file: " + filename + "...")
+	WarningColorBold.Println("\nDownloading file: " + filename + "...")
 
 	file, err := base64.StdEncoding.DecodeString(fileb64)
 	if err != nil {
