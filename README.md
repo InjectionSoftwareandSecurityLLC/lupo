@@ -39,5 +39,7 @@ v1.0.3 Features:
 Road Map:
 - [ ] Consider Implementing UDP listener (Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API)
 - [ ] Consider Implementing Proxying (Cool for v2 should be easy with a go revproxy lib)
+- [ ] Implement Stager support for things like multi staged implants and DLL injection
+- [ ] Implement Procdump API to support process dumping (can use the stager API)
 - [ ] Web interface for wolfpack server
 - [ ] Implement Github Actions to get automated builds for future releases
