@@ -22,5 +22,3 @@
 .lupo.chat.log
 wolfpack.json
 wolfpack_configs/*
-go.sum
-go.mod
