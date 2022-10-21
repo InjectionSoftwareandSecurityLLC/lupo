@@ -26,7 +26,7 @@ echo ""
 echo "openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days 3650 -subj \"/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=${HOST}\"  -addext \"subjectAltName = DNS:${HOST}, IP:${IP}\""
 echo ""
 echo "To change the number of days pass in a parameter to the script and re-run it"
-echo "example: generate_tls_cert.sh <days>"
+echo "example: generate_tls_cert.sh <IP> <DOMAIN> <DAYS>"
 echo ""
 openssl req -new -x509 -sha256 -key lupo-server.key -out lupo-server.crt -days 3650 -subj "/C=US/ST=Lupo/L=Lupo/O=Lupo/OU=Lupo/CN=${HOST}" -addext "subjectAltName = DNS:${HOST}, IP:${IP}" 
 fi
