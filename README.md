@@ -7,7 +7,7 @@ Modular C2 server to tame your pack of wolves.
 
 ## This Release
 - v1.0.4 - WIP
-  - [] Adding persistence handler updates to all listening modules
+  - [ ] Adding persistence handler updates to all listening modules
 
 ## Current Release
 - [v1.0.3](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.3) - Version 1.0.3 Release!
