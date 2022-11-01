@@ -19,6 +19,9 @@ import (
 // psk - Global psk variable utilized by the listener for storing the Pre-Shared key established from the core "lupo" psk flag.
 var psk string
 
+// persistenceMode - Global persistenceMode toggle to configure listeners to use or ignore UUID validation
+var persistenceMode bool
+
 // listenerID - a global listener ID. Listener IDs are unique and auto-increment on creation. This value is kept track of throughout a Listener's life cycle so it can be incremented/decremented automatically wherever appropriate.
 var listenerID int = 0
 
@@ -52,11 +55,14 @@ func init() {
 		Flags: func(f *grumble.Flags) {
 			f.String("k", "psk", "", "sets the global PSK to something new to allow for PSK rotation (this will refuse future auth to any implants using the old PSK")
 			f.Bool("r", "rand", false, "generates a new random psk when coupled with or omitting an empty psk flag")
+			f.Bool("p", "persistence", true, "toggle to disable persistence mode. disabling increases security with UUID validation, but any lost implants will be unable to connect if the server restarts.")
 		},
 		Run: func(c *grumble.Context) error {
 
 			psk := c.Flags.String("psk")
 			randPSK := c.Flags.Bool("rand")
+			pMode := c.Flags.Bool("persistence")
+			persistenceMode = pMode
 
 			var operator string
 
@@ -137,6 +143,12 @@ func init() {
 
 				operator = server.CurrentOperator
 
+				if persistenceMode {
+					core.LogData(operator + " start listener with Persistence Mode ENABLED")
+				} else {
+					core.LogData(operator + " start listener with Persistence Mode DISABLED")
+				}
+
 				core.LogData(operator + " executed: listener start -l " + lhost + " -p " + strconv.Itoa(lport) + " -x " + protocol + " -k " + tlsKey + " -c " + tlsCert)
 
 				response, psk, instructions, help := core.GetFirstUsePSK()
@@ -153,8 +165,13 @@ func init() {
 					}
 				}
 
-				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert, cryptoPSK)
+				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert, cryptoPSK, persistenceMode)
 
+				if persistenceMode {
+					core.LogData("started listener with Persistence Mode ENABLED")
+				} else {
+					core.LogData("started listener with Persistence Mode DISABLED")
+				}
 				if err != nil {
 					resp.Status = "error: could not start listener"
 				} else {
@@ -186,7 +203,7 @@ func init() {
 					core.SuccessColorBold.Println(help)
 
 				}
-				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert, cryptoPSK)
+				status, err := startListener(listenerID, lhost, lport, protocol, listenString, tlsKey, tlsCert, cryptoPSK, persistenceMode)
 
 				if err != nil {
 					return err
@@ -322,9 +339,11 @@ func init() {
 // TCP Servers are started by executing a StartTCPServer function via goroutine. To maintain concurrency a subsequent goroutine is executed to handle the data for all TCP connections via TCPServerHandler() function.
 //
 // All listeners are concurrent and support multiple simultaneous connections.
-func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string, cryptoPSK string) (string, error) {
+func startListener(id int, lhost string, lport int, protocol string, listenString string, tlsKey string, tlsCert string, cryptoPSK string, pMode bool) (string, error) {
 
 	server.PSK = core.PSK
+
+	core.PersistenceMode = pMode
 
 	var newListener core.Listener
 

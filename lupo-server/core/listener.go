@@ -59,6 +59,9 @@ type StartResponse struct {
 // DidDisplayPsk - a boolean to check if the pre-generated PSK was already given to the user so it is not printed each time
 var DidDisplayPsk = false
 
+// PersistenceMode - a boolean to check to see if persistence mode is enabled/disabled
+var PersistenceMode bool
+
 // Listeners - a map of Listeners. This is used to manage listeners that are created by the user. The map structure makes it easy to search, add, modify, and delete a large amount of Listeners.
 var Listeners = make(map[int]Listener)
 
