@@ -139,7 +139,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["update"]) > 0 {
 		getUpdate, err = strconv.ParseFloat(getParams["update"][0], 64)
 		if err != nil {
-			errorString := "http GET Request update internval was not a valid number, request ignored"
+			errorString := "http GET Request update interval was not a valid number, request ignored"
 			core.LogData(errorString)
 			returnErr := errors.New(errorString)
 			ErrorHandler(returnErr)

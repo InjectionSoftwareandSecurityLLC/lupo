@@ -56,9 +56,6 @@ type TCPData struct {
 	File                string
 }
 
-// DefaultPSK = Globally generated PSK to set as default if the user does not specify one
-var DefaultPSK = GeneratePSK()
-
 // GeneratePSK - Generates a random 32 character string, encodes it with SHA256 as a PSK that is set by default on startup unless the user specifies a static PSK
 func GeneratePSK() string {
 

