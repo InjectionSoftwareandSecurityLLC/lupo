@@ -81,9 +81,10 @@ func init() {
 			}
 
 			type Response struct {
-				Response    string
-				CurrentPSK  string
-				Instruction string
+				Response        string
+				CurrentPSK      string
+				Instruction     string
+				PersistenceMode bool
 			}
 
 			var serverResponse *Response
@@ -113,6 +114,12 @@ func init() {
 				fmt.Println(serverResponse.CurrentPSK)
 				core.SuccessColorBold.Println(serverResponse.Instruction)
 				fmt.Println("")
+			}
+
+			if serverResponse.PersistenceMode == true {
+				core.SuccessColorBold.Println("Persistence mode is enabled (default)")
+			} else {
+				core.ErrorColorBold.Println("Persistence mode is disabled")
 			}
 
 			return nil

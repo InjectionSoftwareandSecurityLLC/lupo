@@ -42,7 +42,7 @@ type Commands struct {
 var ZeroedUUID, _ = uuid.Parse("00000000-0000-0000-0000-000000000000")
 
 // RegisterImplant - function to register a new implant and increment the ImplantID
-func RegisterImplant(arch string, updateInterval float64, functions map[string]interface{}) Implant {
+func RegisterImplant(arch string, updateInterval float64, functions map[string]interface{}, oldUUID string) Implant {
 
 	implantID := uuid.New()
 
@@ -55,7 +55,13 @@ func RegisterImplant(arch string, updateInterval float64, functions map[string]i
 		Functions: functions,
 	}
 
-	LogData("Registered new implant with UUID: " + implantID.String())
+	if oldUUID != "" {
+		newUUIDString := "Registered old implant with UUID: " + oldUUID + "using new UUID: " + implantID.String()
+		LogData(newUUIDString)
+		SuccessColorBold.Println(newUUIDString)
+	} else {
+		LogData("Registered new implant with UUID: " + implantID.String())
+	}
 
 	return implant
 }

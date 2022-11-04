@@ -1,7 +1,8 @@
-module lupo_server
+module github.com/InjectionSoftwareandSecurityLLC/lupo
+
+go 1.19
 
 require (
-	github.com/InjectionSoftwareandSecurityLLC/lupo v1.0.3
 	github.com/desertbit/grumble v1.1.3
 	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.3.0
@@ -19,5 +20,3 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c // indirect
 )
-
-go 1.18

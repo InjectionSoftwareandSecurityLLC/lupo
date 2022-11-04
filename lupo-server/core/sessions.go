@@ -219,7 +219,7 @@ func ClientLoadExtendedFunctions(activeSession int) []byte {
 		return nil
 	}
 
-	for key, _ := range Sessions[activeSession].Implant.Functions {
+	for key := range Sessions[activeSession].Implant.Functions {
 
 		command := key
 

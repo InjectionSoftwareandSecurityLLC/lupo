@@ -1,5 +1,3 @@
-github.com/InjectionSoftwareandSecurityLLC/lupo v1.0.3 h1:l++TQRs7jZbVa69wC0QD6F6dZUwax+Euiv/QJRkQKSk=
-github.com/InjectionSoftwareandSecurityLLC/lupo v1.0.3/go.mod h1:ZH2fa3gtnRUOQdqWWeQmZLdCkhjiL1OqCw37FdzVTPg=
 github.com/Netflix/go-expect v0.0.0-20180615182759-c93bf25de8e8/go.mod h1:oX5x61PbNXchhh0oikYAH+4Pcfw5LKv21+Jnpr6r6Pc=
 github.com/Netflix/go-expect v0.0.0-20190729225929-0e00d9168667/go.mod h1:oX5x61PbNXchhh0oikYAH+4Pcfw5LKv21+Jnpr6r6Pc=
 github.com/chzyer/logex v1.1.10 h1:Swpa1K6QvQznwJRcfTfQJmTE72DqScAa40E+fbHEXEE=

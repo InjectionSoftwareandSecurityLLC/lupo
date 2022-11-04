@@ -43,9 +43,10 @@ type ListenerStrings struct {
 var PSK string
 
 type ManageResponse struct {
-	Response    string
-	CurrentPSK  string
-	Instruction string
+	Response        string
+	CurrentPSK      string
+	Instruction     string
+	PersistenceMode bool
 }
 
 type StartResponse struct {
@@ -59,6 +60,9 @@ type StartResponse struct {
 // DidDisplayPsk - a boolean to check if the pre-generated PSK was already given to the user so it is not printed each time
 var DidDisplayPsk = false
 
+// PersistenceMode - a boolean to check to see if persistence mode is enabled/disabled
+var PersistenceMode bool
+
 // Listeners - a map of Listeners. This is used to manage listeners that are created by the user. The map structure makes it easy to search, add, modify, and delete a large amount of Listeners.
 var Listeners = make(map[int]Listener)
 
@@ -66,7 +70,6 @@ func ManagePSK(psk string, isRandom bool, operator string) (response string, cur
 	if psk == "" && !isRandom {
 		LogData(operator + " executed: listener manage")
 		response := "Warning, you did not provide a PSK, this will keep the current PSK. You can ignore this if you did not want to update the PSK."
-		PSK = DefaultPSK
 		currentPSK := ""
 		instruction := ""
 		return response, currentPSK, instruction
@@ -89,7 +92,6 @@ func ManagePSK(psk string, isRandom bool, operator string) (response string, cur
 
 	LogData(operator + " executed: listener manage")
 	response = "Warning, you did not provide a PSK, this will keep the current PSK. You can ignore this if you did not want to update the PSK."
-	PSK = DefaultPSK
 	currentPSK = ""
 	instruction = ""
 	return response, currentPSK, instruction
@@ -98,12 +100,12 @@ func ManagePSK(psk string, isRandom bool, operator string) (response string, cur
 func GetFirstUsePSK() (response string, psk string, instructions string, help string) {
 	if PSK == "" && !DidDisplayPsk {
 		response = "Your randomly generated PSK is:"
-		psk = DefaultPSK
+		psk = GeneratePSK()
 		instructions = "Embed the PSK into any implants to connect to any listeners in this instance."
 		fmt.Println("")
 		help = "If you would like to set your own PSK, you can rotate the current key using the 'listener manage' sub command"
 		DidDisplayPsk = true
-		PSK = DefaultPSK
+		PSK = psk
 
 		return response, psk, instructions, help
 	} else {

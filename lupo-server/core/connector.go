@@ -51,7 +51,7 @@ func StartConnector(id int, rhost string, rport int, protocol string, requestTyp
 		}
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			response := "Got a " + strconv.Itoa(resp.StatusCode) + " response, setting up session..."
-			implant := RegisterImplant("Web", 0, nil)
+			implant := RegisterImplant("Web", 0, nil, "")
 			RegisterSession(SessionID, protocol, implant, rhost, rport, command, query, requestType, shellpath)
 			newSession := SessionID - 1
 			BroadcastSession(strconv.Itoa(newSession))
@@ -85,7 +85,7 @@ func StartConnector(id int, rhost string, rport int, protocol string, requestTyp
 		}
 		if resp.StatusCode >= 200 && resp.StatusCode <= 299 {
 			response := "Got a " + strconv.Itoa(resp.StatusCode) + " response, setting up session..."
-			implant := RegisterImplant("Web", 0, nil)
+			implant := RegisterImplant("Web", 0, nil, "")
 			RegisterSession(SessionID, protocol, implant, rhost, rport, command, query, requestType, shellpath)
 			newSession := SessionID - 1
 			BroadcastSession(strconv.Itoa(newSession))
