@@ -26,7 +26,10 @@ REGISTER_AGENT()
 WHILE:
     IF OUTPUT_DATA:
         SEND_DATA(OUTPUT_DATA)
-
+        
+    IF NEW_UUID:
+        REGISTER_AGENT() // Persistence option if -p flag is enabled in case server goes down (enabled by default)
+        
     CMD = GET_NEXT_CMD()
 
     IF CMD:
@@ -87,7 +90,10 @@ REGISTER_AGENT()
 WHILE:
     IF OUTPUT_DATA:
         SEND_DATA(OUTPUT_DATA)
-
+        
+    IF NEW_UUID:
+        REGISTER_AGENT() // Persistence option if -p flag is enabled in case server goes down (enabled by default)
+        
     CMD = GET_NEXT_CMD()
 
     IF CMD:
