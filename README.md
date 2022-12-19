@@ -7,15 +7,16 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.0.4](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.4) - Version 1.0.4 Release!
+- [v1.0.5](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.5) - Version 1.0.5 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
 - [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo)
 - [Contributing](contributing.md)
 
-v1.0.4 Features:
-- [X] Adding persistence handler updates to all listening modules
+v1.0.5 Features:
+- [X] Added `updateinterval` subcommand to Sessions CLI to allow for dynamic updates to implant check-in delays 
+- [X] Added persistence handler updates to all listening modules
 - [x] Implement data response and check in status intervals
 - [x] Implement registering custom functions
 - [x] Consider creating a "color" library in core to handle custom colors across the entire application
