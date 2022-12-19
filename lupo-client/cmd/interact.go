@@ -154,7 +154,7 @@ func init() {
 			err = json.Unmarshal([]byte(coreResponseData), &coreResponse)
 
 			if err != nil {
-				//fmt.Println(err)
+				fmt.Println(err)
 				return nil
 			}
 
