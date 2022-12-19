@@ -4,7 +4,7 @@ This document will describe the various commands and sub commands available in t
 
 Please note, this document will not be comprehensive as CLI is "self documenting", meaning that you can get detailed usage information about any command within Lupo by simple running `help <command>` or `help <command> <subcommand>` etc...
 
-For general usage on both client and server see the the[General Usage (Server/Client)
+For general usage on both client and server see the the [General Usage (Server/Client)
 ](./general_cli.md) documentation. For usage specific to the client, see the [Client](../client/client.md) documentation.
 
 
