@@ -299,4 +299,47 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	sessionApp.AddCommand(sessionDownloadCmd)
 
+	sessionUpdateIntervalCmd := &grumble.Command{
+		Name:     "updateinterval",
+		Help:     "changes the implant's update interval for check in",
+		LongHelp: "Changes the implant's update interval for checking in to the Lupo C2 server",
+		Args: func(a *grumble.Args) {
+			a.Int("interval", "path of the file to download")
+		},
+		Run: func(c *grumble.Context) error {
+
+			updateInterval := c.Args.Int("interval")
+			updateIntervalStr := strconv.Itoa(updateInterval)
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: updateinterval " + updateIntervalStr)
+
+			if core.Sessions[activeSession].CommandQuery != "" {
+				session := core.Sessions[activeSession]
+
+				cmdString := "updateinterval"
+
+				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, updateIntervalStr, "")
+				if err != nil {
+					return err
+				}
+
+				core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
+
+			} else {
+				cmdString := "updateinterval " + updateIntervalStr
+
+				core.QueueImplantCommand(activeSession, cmdString, "server")
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionUpdateIntervalCmd)
+
 }

