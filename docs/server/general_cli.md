@@ -31,6 +31,8 @@ Instead this will show case the most common commands and how to use them then sp
     - (sub command) back: returns to the core Lupo CLI shell.
     - (sub command) cmd: sends/posts a command that will be collected or received by a given connection/implant and executed as a system command.
     - (sub command) download: downloads a file from the target session _if_ they have a download handler implemented.
+    - (sub command) upload: uploads a file to the target session _if_ they have a upload handler implemented.
+    - (sub command) updateinterval: updates the implant's check-in delay _if_ they have the updateinterval handler implemented.
     - (sub command) kill: kills a specified session, requires an argument so you don't accidentally kill your current interacted with session. this works the same way as `interact kill` does.
     - (sub command) load: loads extended functions if they are available to a given session/implant
     - (sub command) session: swaps between sessions within the session sub shell so the user doesn't need to go back and use `interact` to switch sessions.
