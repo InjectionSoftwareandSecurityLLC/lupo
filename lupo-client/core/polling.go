@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -108,6 +109,8 @@ func CheckForSessionData(jsonData []byte) bool {
 	// Clean up new lines from potentially JSON breaking output
 	re := regexp.MustCompile(`\n`)
 	jsonDataString := re.ReplaceAllString(string(jsonData), "\\n")
+
+	jsonDataString = strings.Replace(jsonDataString, "\r", "\\r", -1)
 
 	jsonCleanData := []byte(jsonDataString)
 

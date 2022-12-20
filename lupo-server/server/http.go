@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 
@@ -168,7 +169,6 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	} else {
 		getUsername = "server"
 	}
-
 	if len(getParams["filename"]) > 0 {
 		getFileName = getParams["filename"][0]
 	}
@@ -261,6 +261,8 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				core.LogData("Session " + strconv.Itoa(getSessionID) + " error: could not escape data returned by client")
 			}
+
+			data = strings.ReplaceAll(data, "\\", "\\\\")
 			jsonData := `{"data":"` + data + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
 		}
