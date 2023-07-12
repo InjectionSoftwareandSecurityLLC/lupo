@@ -7,14 +7,14 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.0.5.1](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.5.1) - Version 1.0.5.1 Release!
+- [v1.0.5.2](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.5.1) - Version 1.0.5.1 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
 - [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo)
 - [Contributing](contributing.md)
 
-v1.0.5.1 Features:
+v1.0.5.2 Features:
 - [X] Added `updateinterval` subcommand to Sessions CLI to allow for dynamic updates to implant check-in delays 
 - [X] Added persistence handler updates to all listening modules
 - [x] Implement data response and check in status intervals
@@ -37,9 +37,8 @@ v1.0.5.1 Features:
 - [x] Implement optional encryption flag for TCP
 - [x] wolfpack chat
 
-v1.0.5.1 Bug Fixes:
-- [X] Fixed bug in Lupo Client that prevented certain data from being returned from command execution due to backslashes and newlines not being properly escaped
-- [X] Fixed bug in Wolfpack server that caused the new `updatedinterval` command to not broadcast correctly from the client to implants due to an improper command string
+v1.0.5.2 Bug Fixes:
+- [X] Fixed some bugs in errors and text for the UpdateInterval functionality
 
 
 Road Map:

@@ -37,15 +37,15 @@ var SessionAppConfig = &grumble.Config{
 //
 // "session" base commands include:
 //
-// 	"back" - resets the current active session to "-1" and closes the nested session sub-shell.
+//	"back" - resets the current active session to "-1" and closes the nested session sub-shell.
 //
-// 	"session" - the actual "session" command which is used to switch sessions by specifying an argument of a session ID to switch to. This is identical to the interact command only it allows you to switch sessions while in the session sub-shell as "interact" is unavailable in the sub-shell.
+//	"session" - the actual "session" command which is used to switch sessions by specifying an argument of a session ID to switch to. This is identical to the interact command only it allows you to switch sessions while in the session sub-shell as "interact" is unavailable in the sub-shell.
 //
-// 	"cmd" - built in command directive to denote commands that are intended to be executed as a system command of a specified session. These commands are usually sent to the client as JSON in the format of {"cmd":"<some command"}. It supports multi-line/multi-arg commands.
+//	"cmd" - built in command directive to denote commands that are intended to be executed as a system command of a specified session. These commands are usually sent to the client as JSON in the format of {"cmd":"<some command"}. It supports multi-line/multi-arg commands.
 //
-// 	"kill" - takes an argument of "id" which is used to de-register the specified session.
+//	"kill" - takes an argument of "id" which is used to de-register the specified session.
 //
-// 	"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
+//	"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
 func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	// Initialize a new polling thread specific to this shell CLI so we still receive broadcasts messages
@@ -405,7 +405,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Help:     "changes the implant's update interval for check in",
 		LongHelp: "Changes the implant's update interval for checking in to the Lupo C2 server",
 		Args: func(a *grumble.Args) {
-			a.Int("interval", "path of the file to download")
+			a.Int("interval", "update interval in seconds")
 		},
 		Run: func(c *grumble.Context) error {
 
