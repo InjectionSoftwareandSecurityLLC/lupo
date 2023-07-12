@@ -7,7 +7,7 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.0.5.2](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.5.1) - Version 1.0.5.1 Release!
+- [v1.0.5.2](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.5.2) - Version 1.0.5.2 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
