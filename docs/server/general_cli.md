@@ -37,6 +37,8 @@ Instead this will show case the most common commands and how to use them then sp
     - (sub command) load: loads extended functions if they are available to a given session/implant
     - (sub command) session: swaps between sessions within the session sub shell so the user doesn't need to go back and use `interact` to switch sessions.
     - (sub command) upload: uploads a file to the target session _if_ they have an upload handler implemented.
+    - (sub command) mem_inject: provides an interface to upload shellcode to be injected into memory _if_ the target session has a memory injection handler implemented.
+    - (sub command) pid_inject: provides an interface to upload shellcode to be injected into a specific process identifier _if_ the target session has a process injection handler implemented.
 
 
 ## Logging

