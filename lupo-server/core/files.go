@@ -3,7 +3,9 @@ package core
 import (
 	"bufio"
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 )
 
@@ -34,7 +36,13 @@ func DownloadFile(filename string, fileb64 string) {
 
 	WarningColorBold.Println("\nDownloading file: " + filename + "...")
 
-	file, err := base64.StdEncoding.DecodeString(fileb64)
+	fileb64_url_decoded, err := url.QueryUnescape(fileb64)
+	if err != nil {
+		fmt.Println("Error decoding:", err)
+		return
+	}
+
+	file, err := base64.StdEncoding.DecodeString(fileb64_url_decoded)
 	if err != nil {
 		WarningColorBold.Println("could not base64 decode downloaded file, the raw string will be written instead...")
 		f, err := os.Create(filename)
