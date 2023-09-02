@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -334,9 +335,22 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 // File - a string value that is expected to be a base64 encoded string that is a file to download or upload.
 
 func handlePostRequests(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+
+	// Read the request body
+	body, bodyERR := ioutil.ReadAll(r.Body)
+	if bodyERR != nil {
+		http.Error(w, bodyERR.Error(), http.StatusInternalServerError)
+		return
+	}
+	// Parse the request body as a URL-encoded query string
+	parsedValues, parseERR := url.ParseQuery(string(body))
+	if parseERR != nil {
+		http.Error(w, parseERR.Error(), http.StatusBadRequest)
+		return
+	}
+
 	// Construct variables for POST Data paramaters
-	postParams := r.Form
+	postParams := parsedValues
 	var postPSK string
 	var postSessionID int
 	var postUUID uuid.UUID
@@ -444,6 +458,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 		postFileName = postParams["filename"][0]
 	}
 
+	fmt.Println(postFileName)
 	if len(postParams["file"]) > 0 {
 		postFile = postParams["file"][0]
 	}
@@ -529,7 +544,14 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
 		} else {
 			currentWolf := core.Wolves[postUsername]
-			jsonData := `{"data":"` + postData + `"}`
+
+			data, err := url.QueryUnescape(postData)
+			if err != nil {
+				core.LogData("Session " + strconv.Itoa(postSessionID) + " error: could not escape data returned by client")
+			}
+
+			data = strings.ReplaceAll(data, "\\", "\\\\")
+			jsonData := `{"data":"` + data + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
 		}
 	}
