@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"sync"
 )
 
 // Listener - defines a listener structure composed of:
@@ -65,6 +66,8 @@ var PersistenceMode bool
 
 // Listeners - a map of Listeners. This is used to manage listeners that are created by the user. The map structure makes it easy to search, add, modify, and delete a large amount of Listeners.
 var Listeners = make(map[int]Listener)
+
+var mutex = sync.RWMutex{}
 
 func ManagePSK(psk string, isRandom bool, operator string) (response string, currentPSK string, instruction string) {
 	if psk == "" && !isRandom {

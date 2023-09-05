@@ -119,12 +119,21 @@ func SessionCheckIn(sessionID int) {
 		currentTime.Year(), currentTime.Month(), currentTime.Day(),
 		currentTime.Hour(), currentTime.Minute(), currentTime.Second())
 
+	mutex.Lock()
 	var sessionUpdate = Sessions[sessionID]
+	mutex.Unlock()
 
+	mutex.Lock()
 	sessionUpdate.RawCheckin = currentTime
-	sessionUpdate.Checkin = timeFormatted
+	mutex.Unlock()
 
+	mutex.Lock()
+	sessionUpdate.Checkin = timeFormatted
+	mutex.Unlock()
+
+	mutex.Lock()
 	Sessions[sessionID] = sessionUpdate
+	mutex.Unlock()
 
 	LogData("Session " + strconv.Itoa(sessionID) + " checked in")
 }
