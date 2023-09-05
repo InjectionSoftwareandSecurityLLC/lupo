@@ -259,7 +259,7 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 		core.ErrorColorBold.Println(errorString)
 	}
 
-	core.UpdateImplant(tcpParams.SessionID, tcpParams.Update, additionalFunctions)
+	core.UpdateImplant(tcpParams.SessionID, tcpParams.Update, tcpParams.ImplantArch, additionalFunctions)
 	core.SessionCheckIn(tcpParams.SessionID)
 
 	if cryptoPSK != "" {

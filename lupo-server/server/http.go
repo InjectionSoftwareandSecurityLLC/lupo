@@ -301,7 +301,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 
-	core.UpdateImplant(getSessionID, getUpdate, additionalFunctions)
+	core.UpdateImplant(getSessionID, getUpdate, getImplantArch, additionalFunctions)
 
 	core.SessionCheckIn(getSessionID)
 }
@@ -588,7 +588,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 
 	json.NewEncoder(w).Encode(response)
 
-	core.UpdateImplant(postSessionID, postUpdate, additionalFunctions)
+	core.UpdateImplant(postSessionID, postUpdate, postImplantArch, additionalFunctions)
 	core.SessionCheckIn(postSessionID)
 
 }

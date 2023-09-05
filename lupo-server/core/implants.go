@@ -30,7 +30,7 @@ type Implant struct {
 
 // Commands - defines the structure of Commands
 //
-// Command - the actual command to be executed
+// # Command - the actual command to be executed
 //
 // Operator - an operator or "wolf" that is executing the specific command
 type Commands struct {
@@ -67,29 +67,49 @@ func RegisterImplant(arch string, updateInterval float64, functions map[string]i
 }
 
 // UpdateImplant - function to update common implant fields on a given check in cycle such as the update interval, custom functions, and the command queue.
-func UpdateImplant(sessionID int, updateInterval float64, functions map[string]interface{}) {
+func UpdateImplant(sessionID int, updateInterval float64, arch string, functions map[string]interface{}) {
 
+	mutex.Lock()
 	var sessionUpdate = Sessions[sessionID]
-
+	mutex.Unlock()
 	if updateInterval != 0 {
+		mutex.Lock()
 		sessionUpdate.Implant.Update = updateInterval
+		mutex.Unlock()
 	}
 
 	if functions != nil {
+		mutex.Lock()
 		sessionUpdate.Implant.Functions = functions
+		mutex.Unlock()
 	}
 
+	if arch != "" {
+		mutex.Lock()
+		sessionUpdate.Implant.Arch = arch
+		mutex.Unlock()
+	}
+
+	mutex.Lock()
 	commandQueue := sessionUpdate.Implant.Commands
+	mutex.Unlock()
 
 	if len(commandQueue) <= 1 {
+		mutex.Lock()
 		commandQueue = nil
+		mutex.Unlock()
 	} else {
+		mutex.Lock()
 		commandQueue = commandQueue[1:]
+		mutex.Unlock()
 	}
-
+	mutex.Lock()
 	sessionUpdate.Implant.Commands = commandQueue
+	mutex.Unlock()
 
+	mutex.Lock()
 	Sessions[sessionID] = sessionUpdate
+	mutex.Unlock()
 
 	LogData("Updated implant with Session ID: " + strconv.Itoa(sessionID))
 }
