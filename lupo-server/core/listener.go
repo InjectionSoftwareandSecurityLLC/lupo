@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"context"
+
+	"github.com/miekg/dns"
 )
 
 // Listener - defines a listener structure composed of:
@@ -28,6 +31,7 @@ type Listener struct {
 	Protocol     string
 	HTTPInstance *http.Server
 	TCPInstance  net.Listener
+	DNSInstance  *dns.Server
 	CryptoPSK    string
 }
 
@@ -144,6 +148,9 @@ func KillListener(id int) (responseSuccess string, responseFail string) {
 		} else if Listeners[id].Protocol == "TCP" {
 			tcpServer := Listeners[id].TCPInstance
 			tcpServer.Close()
+		}else if Listeners[id].Protocol == "DNS"{
+			dnsServer := Listeners[id].DNSInstance
+			dnsServer.ShutdownContext(context.Background())
 		}
 		delete(Listeners, id)
 		responseMessage := "Killed listener: " + strconv.Itoa(id)

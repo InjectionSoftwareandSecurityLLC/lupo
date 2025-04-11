@@ -130,11 +130,11 @@ func init() {
 	listenStartCmd := &grumble.Command{
 		Name:     "start",
 		Help:     "start a listener",
-		LongHelp: "Starts an HTTP/HTTPS or TCP Listener",
+		LongHelp: "Starts an HTTP/HTTPS, TCP, or DNS Listener",
 		Flags: func(f *grumble.Flags) {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
 			f.Int("p", "lport", 1337, "listening host port")
-			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)")
+			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, TCP, or DNS)")
 			f.String("k", "key", "lupo-server.key", "(ALPHA NOTICE: FILE MUST BE ON THE SERVER) path to TLS private key")
 			f.String("c", "cert", "lupo-server.crt", "(ALPHA NOTICE: FILE MUST BE ON THE SERVER) path to TLS cert")
 			f.String("e", "encrypt", "", "preshared encryption key for TCP only connections.")
