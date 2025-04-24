@@ -238,7 +238,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 					session := core.Sessions[activeSession]
 
-					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, uploadFile, fileb64)
+					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, fileName, fileb64)
 					if err != nil {
 						return err
 					}
