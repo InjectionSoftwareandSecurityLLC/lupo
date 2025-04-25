@@ -157,8 +157,6 @@ func init() {
 
 					if session.CommandQuery != "" {
 						status, err = core.WebShellStatus(filterID, session.Rhost, session.Rport, session.Protocol, session.RequestType, session.CommandQuery, session.Query, connectString, session.ShellPath)
-						fmt.Println(status)
-						fmt.Println(err)
 					} else {
 						status, err = calculateSessionStatus(updateInterval, lastCheckIn)
 					}

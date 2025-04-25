@@ -123,6 +123,7 @@ func init() {
 			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
 			resp, err := core.WolfPackHTTP.Get(reqString)
+			
 
 			if err != nil {
 				fmt.Println(err)
@@ -132,6 +133,7 @@ func init() {
 			defer resp.Body.Close()
 
 			jsonData, err := ioutil.ReadAll(resp.Body)
+			
 
 			if err != nil {
 				//fmt.Println(err)

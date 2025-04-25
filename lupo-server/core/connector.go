@@ -261,7 +261,7 @@ func WebShellStatus(id int, rhost string, rport int, protocol string, requestTyp
 		}
 
 		resp, err := client.PostForm(connectString, data)
-
+		
 		if err != nil {
 			return false, errors.New("problem reading POST request response")
 		}
