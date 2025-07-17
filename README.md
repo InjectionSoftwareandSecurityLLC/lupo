@@ -7,14 +7,14 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.0.8](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.8) - Version 1.0.8 Release!
+- [v1.0.9](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.9) - Version 1.0.8 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
 - [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo)
 - [Contributing](contributing.md)
 
-v1.0.8 Features:
+v1.0.9 Features:
 - [X] Support for process injection commands that deliver shellcode payload data and process identifiers for implants to implement (BYOA - Bring your own allocation)
 - [X] Better multi function hook sample provided in the `sample` implant directory
 - [X] Added `updateinterval` subcommand to Sessions CLI to allow for dynamic updates to implant check-in delays 
@@ -39,13 +39,14 @@ v1.0.8 Features:
 - [x] Implement optional encryption flag for TCP
 - [x] wolfpack chat
 
-v1.0.8 Bug Fixes:
-- [X] Fixed MAJOR bug in concurrency with writing to maps. Squashed two race conditions that caused C2 server crashes.
+v1.0.9 Bug Fixes:
+- [X] Fixed MAJOR bug in concurrency with writing to maps. Converted to sync maps...no more race conditions finally :)
 
 
 Road Map:
-- [ ] Consider Implementing UDP listener (Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API)
+- [ ] Implement DNS C2
 - [ ] Consider Implementing Proxying (Cool for v2 should be easy with a go revproxy lib)
+- [ ] Consider Implementing UDP listener (Would be cool to come back to this, it's not hard, just tricky for implants to integrate with cleanly. Needs a seamless standard/API)
 - [ ] Implement Stager support for things like multi staged implants and DLL injection
 - [ ] Implement Procdump API to support process dumping (can use the stager API)
 - [ ] Web interface for wolfpack server

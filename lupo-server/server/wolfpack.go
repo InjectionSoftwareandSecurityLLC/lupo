@@ -323,8 +323,15 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 				}
 				core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": cmd " + cmdString)
 
-				if core.Sessions[getActiveSession].CommandQuery != "" {
-					data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, "", "")
+				sessionVal, ok := core.Sessions.Load(getActiveSession)
+				if !ok {
+					core.LogData("Session does not exist")
+					return
+				}
+				session := sessionVal.(core.Session)
+
+				if session.CommandQuery != "" {
+					data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, "", "")
 					if err != nil {
 						data = "an error occurred executing the connection, is the shell still up?"
 					}
@@ -368,7 +375,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 					core.AssignWolfResponse(CurrentOperator, core.Wolves[CurrentOperator].Rhost, response)
 				} else {
 
-					delete(core.Sessions, session)
+					core.Sessions.Delete(session)
 
 					response = "Session " + sessionID + " has been terminated..."
 
@@ -409,12 +416,19 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 						fmt.Println("\nSession " + strconv.Itoa(getActiveSession) + " file contents was empty, no file written for:\n" + getFileName)
 					} else {
 
-						if core.Sessions[getActiveSession].CommandQuery != "" {
+						sessionVal, ok := core.Sessions.Load(getActiveSession)
+						if !ok {
+							core.LogData("Session does not exist")
+							return
+						}
+						session := sessionVal.(core.Session)
+
+						if session.CommandQuery != "" {
 							var cmdString = "upload"
 
 							core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
 
-							_, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, getFileName, getFile)
+							_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, getFileName, getFile)
 							if err != nil {
 								errorString := "an error occurred executing the connection, is the shell still up?"
 								core.LogData(errorString)
@@ -434,14 +448,21 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 			} else if getCommand[0] == "download" {
 
 				if getFileName != "" {
-					if core.Sessions[getActiveSession].CommandQuery != "" {
+					sessionVal, ok := core.Sessions.Load(getActiveSession)
+					if !ok {
+						core.LogData("Session does not exist")
+						return
+					}
+					session := sessionVal.(core.Session)
+
+					if session.CommandQuery != "" {
 
 						var cmdString = "download"
 
 						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to download the file: " + getFileName)
 						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
 
-						data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, getFileName, "")
+						data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, getFileName, "")
 						if err != nil {
 							data = "an error occurred executing the connection, is the shell still up?"
 						}
@@ -462,14 +483,21 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 			} else if getCommand[0] == "updateinterval" {
 
 				if getUpdateInterval != "" {
-					if core.Sessions[getActiveSession].CommandQuery != "" {
+					sessionVal, ok := core.Sessions.Load(getActiveSession)
+					if !ok {
+						core.LogData("Session does not exist")
+						return
+					}
+					session := sessionVal.(core.Session)
+
+					if session.CommandQuery != "" {
 
 						var cmdString = "updateinterval " + getUpdateInterval
 
 						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to update the implant's check in interval to: " + getUpdateInterval)
 						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
 
-						data, err := core.ExecuteConnection(core.Sessions[getActiveSession].Rhost, core.Sessions[getActiveSession].Rport, core.Sessions[getActiveSession].Protocol, core.Sessions[getActiveSession].ShellPath, core.Sessions[getActiveSession].CommandQuery, cmdString, core.Sessions[getActiveSession].Query, core.Sessions[getActiveSession].RequestType, "", "")
+						data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, "", "")
 						if err != nil {
 							data = "an error occurred executing the connection, is the shell still up?"
 						}

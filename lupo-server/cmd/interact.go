@@ -16,24 +16,9 @@ import (
 )
 
 // activeSession - Active session that is being interacted with by the user
-//
-// This data is supplied as a parameter when switching sessions with either the "interact" command or "session" sub-shell
 var activeSession int
 
-// init - Initializes the primary "interact" grumble command
-//
-// "interact" accepts an argument of "id" that is used to generate a new SessionApp with the SessionAppConfig
-//
-//  "interact" subcommands include:
-//
-//  	"show" - Shows all registered sessions. Accepts andargument of "id" that can be used to show a specific session based on the id.
-//
-//  	"kill" - Accepts an argument of "id" that is used to de-register a session.
-//
-//  	"clean" - De-registers all sessions marked as "DEAD" based on a pre-determined "Check-In" update interval.
-
 func init() {
-
 	interactCmd := &grumble.Command{
 		Name:     "interact",
 		Help:     "interact with a session",
@@ -42,14 +27,11 @@ func init() {
 			a.Int("id", "Session ID to interact with")
 		},
 		Run: func(c *grumble.Context) error {
-
 			activeSession = c.Args.Int("id")
 
-			var operator string
+			operator := "server"
 
-			operator = "server"
-
-			_, sessionExists := core.Sessions[activeSession]
+			_, sessionExists := core.Sessions.Load(activeSession)
 
 			if server.IsWolfPackExec {
 				operator = server.CurrentOperator
@@ -68,13 +50,9 @@ func init() {
 				core.LogData(operator + " executed: interact " + strconv.Itoa(activeSession))
 
 				if !sessionExists {
-
 					errorMessage := "Session " + strconv.Itoa(activeSession) + " does not exist"
-
 					core.LogData("error: " + errorMessage)
-
 					return errors.New(errorMessage)
-
 				}
 
 				App = grumble.New(SessionAppConfig)
@@ -82,7 +60,6 @@ func init() {
 				InitializeSessionCLI(App, activeSession)
 
 				grumble.Main(App)
-
 			}
 
 			return nil
@@ -98,31 +75,23 @@ func init() {
 			a.Int("id", "Filter on session id", grumble.Default(-1))
 		},
 		Run: func(c *grumble.Context) error {
-
-			// Pre-caculate session statuses
-
 			filterID := c.Args.Int("id")
 
 			if filterID != -1 {
-
-				_, sessionExists := core.Sessions[filterID]
+				sessionVal, sessionExists := core.Sessions.Load(filterID)
 
 				if !sessionExists {
-
 					errorMessage := "cannot filter show on session " + strconv.Itoa(filterID) + " because the session does not exist"
-
 					core.LogData("error: " + errorMessage)
-
 					return errors.New(errorMessage)
 				}
 
-				updateInterval := core.Sessions[filterID].Implant.Update
-				lastCheckIn := core.Sessions[filterID].RawCheckin
+				session := sessionVal.(core.Session)
+				updateInterval := session.Implant.Update
+				lastCheckIn := session.RawCheckin
 
 				var status bool
 				var err error
-
-				session := core.Sessions[filterID]
 
 				connectString := session.Rhost + ":" + strconv.Itoa(session.Rport) + "/" + session.ShellPath
 
@@ -136,45 +105,42 @@ func init() {
 					core.SessionStatusUpdate(filterID, "UNKNOWN")
 				} else if status {
 					core.SessionStatusUpdate(filterID, "ALIVE")
-				} else if !status {
-					core.SessionStatusUpdate(filterID, "DEAD")
 				} else {
-					core.SessionStatusUpdate(filterID, "ERROR")
+					core.SessionStatusUpdate(filterID, "DEAD")
 				}
 
 			} else {
-				for i := range core.Sessions {
+				core.Sessions.Range(func(key, value any) bool {
+					sessionID := key.(int)
+					session := value.(core.Session)
 
-					updateInterval := core.Sessions[i].Implant.Update
-					lastCheckIn := core.Sessions[i].RawCheckin
+					updateInterval := session.Implant.Update
+					lastCheckIn := session.RawCheckin
 
 					var status bool
 					var err error
 
-					session := core.Sessions[i]
-
 					connectString := session.Rhost + "/" + session.ShellPath
 
 					if session.CommandQuery != "" {
-						status, err = core.WebShellStatus(filterID, session.Rhost, session.Rport, session.Protocol, session.RequestType, session.CommandQuery, session.Query, connectString, session.ShellPath)
+						status, err = core.WebShellStatus(sessionID, session.Rhost, session.Rport, session.Protocol, session.RequestType, session.CommandQuery, session.Query, connectString, session.ShellPath)
 					} else {
 						status, err = calculateSessionStatus(updateInterval, lastCheckIn)
 					}
 
 					if err != nil {
-						core.SessionStatusUpdate(i, "UNKNOWN")
+						core.SessionStatusUpdate(sessionID, "UNKNOWN")
 					} else if status {
-						core.SessionStatusUpdate(i, "ALIVE")
-					} else if !status {
-						core.SessionStatusUpdate(i, "DEAD")
+						core.SessionStatusUpdate(sessionID, "ALIVE")
 					} else {
-						core.SessionStatusUpdate(i, "ERROR")
+						core.SessionStatusUpdate(sessionID, "DEAD")
 					}
-				}
-			}
-			var operator string
 
-			operator = "server"
+					return true
+				})
+			}
+
+			operator := "server"
 
 			if server.IsWolfPackExec {
 				operator = server.CurrentOperator
@@ -183,7 +149,6 @@ func init() {
 					core.LogData(operator + " executed: listener show " + strconv.Itoa(filterID))
 				} else {
 					core.LogData(operator + " executed: listener show")
-
 				}
 
 				currentWolf := core.Wolves[operator]
@@ -211,57 +176,65 @@ func init() {
 					strings.Repeat("=", len("Status")))
 
 				if filterID != -1 {
+					sessionVal, _ := core.Sessions.Load(filterID)
+					session := sessionVal.(core.Session)
 
-					core.LogData(operator + " executed: interact show" + strconv.Itoa(filterID))
+					core.LogData(operator + " executed: interact show " + strconv.Itoa(filterID))
 
 					var textStatus string
 
-					if core.Sessions[filterID].Status == "UNKNOWN" {
+					switch session.Status {
+					case "UNKNOWN":
 						textStatus = "UNKNOWN"
-					} else if core.Sessions[filterID].Status == "ALIVE" {
+					case "ALIVE":
 						textStatus = core.GreenColorIns("ALIVE")
-					} else if core.Sessions[filterID].Status == "DEAD" {
+					case "DEAD":
 						textStatus = core.RedColorIns("DEAD")
-					} else {
+					default:
 						textStatus = core.ErrorColorBoldIns("ERROR")
 					}
 
 					fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-						strconv.Itoa(core.Sessions[filterID].ID),
-						core.Sessions[filterID].Rhost,
-						core.Sessions[filterID].Implant.Arch,
-						core.Sessions[filterID].Protocol,
-						core.Sessions[filterID].Checkin,
-						core.Sessions[filterID].Implant.Update,
+						strconv.Itoa(session.ID),
+						session.Rhost,
+						session.Implant.Arch,
+						session.Protocol,
+						session.Checkin,
+						session.Implant.Update,
 						textStatus)
 
 				} else {
 					core.LogData(operator + " executed: interact show")
 
-					for i := range core.Sessions {
+					core.Sessions.Range(func(key, value any) bool {
+						session := value.(core.Session)
 
 						var textStatus string
 
-						if core.Sessions[i].Status == "UNKNOWN" {
+						switch session.Status {
+						case "UNKNOWN":
 							textStatus = "UNKNOWN"
-						} else if core.Sessions[i].Status == "ALIVE" {
+						case "ALIVE":
 							textStatus = core.GreenColorIns("ALIVE")
-						} else if core.Sessions[i].Status == "DEAD" {
+						case "DEAD":
 							textStatus = core.RedColorIns("DEAD")
-						} else {
+						default:
 							textStatus = core.ErrorColorBoldIns("ERROR")
 						}
 
 						fmt.Fprintf(table, "%s\t%s\t%s\t%s\t%s\t%f\t%s\t\n",
-							strconv.Itoa(core.Sessions[i].ID),
-							core.Sessions[i].Rhost,
-							core.Sessions[i].Implant.Arch,
-							core.Sessions[i].Protocol,
-							core.Sessions[i].Checkin,
-							core.Sessions[i].Implant.Update,
+							strconv.Itoa(session.ID),
+							session.Rhost,
+							session.Implant.Arch,
+							session.Protocol,
+							session.Checkin,
+							session.Implant.Update,
 							textStatus)
-					}
+
+						return true
+					})
 				}
+
 				table.Flush()
 			}
 
@@ -278,23 +251,22 @@ func init() {
 			a.Int("id", "Session ID to kill")
 		},
 		Run: func(c *grumble.Context) error {
-
 			id := c.Args.Int("id")
 
-			var operator string
+			operator := "server"
 
 			if server.IsWolfPackExec {
 				operator = server.CurrentOperator
 
-				core.LogData(operator + " executed: interact kill" + strconv.Itoa(id))
+				core.LogData(operator + " executed: interact kill " + strconv.Itoa(id))
 
 				currentWolf := core.Wolves[operator]
 
-				_, sessionExists := core.Sessions[id]
+				_, sessionExists := core.Sessions.Load(id)
 
 				var response string
 				if sessionExists {
-					delete(core.Sessions, id)
+					core.Sessions.Delete(id)
 					response = "Session " + strconv.Itoa(id) + " has been terminated..."
 				} else {
 					response = "Session " + strconv.Itoa(id) + " does not exist..."
@@ -302,22 +274,18 @@ func init() {
 
 				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, response)
 			} else {
+				core.LogData(operator + " executed: interact kill " + strconv.Itoa(id))
 
-				operator = "server"
-
-				core.LogData(operator + " executed: interact kill" + strconv.Itoa(id))
-
-				_, sessionExists := core.Sessions[id]
+				_, sessionExists := core.Sessions.Load(id)
 
 				if sessionExists {
-					delete(core.Sessions, id)
+					core.Sessions.Delete(id)
 					core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " has been terminated...")
 				} else {
 					core.WarningColorBold.Println("Session " + strconv.Itoa(id) + " does not exist...")
-
 				}
-
 			}
+
 			return nil
 		},
 	}
@@ -328,8 +296,7 @@ func init() {
 		Help:     "cleans all sessions marked as DEAD",
 		LongHelp: "Kills all sessions marked as DEAD to clear up the session list.",
 		Run: func(c *grumble.Context) error {
-
-			var operator string
+			operator := "server"
 
 			if server.IsWolfPackExec {
 				operator = server.CurrentOperator
@@ -339,41 +306,39 @@ func init() {
 				currentWolf := core.Wolves[operator]
 
 				var response string
-				var isFirstIteration = true
+				isFirstIteration := true
 
-				for i := range core.Sessions {
+				core.Sessions.Range(func(key, value any) bool {
+					sessionID := key.(int)
+					session := value.(core.Session)
 
-					sessionStatus := core.Sessions[i].Status
-
-					if sessionStatus == "DEAD" {
-						delete(core.Sessions, i)
+					if session.Status == "DEAD" {
+						core.Sessions.Delete(sessionID)
 						if isFirstIteration {
-							response += "Session " + strconv.Itoa(i) + " has been terminated..."
+							response += "Session " + strconv.Itoa(sessionID) + " has been terminated..."
+							isFirstIteration = false
 						} else {
-							response += "\nSession " + strconv.Itoa(i) + " has been terminated..."
+							response += "\nSession " + strconv.Itoa(sessionID) + " has been terminated..."
 						}
-						isFirstIteration = false
 					}
-
-				}
+					return true
+				})
 
 				core.AssignWolfResponse(currentWolf.Username, currentWolf.Rhost, response)
 
 			} else {
-				operator = "server"
-
 				core.LogData(operator + " executed: interact clean")
 
-				for i := range core.Sessions {
+				core.Sessions.Range(func(key, value any) bool {
+					sessionID := key.(int)
+					session := value.(core.Session)
 
-					sessionStatus := core.Sessions[i].Status
-
-					if sessionStatus == "DEAD" {
-						delete(core.Sessions, i)
-						core.WarningColorBold.Println("Session " + strconv.Itoa(i) + " has been terminated...")
+					if session.Status == "DEAD" {
+						core.Sessions.Delete(sessionID)
+						core.WarningColorBold.Println("Session " + strconv.Itoa(sessionID) + " has been terminated...")
 					}
-
-				}
+					return true
+				})
 			}
 
 			return nil
@@ -381,24 +346,18 @@ func init() {
 	}
 
 	interactCmd.AddCommand(cleanCmd)
-
 }
 
 // calculateSessionStatus - Uses an update interval in seconds that is registered by an implant.
-//
 // The update interval is then compared to the difference in the last "Check-In" time and the current time.
-//
 // The result of this comparison + a 5 second buffer is checked. If the difference exceeds the expected update interval + 5 the function returns false.
 func calculateSessionStatus(updateInterval float64, lastCheckIn time.Time) (bool, error) {
-
 	if updateInterval == 0 {
 		return true, errors.New("No update interval provided, could not be calculated")
 	}
 
 	currentTime := time.Now()
-
 	delay := currentTime.Sub(lastCheckIn)
-
 	floatDelay := float64(time.Duration(delay) / time.Second)
 
 	if floatDelay > updateInterval+5 {
