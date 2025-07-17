@@ -12,7 +12,6 @@ import (
 )
 
 // SessionAppConfig - Primary session nested grumble CLI config construction
-// This sets up the lupo "session" nested/sub-prompt and color scheme, defines a history logfile, and toggles various grumble sepcific parameters for help command options.
 var SessionAppConfig = &grumble.Config{
 	Name:                  "session",
 	Description:           "Interactive Session CLI",
@@ -28,25 +27,9 @@ var SessionAppConfig = &grumble.Config{
 }
 
 // InitializeSessionCLI - Initialize the nested session CLI arguments
-//
-// "session" has no arguments and is not a grumble command in and of itself. It is a separate nested grumble application and contains all new base commands.
-//
-// "session" base commands include:
-//
-//	"back" - resets the current active session to "-1" and closes the nested session sub-shell.
-//
-//	"session" - the actual "session" command which is used to switch sessions by specifying an argument of a session ID to switch to. This is identical to the interact command only it allows you to switch sessions while in the session sub-shell as "interact" is unavailable in the sub-shell.
-//
-//	"cmd" - built in command directive to denote commands that are intended to be executed as a system command of a specified session. These commands are usually sent to the client as JSON in the format of {"cmd":"<some command"}. It supports multi-line/multi-arg commands.
-//
-//	"kill" - takes an argument of "id" which is used to de-register the specified session.
-//
-//	"load" - will load any additional functions that were registered by an implant. Must be ran each time you interact with a different session unless the implants of those sessions use the same additional functions.
 func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
-	var operator string
-
-	operator = "server"
+	operator := "server"
 
 	core.LogData(operator + " started interaction with session: " + strconv.Itoa(activeSession))
 
@@ -57,9 +40,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Run: func(c *grumble.Context) error {
 			activeSession = -1
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: back")
 
@@ -80,18 +61,15 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Run: func(c *grumble.Context) error {
 			activeSession = c.Args.Int("id")
 
-			var operator string
-
+			operator := "server"
 			sessionExists := core.SessionExists(activeSession)
 
-			operator = "server"
 			core.LogData(operator + " executed: session " + strconv.Itoa(activeSession))
 
 			if !sessionExists {
 				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
 			}
 
-			// Close to unload any session specific functions
 			sessionApp.Close()
 
 			App = grumble.New(SessionAppConfig)
@@ -103,7 +81,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionSwitchCmd)
 
 	sessionCMDCmd := &grumble.Command{
@@ -114,20 +91,20 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			a.StringList("cmd", "OS Command to be executed by the target session")
 		},
 		Run: func(c *grumble.Context) error {
-
 			cmd := c.Args.StringList("cmd")
-
 			cmdString := strings.Join(cmd, " ")
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed on session " + strconv.Itoa(activeSession) + ": cmd " + cmdString)
 
-			if core.Sessions[activeSession].CommandQuery != "" {
-				session := core.Sessions[activeSession]
+			sessionVal, sessionExists := core.Sessions.Load(activeSession)
+			if !sessionExists {
+				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+			}
+			session := sessionVal.(core.Session)
 
+			if session.CommandQuery != "" {
 				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, "", "")
 				if err != nil {
 					return err
@@ -144,7 +121,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionCMDCmd)
 
 	sessionKillCmd := &grumble.Command{
@@ -155,12 +131,9 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			a.Int("id", "Session ID to kill")
 		},
 		Run: func(c *grumble.Context) error {
-
 			id := c.Args.Int("id")
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: kill " + strconv.Itoa(id))
 
@@ -170,7 +143,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 				return errors.New("Session " + strconv.Itoa(id) + " does not exist")
 			}
 
-			delete(core.Sessions, id)
+			core.Sessions.Delete(id)
 
 			warningString := "Session " + strconv.Itoa(id) + " has been terminated..."
 
@@ -181,7 +154,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionKillCmd)
 
 	sessionLoadCmd := &grumble.Command{
@@ -190,9 +162,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		LongHelp: "Loads custom functions registered by an implant tied to the current session if any exist",
 		Run: func(c *grumble.Context) error {
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: load")
 
@@ -201,7 +171,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionLoadCmd)
 
 	sessionUploadCmd := &grumble.Command{
@@ -215,34 +184,31 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			f.String("o", "outfile", "", "(optional) alternate name to save file as")
 		},
 		Run: func(c *grumble.Context) error {
-
 			uploadFile := c.Args.String("infile")
-
 			fileName := c.Flags.String("outfile")
-
 			if fileName == "" {
 				fileName = uploadFile
 			}
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: upload " + fileName)
 
 			fileb64 := core.UploadFile(uploadFile)
 
 			if fileb64 != "" {
-				if core.Sessions[activeSession].CommandQuery != "" {
+				sessionVal, sessionExists := core.Sessions.Load(activeSession)
+				if !sessionExists {
+					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+				}
+				session := sessionVal.(core.Session)
+
+				if session.CommandQuery != "" {
 					cmdString := "upload"
-
-					session := core.Sessions[activeSession]
-
 					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, fileName, fileb64)
 					if err != nil {
 						return err
 					}
-
 				} else {
 					cmdString := "upload " + fileName + " " + fileb64
 					core.QueueImplantCommand(activeSession, cmdString, "server")
@@ -254,7 +220,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionUploadCmd)
 
 	sessionDownloadCmd := &grumble.Command{
@@ -265,20 +230,20 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			a.String("infile", "path of the file to download")
 		},
 		Run: func(c *grumble.Context) error {
-
 			downloadFile := c.Args.String("infile")
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: download " + downloadFile)
 
-			if core.Sessions[activeSession].CommandQuery != "" {
-				session := core.Sessions[activeSession]
+			sessionVal, sessionExists := core.Sessions.Load(activeSession)
+			if !sessionExists {
+				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+			}
+			session := sessionVal.(core.Session)
 
+			if session.CommandQuery != "" {
 				cmdString := "download"
-
 				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, downloadFile, "")
 				if err != nil {
 					return err
@@ -288,15 +253,12 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 				core.DownloadFile(downloadFile, data)
 			} else {
 				cmdString := "download " + downloadFile
-
 				core.QueueImplantCommand(activeSession, cmdString, "server")
-
 			}
 
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionDownloadCmd)
 
 	sessionUpdateIntervalCmd := &grumble.Command{
@@ -307,39 +269,35 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			a.Int("interval", "update interval in seconds")
 		},
 		Run: func(c *grumble.Context) error {
-
 			updateInterval := c.Args.Int("interval")
 			updateIntervalStr := strconv.Itoa(updateInterval)
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: updateinterval " + updateIntervalStr)
 
-			if core.Sessions[activeSession].CommandQuery != "" {
-				session := core.Sessions[activeSession]
+			sessionVal, sessionExists := core.Sessions.Load(activeSession)
+			if !sessionExists {
+				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+			}
+			session := sessionVal.(core.Session)
 
+			if session.CommandQuery != "" {
 				cmdString := "updateinterval " + updateIntervalStr
-
 				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, "", "")
 				if err != nil {
 					return err
 				}
 
 				core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
-
 			} else {
 				cmdString := "updateinterval " + updateIntervalStr
-
 				core.QueueImplantCommand(activeSession, cmdString, "server")
-
 			}
 
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionUpdateIntervalCmd)
 
 	sessionMemInject := &grumble.Command{
@@ -353,32 +311,29 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			f.String("m", "method", "any", "memory injection method default is 'any' but any other custom text can be supplied here as long as the implant understands it")
 		},
 		Run: func(c *grumble.Context) error {
-
 			uploadFile := c.Args.String("shellcode")
-
 			method := c.Flags.String("method")
-
 			fileName := uploadFile
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: mem_inject -m " + method + " " + uploadFile)
 
 			fileb64 := core.UploadFile(uploadFile)
 
 			if fileb64 != "" {
-				if core.Sessions[activeSession].CommandQuery != "" {
+				sessionVal, sessionExists := core.Sessions.Load(activeSession)
+				if !sessionExists {
+					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+				}
+				session := sessionVal.(core.Session)
+
+				if session.CommandQuery != "" {
 					cmdString := "mem_inject"
-
-					session := core.Sessions[activeSession]
-
 					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, method, fileb64)
 					if err != nil {
 						return err
 					}
-
 				} else {
 					cmdString := "mem_inject " + method + " " + fileb64
 					core.QueueImplantCommand(activeSession, cmdString, "server")
@@ -390,7 +345,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionMemInject)
 
 	sessionPidInject := &grumble.Command{
@@ -404,34 +358,30 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			f.Int("p", "pid", 0, "process identifier to inject, default is '0' for a random PID")
 		},
 		Run: func(c *grumble.Context) error {
-
 			uploadFile := c.Args.String("shellcode")
-
 			pid := c.Flags.Int("pid")
-
 			pidString := strconv.Itoa(pid)
-
 			fileName := uploadFile
 
-			var operator string
-
-			operator = "server"
+			operator := "server"
 
 			core.LogData(operator + " executed: pid_inject -p " + pidString + " " + uploadFile)
 
 			fileb64 := core.UploadFile(uploadFile)
 
 			if fileb64 != "" {
-				if core.Sessions[activeSession].CommandQuery != "" {
+				sessionVal, sessionExists := core.Sessions.Load(activeSession)
+				if !sessionExists {
+					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+				}
+				session := sessionVal.(core.Session)
+
+				if session.CommandQuery != "" {
 					cmdString := "pid_inject"
-
-					session := core.Sessions[activeSession]
-
 					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, pidString, fileb64)
 					if err != nil {
 						return err
 					}
-
 				} else {
 					cmdString := "pid_inject " + pidString + " " + fileb64
 					core.QueueImplantCommand(activeSession, cmdString, "server")
@@ -443,7 +393,5 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			return nil
 		},
 	}
-
 	sessionApp.AddCommand(sessionPidInject)
-
 }
