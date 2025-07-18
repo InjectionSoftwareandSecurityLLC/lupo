@@ -22,3 +22,4 @@
 .lupo.chat.log
 wolfpack.json
 wolfpack_configs/*
+tls-certs
