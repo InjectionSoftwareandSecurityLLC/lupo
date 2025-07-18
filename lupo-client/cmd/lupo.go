@@ -71,7 +71,7 @@ func init() {
 		a.Println("                       `...``..`                            		")
 		a.Println("                          ...                                ")
 		a.Println()
-		a.Println("v1.0.9")
+		a.Println("v1.1.0")
 		a.Println()
 	})
 

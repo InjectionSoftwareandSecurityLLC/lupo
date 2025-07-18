@@ -7,18 +7,18 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.0.9](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.0.9) - Version 1.0.9 Release!
+- [v1.1.0](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.1.0) - Version 1.1.0 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
 - [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo)
 - [Contributing](contributing.md)
 
-v1.0.9 Features:
-- [X] Support for process injection commands that deliver shellcode payload data and process identifiers for implants to implement (BYOA - Bring your own allocation)
-- [X] Better multi function hook sample provided in the `sample` implant directory
-- [X] Added `updateinterval` subcommand to Sessions CLI to allow for dynamic updates to implant check-in delays 
-- [X] Added persistence handler updates to all listening modules
+v1.1.0 Features:
+- [x] Support for process injection commands that deliver shellcode payload data and process identifiers for implants to implement (BYOA - Bring your own allocation)
+- [x] Better multi function hook sample provided in the `sample` implant directory
+- [x] Added `updateinterval` subcommand to Sessions CLI to allow for dynamic updates to implant check-in delays 
+- [x] Added persistence handler updates to all listening modules
 - [x] Implement data response and check in status intervals
 - [x] Implement registering custom functions
 - [x] Consider creating a "color" library in core to handle custom colors across the entire application
@@ -38,9 +38,8 @@ v1.0.9 Features:
 - [x] Implement config file for lupo server to auto supply configs (done via metasploit-style resource file for simpler automation)
 - [x] Implement optional encryption flag for TCP
 - [x] wolfpack chat
+- [x] Removed old TLS generation bash script - Lupo generates TLS certs automatically now and still provides the option to bring your own :)
 
-v1.0.9 Bug Fixes:
-- [X] Fixed MAJOR bug in concurrency with writing to maps. Converted to sync maps...no more race conditions finally :)
 
 
 Road Map:

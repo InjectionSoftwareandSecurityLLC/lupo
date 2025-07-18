@@ -14,3 +14,7 @@ Client build example:
 
 Alternatively you may make use of the releases at:
 https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases
+
+
+Encryption Note:
+- TLS certs are dynamically generated each run if one does not exist already. These certs are stored in the `tls-certs` directory and are used by the default configurations for HTTPS and Wolfpack listeners. All services that require TLS also provide optional arguments to specify your own custom cert per service if you'd prefer.

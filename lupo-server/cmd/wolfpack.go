@@ -51,8 +51,8 @@ func init() {
 		Flags: func(f *grumble.Flags) {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
 			f.Int("p", "lport", 3074, "listening host port")
-			f.String("k", "key", "lupo-server.key", "path to TLS private key")
-			f.String("c", "cert", "lupo-server.crt", "path to TLS cert")
+			f.String("k", "key", "tls-certs/lupo-server.key", "path to TLS private key")
+			f.String("c", "cert", "tls-certs/lupo-server.crt", "path to TLS cert")
 		},
 		Run: func(c *grumble.Context) error {
 
