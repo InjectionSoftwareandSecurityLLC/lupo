@@ -137,8 +137,8 @@ func init() {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
 			f.Int("p", "lport", 1337, "listening host port")
 			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)")
-			f.String("k", "key", "lupo-server.key", "path to TLS private key")
-			f.String("c", "cert", "lupo-server.crt", "path to TLS cert")
+			f.String("k", "key", "tls-certs/lupo-server.key", "path to TLS private key")
+			f.String("c", "cert", "tls-certs/lupo-server.crt", "path to TLS cert")
 			f.String("e", "encrypt", "", "preshared encryption key for TCP only connections.")
 		},
 		Run: func(c *grumble.Context) error {

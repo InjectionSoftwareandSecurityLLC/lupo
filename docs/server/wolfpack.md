@@ -21,7 +21,7 @@ When the Wolfpack server starts an HTTPS server is created that serves an API. T
 
 
 ### GET Requests
-Below is a quick sample showing how to authenticate and execute a command with the Wolfpack server. The only extra requirement might be providing a private TLS certificate from the wolfpack JSON config depending on how your TLS cert was generated.
+Below is a quick sample showing how to authenticate and execute a command with the Wolfpack server. TLS certs are automatically generated and stored in `tls-certs` these are the same certs used by the default HTTPS listener - but you may optionally supply your own cert if you'd prefer.
 
 - Example Wolpack authenticate and show sessions:
     - Request:`https://myserver:3074/?psk=<psk>&username=<username>&command=interact show`

@@ -6,6 +6,9 @@ Please note, this document will not be comprehensive as CLI is "self documenting
 
 Instead this will show case the most common commands and how to use them then split [Server](./server.md) and [Client](../client/client.md) specific commands to their own documentation respectively.
 
+On start lupo's server can take two optional arguments:
+1. `--tls-ip` which is the IP address you'd like to associate with Lupo's default self-signed TLS cert. By default this will attempt to assign it to a non-loopback interface automatically which is usually the correct one if you're only using a single primary network interface. If not an you'd like to assign a different one - that's what this flag is for! If an interface can not be identified it will fallback to loopback on `127.0.0.1`.
+2. `-r` which is for specifying a lupo resource file. This is similar to the Metasploit framework's `.rc` files in that they will play back lupo commands line by line to give you the ability to automate configuration of callbacks, wolfpack services, and other lupo server settings.
 
 ## Lupo Commands
 - exec: executes a local system command so the user can interact with their local session without leaving the Lupo CLI.
@@ -24,7 +27,7 @@ Instead this will show case the most common commands and how to use them then sp
     - (sub command) show: shows all running listeners and their meta information.
     - (sub command) start: configure and start a new listener. A sample command for a basic HTTPS server might look like this:
         - Start listener: `listener start -l 0.0.0.0 -p 8443`
-        - That command will start an HTTPS listener using the default TLS keys used by generating the `generate_tls_cert.sh` script as long as they are located in the same directory as the server binary. All of these options can of course be modified using the relevant flags/arguments available in the CLI.
+        - That command will start an HTTPS listener using the default TLS keys stored in the runtime generate `tls-certs` folder. This keypair is also useful as the default for cert pinning on implants (although use of a redirector is the reccommended set up). All of these options can of course be modified using the relevant flags/arguments available in the CLI if you'd like to set up unique certs per listener.
         - Sample showing setting a custom PSK, starting a listener, showing active listeners, and killing a listener:
         ![listener gif](../assets/listener.gif)
 - session: base command, a sub shell that allows interaction with a session specified from the `interact` command.
@@ -49,9 +52,8 @@ Lupo implements some sophisticated yet incredibly simple logging mechanisms. Lup
 - Chat Log: Lupo uses the same custom logger implemented by the Operator Logs function to log a chat history. The history is only stored on the Lupo server and can only be written to and accessed by the Lupo server. When a user enters the chat the log is read and sent to the chat instance being interacted with. When new messages are sent the message is written to the chat and the most recent line is then broadcasts to every Wolfpack user that is also in the chat CLI on their Lupo client. These are stored with a format of `YYYY/MM/DD 00:00:00 (24 Hour Format) <Username>: <message>`.
 
 ## Helpful Tools
-Included with the Lupo C2 repo there are a handful of helper scripts/programs to help folks get started.
+Included with the Lupo C2 repo there are a handful of sample programs to help folks get started.
 
-- The `generate_tls_cert.sh` scripts requires openssl to be installed, but if it is this script can be used to quickly generate a TLS key pair that can be used to encrypt HTTPS communications in Lupo. This is required to use functions such as the `wolfpack` team server and the HTTPS listener. You are free to use lets encrypt or any other method of creating self-signed certs for Lupo as long as the provided key pair can be read in as their respective "server.crt" and "server.key" files. By default Lupo will read in any file named `lupo-server.crt` and `lupo-server.key` as long as they exist in the same directory as the server binary.
 - The [samples](../../samples) directory in the repository includes sample payloads that can be used with Lupo. These are meant to be feature complete examples that fully implement each API. These are purposefully not distributed as binaries to promote longevity, but the whole point of Lupo is to "bring your own implant", so feel free to use the provided samples as a base, but it is _not_ recommended to use them in real world engagements without prior obfuscation/modification. Remember, they are samples, and while they are feature complete, they are meant to serve as examples only. Read more in the [implants](../implants/implants.md) documentation. Use at your own risk. Currently implemented samples:
     - HTTP/HTTPS Golang Based Implant
     - Bind Connector PHP Based Web Shell
