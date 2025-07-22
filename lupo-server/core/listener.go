@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+
+	"github.com/miekg/dns"
 )
 
 // Listener - defines a listener structure composed of:
@@ -28,6 +30,7 @@ type Listener struct {
 	Protocol     string
 	HTTPInstance *http.Server
 	TCPInstance  net.Listener
+	DNSInstance  *dns.Server
 	CryptoPSK    string
 }
 

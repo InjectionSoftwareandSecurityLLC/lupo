@@ -14,6 +14,7 @@ import (
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/server"
 	"github.com/desertbit/grumble"
+	"github.com/miekg/dns"
 )
 
 // psk - Global psk variable utilized by the listener for storing the Pre-Shared key established from the core "lupo" psk flag.
@@ -136,7 +137,7 @@ func init() {
 		Flags: func(f *grumble.Flags) {
 			f.String("l", "lhost", "127.0.0.1", "listening host IP/Domain")
 			f.Int("p", "lport", 1337, "listening host port")
-			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, or TCP)")
+			f.String("x", "protocol", "HTTPS", "protocol to listen on (HTTP, HTTPS, DNS, or TCP)")
 			f.String("k", "key", "tls-certs/lupo-server.key", "path to TLS private key")
 			f.String("c", "cert", "tls-certs/lupo-server.crt", "path to TLS cert")
 			f.String("e", "encrypt", "", "preshared encryption key for TCP only connections.")
@@ -443,7 +444,43 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 		go server.StartTCPServer(newServer, cryptoPSK)
 
-	} else {
+		} else if protocol == "DNS" {
+
+			dns.HandleFunc(".", server.DNSServerHandler)
+			newServer := &dns.Server{
+				Addr: lhost + ":" + strconv.Itoa(lport),
+				Net: "udp",
+			}
+	
+	
+			newListener = core.Listener{
+				ID:           id,
+				Lhost:        lhost,
+				Lport:        lport,
+				Protocol:     protocol,
+				HTTPInstance: nil,
+				TCPInstance:  nil,
+				DNSInstance:  newServer,
+				CryptoPSK:    cryptoPSK,
+			}
+			
+			core.Listeners[id] = newListener
+	
+			go func(newListener core.Listener) {
+				err := newServer.ListenAndServe()
+				if err != nil {
+					println("")
+					core.LogData("error: failed to start HTTPS server")
+					core.ErrorColorBold.Println(err)
+					delete(core.Listeners, newListener.ID)
+					listenerID--
+					return
+				}
+			}(newListener)
+	
+	
+			
+		} else {
 		errorString := "Unsupported listener protocol specified: " + protocol + " is not implemented"
 		//core.LogData("error: " + errorString)
 		core.ErrorColorUnderline.Println(errorString)
