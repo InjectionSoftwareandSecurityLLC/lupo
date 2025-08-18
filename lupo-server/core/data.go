@@ -69,7 +69,6 @@ type DNSData struct {
 	Register            bool
 	FileName            string
 	File                string
-	Fragments 			[]string
 	Mutex     			sync.Mutex
 }
 

