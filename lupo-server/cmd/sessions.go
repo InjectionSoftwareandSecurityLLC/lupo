@@ -2,11 +2,11 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
+	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/server"
 	"github.com/desertbit/grumble"
 	"github.com/fatih/color"
 )
@@ -43,7 +43,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			operator := "server"
 
 			core.LogData(operator + " executed: back")
-
+			
 			sessionApp.Close()
 
 			return nil
@@ -96,8 +96,16 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 			operator := "server"
 
+			if server.IsWolfPackExec {
+
+				operator = server.CurrentOperator
+			}
+
 			core.LogData(operator + " executed on session " + strconv.Itoa(activeSession) + ": cmd " + cmdString)
 
+			core.CmdExec(activeSession, cmdString, operator)
+
+			/*
 			sessionVal, sessionExists := core.Sessions.Load(activeSession)
 			if !sessionExists {
 				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
@@ -117,6 +125,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			} else {
 				core.QueueImplantCommand(activeSession, cmdString, "server")
 			}
+				*/
 
 			return nil
 		},

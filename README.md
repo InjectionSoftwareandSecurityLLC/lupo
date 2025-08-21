@@ -7,14 +7,14 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.1.0](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.1.0) - Version 1.1.0 Release!
+- [v1.2.0](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.2.0) - Version 1.2.0 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
 - [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo)
 - [Contributing](contributing.md)
 
-v1.1.0 Features:
+v1.2.0 Features:
 - [x] Support for process injection commands that deliver shellcode payload data and process identifiers for implants to implement (BYOA - Bring your own allocation)
 - [x] Better multi function hook sample provided in the `sample` implant directory
 - [x] Added `updateinterval` subcommand to Sessions CLI to allow for dynamic updates to implant check-in delays 
@@ -39,7 +39,8 @@ v1.1.0 Features:
 - [x] Implement optional encryption flag for TCP
 - [x] wolfpack chat
 - [x] Removed old TLS generation bash script - Lupo generates TLS certs automatically now and still provides the option to bring your own :)
-
+- [x] MUTIPLAYER MODE STABLE!!! - fixed major bug with state management that broke mutiplayer mode if you ran a command on the server before using the client
+- [x] Added the ability to execute commands across mutiple sessions based on session ID or Arch (OS) filter with wildcard support
 
 
 Road Map:

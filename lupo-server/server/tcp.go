@@ -257,7 +257,7 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 			fmt.Println("\nSession " + strconv.Itoa(tcpParams.SessionID) + " returned:\n" + tcpParams.Data)
 		} else {
 			currentWolf := core.Wolves[tcpParams.Username]
-			jsonData := `{"data":"` + tcpParams.Data + `"}`
+			jsonData := `{"session":"` + strconv.Itoa(tcpParams.SessionID) + `",` + `"data":"` + tcpParams.Data + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
 		}
 	}

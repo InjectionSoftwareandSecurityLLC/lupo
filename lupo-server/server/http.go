@@ -181,7 +181,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 		implant := core.RegisterImplant(getImplantArch, getUpdate, additionalFunctions, "")
 
 		var protocol string
-		if r.TLS == nil {
+		if r.TLS != nil {
 			protocol = "HTTPS"
 		} else {
 			protocol = "HTTP"
@@ -262,7 +262,7 @@ SESSION_VALID:
 				core.LogData("Session " + strconv.Itoa(getSessionID) + " error: could not unescape data returned by client")
 			}
 			data = strings.ReplaceAll(data, "\\", "\\\\")
-			jsonData := `{"data":"` + data + `"}`
+			jsonData := `{"session":"` + strconv.Itoa(getSessionID) + `",` + `"data":"` + data + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
 		}
 	}
@@ -543,7 +543,7 @@ POST_SESSION_VALID:
 				core.LogData("Session " + strconv.Itoa(postSessionID) + " error: could not unescape data returned by client")
 			}
 			data = strings.ReplaceAll(data, "\\", "\\\\")
-			jsonData := `{"data":"` + data + `"}`
+			jsonData := `{"session":"` + strconv.Itoa(postSessionID) + `",` + `"data":"` + data + `"}`
 			core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
 		}
 	}

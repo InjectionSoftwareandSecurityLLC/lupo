@@ -69,7 +69,7 @@ func init() {
 
 			core.LogData(operator + " executed: wolfpack start -l " + lhost + " -p " + strconv.Itoa(lport) + " -k " + tlsKey + " -c " + tlsCert)
 
-			app := App
+			app := WolfPackApp
 
 			startWolfPackServer(listenerID, lhost, lport, listenString, psk, tlsKey, tlsCert, app)
 
@@ -130,7 +130,7 @@ func init() {
 		Help:     "registers a wolfpack user",
 		LongHelp: "Registers a wolfpack user and provides a client config for them connect via the Lupo Client",
 		Flags: func(f *grumble.Flags) {
-			f.String("o", "out", "wolfpack.json", "path/name to output the wolfpack client config")
+			f.String("o", "out", "wolfpack.json", "(defaults to <user>_wolfpack.json) path/name to output the wolfpack client config")
 		},
 		Args: func(a *grumble.Args) {
 			a.String("user", "A name for the user")
@@ -141,6 +141,8 @@ func init() {
 			outFile := c.Flags.String("out")
 
 			userName := c.Args.String("user")
+
+			outFile = userName + "_" + outFile
 
 			psk := c.Args.String("wolfpsk")
 
