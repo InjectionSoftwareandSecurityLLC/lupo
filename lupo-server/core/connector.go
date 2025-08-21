@@ -96,6 +96,7 @@ func ExecuteConnection(rhost string, rport int, protocol string, path string, co
 
 	if requestType == "GET" {
 		connectString := protocol + rhost + "/" + path + "?" + commandQuery + url.QueryEscape(command) + query
+		LogData("Connection string: " + connectString)
 		if filename != "" {
 			connectString += "&filename=" + filename
 		}

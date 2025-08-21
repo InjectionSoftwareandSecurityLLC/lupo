@@ -88,6 +88,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
 
+
 	// Check GET URL parameters and handle errors
 	if len(getParams["psk"]) > 0 {
 		getPSK = getParams["psk"][0]

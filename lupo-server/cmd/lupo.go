@@ -37,6 +37,7 @@ var lupoApp = grumble.New(&grumble.Config{
 //
 // The primary use case is switching between the "lupo" core shell and the nested "session" sub-shell that handles session management.
 var App = lupoApp
+var WolfPackApp = lupoApp
 
 // init - initializes the primary Lupo cli application
 func init() {

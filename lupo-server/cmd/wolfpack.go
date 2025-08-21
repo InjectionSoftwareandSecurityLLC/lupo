@@ -69,7 +69,7 @@ func init() {
 
 			core.LogData(operator + " executed: wolfpack start -l " + lhost + " -p " + strconv.Itoa(lport) + " -k " + tlsKey + " -c " + tlsCert)
 
-			app := App
+			app := WolfPackApp
 
 			startWolfPackServer(listenerID, lhost, lport, listenString, psk, tlsKey, tlsCert, app)
 
