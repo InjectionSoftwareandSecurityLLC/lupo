@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
-	"strconv"
+	//"strconv"
 	"strings"
 	"time"
 )
@@ -126,10 +126,17 @@ func CheckForSessionData(jsonData []byte) bool {
 			return false
 		}
 		_, dataExists := coreResponse["data"]
+
 		if dataExists {
 
-			fmt.Println("\nSession " + strconv.Itoa(ActiveSession) + " returned:\n" + coreResponse["data"].(string))
-			return true
+			_, session := coreResponse["session"]
+
+			if session{
+
+				fmt.Println("\nSession " + coreResponse["session"].(string) + " returned:\n" + coreResponse["data"].(string))
+				
+				return true
+			}
 		}
 	}
 

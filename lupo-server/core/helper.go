@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"fmt"
+	"time"
 )
 
 func CmdExec(activeSession int, cmdString string, operator string) error{
@@ -25,7 +26,12 @@ func CmdExec(activeSession int, cmdString string, operator string) error{
 			fmt.Println("\nSession " + strconv.Itoa(activeSession) + " returned:\n" + data)
 		}
 	} else {
-		QueueImplantCommand(activeSession, cmdString, "server")
+		QueueImplantCommand(activeSession, cmdString, operator)
+
+		// Small delay to help with client syncronization
+		if operator != "server"{
+			time.Sleep(2 * time.Second)
+		}
 	}
 
 	return nil

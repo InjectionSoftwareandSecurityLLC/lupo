@@ -248,7 +248,7 @@ func init() {
 		Help:     "run a command across one or more sessions",
 		LongHelp: "Executes a command across one or more sessions based on the filter provided.",
 		Args: func(a *grumble.Args) {
-			a.String("filter", "Filter sessions by ID, range (e.g., '1-5'), comma-separated IDs, 'all', or Arch (e.g., 'Linux')", grumble.Default("-1"))
+			a.String("filter", "Filter sessions by ID range (e.g., '1-5'), comma-separated IDs (1,3,5), 'all', or Arch (e.g., 'Linux')", grumble.Default("-1"))
 			a.StringList("cmd", "OS Command to be executed by the target session")
 		},
 		Run: func(c *grumble.Context) error {
@@ -268,10 +268,10 @@ func init() {
 
 			// Helper to add session ID if arch matches
 			addSessionIfArchMatches := func(sessionID int, session core.Session) {
-				if strings.EqualFold(filterArg, session.Implant.Arch) || filterArg == "all" {
+				if archMatchesFilter(session.Implant.Arch, filterArg) {
 					ids = append(ids, sessionID)
 				}
-			}
+			}			
 			
 			// Determine type of filter
 			if filterArg == "-1" {
@@ -470,4 +470,33 @@ func isNumericRange(s string) bool {
 	_, err1 := strconv.Atoi(parts[0])
 	_, err2 := strconv.Atoi(parts[1])
 	return err1 == nil && err2 == nil
+}
+
+// Returns true if arch matches the filter (supports '*' wildcards)
+func archMatchesFilter(arch, filter string) bool {
+	arch = strings.ToLower(arch)
+	filter = strings.ToLower(filter)
+
+	if filter == "all" {
+		return true
+	}
+
+	startsWithStar := strings.HasPrefix(filter, "*")
+	endsWithStar := strings.HasSuffix(filter, "*")
+
+	trimmed := strings.Trim(filter, "*")
+
+	if startsWithStar && endsWithStar {
+		// *Linux* -> contains
+		return strings.Contains(arch, trimmed)
+	} else if startsWithStar {
+		// *Linux -> ends with
+		return strings.HasSuffix(arch, trimmed)
+	} else if endsWithStar {
+		// Linux* -> starts with
+		return strings.HasPrefix(arch, trimmed)
+	} else {
+		// exact match
+		return arch == trimmed
+	}
 }

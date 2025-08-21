@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 
 	"github.com/desertbit/grumble"
 )
@@ -23,6 +24,8 @@ type Session struct {
 	Query        string
 	RequestType  string
 	ShellPath    string
+	SubDomainFragments 	[]string
+	
 }
 
 type SessionStrings struct {
@@ -39,6 +42,7 @@ type SessionStrings struct {
 	Query         string
 	RequestType   string
 	ShellPath     string
+	SubDomainFragments 	string
 }
 
 var ActiveSession = -1
@@ -138,6 +142,7 @@ func ShowSessions() map[string]SessionStrings {
 			RawCheckin:    s.RawCheckin.String(),
 			Checkin:       s.Checkin,
 			Status:        s.Status,
+			SubDomainFragments: strings.Join(s.SubDomainFragments, " "),
 		}
 
 		stringSessions[strconv.Itoa(i)] = tempSession

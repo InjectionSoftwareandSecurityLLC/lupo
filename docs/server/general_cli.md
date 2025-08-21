@@ -25,6 +25,7 @@ On start lupo's server can take two optional arguments:
     - (sub command) kill: removes a specified listener by ID and kills the corresponding server routine running it.
     - (sub command) manage: manage global listener attributes such as the PSK (random by default).
     - (sub command) show: shows all running listeners and their meta information.
+    - (sub command) cmd: sends/posts a command that will be collected or received by a given connection/implant and executed as a system command - supports running a single command across multiple sessions with filtering options.
     - (sub command) start: configure and start a new listener. A sample command for a basic HTTPS server might look like this:
         - Start listener: `listener start -l 0.0.0.0 -p 8443`
         - That command will start an HTTPS listener using the default TLS keys stored in the runtime generate `tls-certs` folder. This keypair is also useful as the default for cert pinning on implants (although use of a redirector is the reccommended set up). All of these options can of course be modified using the relevant flags/arguments available in the CLI if you'd like to set up unique certs per listener.
