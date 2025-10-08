@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
     "net"
-
+	"math/rand"
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/miekg/dns"
 )
@@ -51,7 +51,11 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 	remoteAddrFull := w.RemoteAddr().String()
 	// Use remote IP (without port) to buffer registration fragments so clients
 	// that use ephemeral source ports still reassemble correctly.
-	remoteIP := remoteAddrFull
+	// Seed the random generator (only once, usually in init or main)
+    rand.Seed(time.Now().UnixNano())
+
+
+	remoteIP := remoteAddrFull 
 	if host, _, err := net.SplitHostPort(remoteAddrFull); err == nil {
 		remoteIP = host
 	}
@@ -165,6 +169,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 		if !allReceived {
 			// Respond with acknowledgment TXT to confirm chunk received
+			chunkRecvMsg := "chunk received"
 			rr := &dns.TXT{
 				Hdr: dns.RR_Header{
 					Name:   q.Name,
@@ -172,7 +177,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 					Class:  dns.ClassINET,
 					Ttl:    60,
 				},
-				Txt: []string{"chunk received"},
+				Txt: []string{chunkRecvMsg},
 			}
 			msg.Answer = append(msg.Answer, rr)
 			w.WriteMsg(msg)
@@ -193,6 +198,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		// No session exists for provided sessionID. This is expected for
 		// initial registration (we use remoteAddr as a buffer key).
 		registrationFragments.Lock()
+		fmt.Println(remoteIP)
 		frags, exists := registrationFragments.m[remoteIP]
 		if !exists || len(frags) < totalChunks {
 			newFrags := make([]string, totalChunks)
@@ -208,6 +214,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 		log.Printf("Received reg chunk %d/%d from %s", chunkIndex+1, totalChunks, remoteIP)
 
+
 		// Check if all registration chunks received
 		complete := true
 		for _, frag := range frags {
@@ -218,6 +225,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		if !complete {
+			chunkRecvMsg := "chunk received"
 			rr := &dns.TXT{
 				Hdr: dns.RR_Header{
 					Name:   q.Name,
@@ -225,7 +233,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 					Class:  dns.ClassINET,
 					Ttl:    60,
 				},
-				Txt: []string{"chunk received"},
+				Txt: []string{chunkRecvMsg},
 			}
 			msg.Answer = append(msg.Answer, rr)
 			w.WriteMsg(msg)
@@ -282,6 +290,8 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		additionalFunctions = nil
 	}
 
+	fmt.Println(additionalFunctions)
+
 	if dnsParams.Username == "" {
 		dnsParams.Username = "server"
 	}
@@ -301,7 +311,10 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				"UUID":      implant.ID,
 			}
 
+
 			jsonResp, err := json.Marshal(response)
+
+			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
 
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
@@ -310,6 +323,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 			}
 
 			// Return plain JSON in TXT (consistent with HTTP handler responses)
+
 			rr := &dns.TXT{
 				Hdr: dns.RR_Header{
 					Name:   q.Name,
@@ -317,7 +331,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 					Class:  dns.ClassINET,
 					Ttl:    60,
 				},
-				Txt: []string{string(jsonResp)},
+				Txt: []string{string(encodedJsonResp)},
 			}
 			msg.Answer = append(msg.Answer, rr)
 
@@ -356,7 +370,11 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				"UUID":      implant.ID,
 			}
 
+
 			jsonResp, err := json.Marshal(response)
+
+			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
+
 
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
@@ -372,7 +390,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 					Class:  dns.ClassINET,
 					Ttl:    60,
 				},
-				Txt: []string{string(jsonResp)},
+				Txt: []string{string(encodedJsonResp)},
 			}
 			msg.Answer = append(msg.Answer, rr)
 
@@ -409,7 +427,10 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				"UUID":      implant.ID,
 			}
 
+
 			jsonResp, err := json.Marshal(response)
+
+			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
 
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
@@ -424,7 +445,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 					Class:  dns.ClassINET,
 					Ttl:    60,
 				},
-				Txt: []string{string(jsonResp)},
+				Txt: []string{string(encodedJsonResp)},
 			}
 			msg.Answer = append(msg.Answer, rr)
 
@@ -483,7 +504,10 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		"cmd":  cmd,
 	}
 
+
 	jsonResp, err := json.Marshal(response)
+
+	encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
 
 	if err != nil {
 		errorString := "Error converting DNS cmd to JSON"
@@ -501,7 +525,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 			Class:  dns.ClassINET,
 			Ttl:    60,
 		},
-		Txt: []string{string(jsonResp)},
+		Txt: []string{string(encodedJsonResp)},
 	}
 	msg.Answer = append(msg.Answer, rr)
 
@@ -568,6 +592,10 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 			}
 
 			jsonResp, err := json.Marshal(response)
+
+			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
+
+
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
 				core.LogData(errorString)
@@ -576,7 +604,7 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 			}
 
 			core.BroadcastSession(strconv.Itoa(newSession))
-			return string(jsonResp), nil
+			return string(encodedJsonResp), nil
 		}
 	} else {
 		errorString := "DNS Request Invalid PSK, request ignored"
@@ -604,6 +632,9 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 			}
 
 			jsonResp, err := json.Marshal(response)
+
+			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
+
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
 				core.LogData(errorString)
@@ -612,7 +643,7 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 			}
 
 			core.BroadcastSession(strconv.Itoa(newSession))
-			return string(jsonResp), nil
+			return string(encodedJsonResp), nil
 		} else {
 			errorString := "DNS Request Invalid UUID, request ignored"
 			core.LogData(errorString)
@@ -639,7 +670,11 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 				"UUID":      implant.ID,
 			}
 
+
 			jsonResp, err := json.Marshal(response)
+
+			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
+
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
 				core.LogData(errorString)
@@ -648,7 +683,7 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 			}
 
 			core.BroadcastSession(strconv.Itoa(newSession))
-			return string(jsonResp), nil
+			return string(encodedJsonResp), nil
 		} else {
 			errorString := "DNS Request Invalid UUID, request ignored"
 			core.LogData(errorString)
@@ -707,8 +742,12 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 		"user": user,
 		"cmd":  cmd,
 	}
+	
 
 	jsonResp, err := json.Marshal(response)
+
+	encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
+
 	if err != nil {
 		errorString := "Error converting DNS cmd to JSON"
 		core.LogData(errorString)
@@ -716,7 +755,7 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 		return "", err
 	}
 
-	return string(jsonResp), nil
+	return string(encodedJsonResp), nil
 }
 
 func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -762,7 +801,8 @@ func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		decodedData, err := base64.RawURLEncoding.DecodeString(assembledData)
 		if err != nil {
 			log.Printf("Failed to decode assembled data: %v", err)
-			// fallback ack
+			// fallback ack as JSON
+			chunkRecvMsg := "chunk received"
 			txt := &dns.TXT{
 				Hdr: dns.RR_Header{
 					Name:   question.Name,
@@ -770,7 +810,7 @@ func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 					Class:  dns.ClassINET,
 					Ttl:    0,
 				},
-				Txt: []string{"ack"},
+				Txt: []string{chunkRecvMsg},
 			}
 			msg.Answer = append(msg.Answer, txt)
 			w.WriteMsg(msg)
@@ -780,7 +820,8 @@ func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		// Process the complete message through existing handler and capture reply
 		jsonReply, err := d.handleImplantMessage(string(decodedData), w.RemoteAddr())
 		if err != nil || jsonReply == "" {
-			// fallback ack
+			// fallback ack as JSON
+			chunkRecvMsg := "chunk received"
 			txt := &dns.TXT{
 				Hdr: dns.RR_Header{
 					Name:   question.Name,
@@ -788,7 +829,7 @@ func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 					Class:  dns.ClassINET,
 					Ttl:    0,
 				},
-				Txt: []string{"ack"},
+				Txt: []string{chunkRecvMsg},
 			}
 			msg.Answer = append(msg.Answer, txt)
 			w.WriteMsg(msg)
@@ -810,7 +851,8 @@ func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 		return
 	}
 
-	// For partial chunks, send ack
+	// For partial chunks, send ack as JSON
+	chunkRecvMsg := "chunk received"
 	txt := &dns.TXT{
 		Hdr: dns.RR_Header{
 			Name:   question.Name,
@@ -818,7 +860,7 @@ func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 			Class:  dns.ClassINET,
 			Ttl:    0,
 		},
-		Txt: []string{"ack"},
+		Txt: []string{chunkRecvMsg},
 	}
 	msg.Answer = append(msg.Answer, txt)
 	w.WriteMsg(msg)
