@@ -516,7 +516,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	core.UpdateImplant(dnsParams.SessionID, dnsParams.Update, dnsParams.ImplantArch, additionalFunctions)
-	core.SessionCheckIn(dnsParams.SessionID)
+	core.SessionCheckIn(dnsParams.SessionID,"DNS")
 
 	rr := &dns.TXT{
 		Hdr: dns.RR_Header{
@@ -723,7 +723,7 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 
 	// Update implant state and check-in
 	core.UpdateImplant(dnsParams.SessionID, dnsParams.Update, dnsParams.ImplantArch, additionalFunctions)
-	core.SessionCheckIn(dnsParams.SessionID)
+	core.SessionCheckIn(dnsParams.SessionID, "DNS")
 
 	// Prepare cmd/user response similar to DNSServerHandler
 	var cmd string

@@ -83,7 +83,7 @@ func RegisterSession(sessionID int, protocol string, implant Implant, rhost stri
 	LogData("Registered new session with ID: " + strconv.Itoa(sessionID))
 }
 
-func SessionCheckIn(sessionID int) {
+func SessionCheckIn(sessionID int, protocol string) {
 	currentTime := time.Now()
 	timeFormatted := fmt.Sprintf("%d-%02d-%02d %02d:%02d:%02d",
 		currentTime.Year(), currentTime.Month(), currentTime.Day(),
@@ -94,6 +94,7 @@ func SessionCheckIn(sessionID int) {
 		session := s.(Session)
 		session.RawCheckin = currentTime
 		session.Checkin = timeFormatted
+		session.Protocol = protocol
 		Sessions.Store(sessionID, session)
 	}
 	sessionsMu.Unlock()

@@ -78,6 +78,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 		getFile               string
 		err                   error
 	)
+	var protocol string
 	register := false
 	remoteAddr := r.RemoteAddr
 
@@ -220,8 +221,7 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 
 		implant := core.RegisterImplant(getImplantArch, getUpdate, additionalFunctions, getUUID.String())
 
-		var protocol string
-		if r.TLS == nil {
+		if r.TLS != nil {
 			protocol = "HTTPS"
 		} else {
 			protocol = "HTTP"
@@ -298,8 +298,15 @@ SESSION_VALID:
 
 	json.NewEncoder(w).Encode(response)
 
+
+	if r.TLS != nil {
+		protocol = "HTTPS"
+	} else {
+		protocol = "HTTP"
+	}
+
 	core.UpdateImplant(getSessionID, getUpdate, getImplantArch, additionalFunctions)
-	core.SessionCheckIn(getSessionID)
+	core.SessionCheckIn(getSessionID, protocol)
 }
 
 // handlePostRequests - handles any incoming POST requests received by the HTTP(S) listener. Once all values are handled various Implant data update/response routines are executed where relevant based on the provided parameters.
@@ -360,6 +367,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 		postFile               string
 		err                    error
 	)
+	var protocol string
 	register := false
 	remoteAddr := r.RemoteAddr
 
@@ -463,7 +471,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 		implant := core.RegisterImplant(postImplantArch, postUpdate, additionalFunctions, "")
 
 		var protocol string
-		if r.TLS == nil {
+		if r.TLS != nil {
 			protocol = "HTTPS"
 		} else {
 			protocol = "HTTP"
@@ -501,8 +509,7 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 
 		implant := core.RegisterImplant(postImplantArch, postUpdate, additionalFunctions, postUUID.String())
 
-		var protocol string
-		if r.TLS == nil {
+		if r.TLS != nil {
 			protocol = "HTTPS"
 		} else {
 			protocol = "HTTP"
@@ -580,5 +587,11 @@ POST_SESSION_VALID:
 	json.NewEncoder(w).Encode(response)
 
 	core.UpdateImplant(postSessionID, postUpdate, postImplantArch, additionalFunctions)
-	core.SessionCheckIn(postSessionID)
+
+	if r.TLS != nil {
+		protocol = "HTTPS"
+	} else {
+		protocol = "HTTP"
+	}
+	core.SessionCheckIn(postSessionID, protocol)
 }
