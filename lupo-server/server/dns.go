@@ -198,7 +198,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		// No session exists for provided sessionID. This is expected for
 		// initial registration (we use remoteAddr as a buffer key).
 		registrationFragments.Lock()
-		fmt.Println(remoteIP)
+		//fmt.Println(remoteIP)
 		frags, exists := registrationFragments.m[remoteIP]
 		if !exists || len(frags) < totalChunks {
 			newFrags := make([]string, totalChunks)
@@ -269,7 +269,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 	if err != nil {
 		core.LogData("error: Problem occurred while parsing input from a DNS based implant")
 		core.ErrorColorBold.Println("There was an error with parsing input from a DNS based implant, check the error below:")
-		fmt.Println(err)
+		//fmt.Println(err)
 	}
 
 	if dnsParams.PSK == "" {
@@ -290,7 +290,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		additionalFunctions = nil
 	}
 
-	fmt.Println(additionalFunctions)
+	//fmt.Println(additionalFunctions)
 
 	if dnsParams.Username == "" {
 		dnsParams.Username = "server"
