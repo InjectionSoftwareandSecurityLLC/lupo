@@ -222,8 +222,12 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 					cmdString := "upload " + fileName + " " + fileb64
 					core.QueueImplantCommand(activeSession, cmdString, "server")
 				}
+				if (session.Protocol == "DNS"){
+					core.SuccessColorBold.Println("File: " + fileName + " is uploading (this may take a moment via DNS - progress updates will appear in the console)")
 
+				}else{
 				core.SuccessColorBold.Println("File: " + fileName + " should now be uploaded!")
+				}
 			}
 
 			return nil

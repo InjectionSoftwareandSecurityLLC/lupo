@@ -8,6 +8,18 @@ By keeping your implants private, you'll be able to bypass more defensive contro
 
 Samples that fully implement the Lupo C2 API can be found in the [samples](../../samples) directory of the Lupo C2 repository. Currently the following are provided:
 - HTTP/HTTPS Golang Based Implant
+- DNS Golang Based Implant
+- TCP Golang Based Implant
 - Bind Connector PHP Based Web Shell
 
 Feel free to use any provided sample implants but keep in mind these are meant to be examples for you to write your own implants with. They _will not_ be updated/maintained to evade protections or implement unique features. They _will_ be updated to implement new API features as they are made available, but this is purely to help continue to provide examples on how to integrate with those features.
+
+## LLM Implant Generation (Experimental)
+Lupo implants can now be generated using your favorite LLM (with varying degrees of success...but we tested it gets it right most of the time!)
+
+An "Implant Generation Template" is provided that can be fed to your favorite LLM to generate an implant in any language that meets the Lupo API spec. Below is an example prompt and link to the template:
+
+- [Implant Generation Template](./IMPLANT_GENERATION_TEMPLATE.md)
+- Prompt Example: "Create a Lupo Implant using the TCP API written in C"
+
+Most of the time an implant is created that "just works" - with the caveat that more complex logical functions such as re-registration or command output might behave a little funky (or not work at all)...usually a few more iterations and testing fixes this, but long-term the goal is to improve this template so that generation is more consistent. Regardless, the dawn of throaway warez has arrived :). PROCEED WITH GREAT CAUTION!

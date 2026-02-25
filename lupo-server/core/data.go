@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -55,6 +56,22 @@ type TCPData struct {
 	FileName            string
 	File                string
 }
+
+type DNSData struct {
+	PSK                 string
+	SessionID           int
+	UUID                uuid.UUID
+	ImplantArch         string
+	Update              float64
+	Data                string
+	AdditionalFunctions string
+	Username            string
+	Register            bool
+	FileName            string
+	File                string
+	Mutex     			sync.Mutex
+}
+
 
 // GeneratePSK - Generates a random 32 character string, encodes it with SHA256 as a PSK that is set by default on startup unless the user specifies a static PSK
 func GeneratePSK() string {

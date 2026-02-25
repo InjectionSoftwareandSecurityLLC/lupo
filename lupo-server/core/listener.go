@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
+
+	"github.com/miekg/dns"
 )
 
 // Listener - defines a listener structure composed of:
@@ -28,6 +31,7 @@ type Listener struct {
 	Protocol     string
 	HTTPInstance *http.Server
 	TCPInstance  net.Listener
+	DNSInstance  *dns.Server
 	CryptoPSK    string
 }
 
@@ -68,6 +72,31 @@ var PersistenceMode bool
 var Listeners = make(map[int]Listener)
 
 var mutex = sync.RWMutex{}
+
+// ResponseChunkBuffer - stores chunked DNS responses temporarily for implants to retrieve
+// Format: map[sessionID] -> { "chunks": []string, "timestamp": time.Time, "totalChunks": int }
+type ResponseChunk struct {
+	Chunks      []string
+	TotalChunks int
+	Timestamp   time.Time
+}
+var ResponseChunks = make(map[int]ResponseChunk)
+var ResponseChunksMutex = sync.RWMutex{}
+
+// FileTransferState - tracks ongoing file transfers to implants
+// Key: sessionID, Value: file transfer metadata
+type FileTransferState struct {
+	SessionID      int
+	Chunks         []string    // All chunks of the file
+	TotalChunks    int
+	CurrentChunk   int         // Next chunk to send
+	AckedChunks    map[int]bool // Which chunks have been acknowledged
+	Timestamp      time.Time
+	LastChunkTime  time.Time
+	LastProgress   int         // Last reported progress percentage (0-100)
+}
+var FileTransfers = make(map[int]*FileTransferState)
+var FileTransfersMutex = sync.RWMutex{}
 
 func ManagePSK(psk string, isRandom bool, operator string) (response string, currentPSK string, instruction string) {
 	if psk == "" && !isRandom {
