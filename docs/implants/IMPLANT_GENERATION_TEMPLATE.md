@@ -900,10 +900,3 @@ Before deploying an implant, verify:
 - [ ] **Beacon interval**: Add random jitter (0-50%)
 
 ---
-
-## Part 9: Example Implementations
-
-See `/home/cerdmann/tools/lupo/sample/` for working implementations:
-- `lupo_implant_tcp.sh` - Bash TCP implant (fully functional)
-- `lupo_implant_https.go` - Go HTTPS implant (reference)
-- `lupo_implant_dns.go` - Go DNS implant (reference)
