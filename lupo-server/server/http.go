@@ -255,6 +255,12 @@ SESSION_VALID:
 		core.LogData("Session " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
 		if getUsername == "server" {
 			fmt.Println("\nSession " + strconv.Itoa(getSessionID) + " returned:\n" + getData)
+			data, err := url.QueryUnescape(getData)
+			if err != nil {
+				core.LogData("Session " + strconv.Itoa(getSessionID) + " error: could not unescape data returned by client")
+			}
+			data = strings.ReplaceAll(data, "\\", "\\\\")
+			core.BroadcastSessionData(strconv.Itoa(getSessionID), data)
 		} else {
 			currentWolf := core.Wolves[getUsername]
 			data, err := url.QueryUnescape(getData)
@@ -543,6 +549,12 @@ POST_SESSION_VALID:
 		core.LogData("Session " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
 		if postUsername == "server" {
 			fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " returned:\n" + postData)
+			data, err := url.QueryUnescape(postData)
+			if err != nil {
+				core.LogData("Session " + strconv.Itoa(postSessionID) + " error: could not unescape data returned by client")
+			}
+			data = strings.ReplaceAll(data, "\\", "\\\\")
+			core.BroadcastSessionData(strconv.Itoa(postSessionID), data)
 		} else {
 			currentWolf := core.Wolves[postUsername]
 			data, err := url.QueryUnescape(postData)

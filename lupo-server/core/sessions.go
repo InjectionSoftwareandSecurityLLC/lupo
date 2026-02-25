@@ -127,6 +127,15 @@ func BroadcastSession(session string) {
 	}
 }
 
+// BroadcastSessionData broadcasts session output data to all connected wolfpack operators.
+// data should already be URL-decoded and have backslashes escaped.
+func BroadcastSessionData(sessionID string, data string) {
+	jsonData := `{"session":"` + sessionID + `",` + `"data":"` + data + `"}`
+	for key := range Wolves {
+		AssignWolfBroadcast(Wolves[key].Username, Wolves[key].Rhost, jsonData)
+	}
+}
+
 func ShowSessions() map[string]SessionStrings {
 	stringSessions := make(map[string]SessionStrings)
 

