@@ -17,7 +17,7 @@ Feel free to use any provided sample implants but keep in mind these are meant t
 ## LLM Implant Generation (Experimental)
 Lupo implants can now be generated using your favorite LLM (with varying degrees of success...but we tested...it gets it right most of the time!)
 
-An "Implant Generation Template" is provided that can be fed to your favorite LLM to generate an implant in any language that meets the Lupo API spec. Below is an example prompt and link to the template:
+An "Implant Generation Template" is provided that can be fed to your favorite LLM to generate an implant in any language that can implement the Lupo API spec for a given protocol. Below is an example prompt and link to the template:
 
 - [Implant Generation Template](./IMPLANT_GENERATION_TEMPLATE.md)
 - Prompt Example: "Create a Lupo Implant using the TCP API written in C"
