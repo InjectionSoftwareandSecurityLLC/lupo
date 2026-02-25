@@ -15,7 +15,7 @@ Samples that fully implement the Lupo C2 API can be found in the [samples](../..
 Feel free to use any provided sample implants but keep in mind these are meant to be examples for you to write your own implants with. They _will not_ be updated/maintained to evade protections or implement unique features. They _will_ be updated to implement new API features as they are made available, but this is purely to help continue to provide examples on how to integrate with those features.
 
 ## LLM Implant Generation (Experimental)
-Lupo implants can now be generated using your favorite LLM (with varying degrees of success...but we tested it gets it right most of the time!)
+Lupo implants can now be generated using your favorite LLM (with varying degrees of success...but we tested...it gets it right most of the time!)
 
 An "Implant Generation Template" is provided that can be fed to your favorite LLM to generate an implant in any language that meets the Lupo API spec. Below is an example prompt and link to the template:
 
