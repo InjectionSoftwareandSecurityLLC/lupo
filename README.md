@@ -7,7 +7,7 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.3.0](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.3.0) - Version 1.3.0 Release!
+- [v1.3.1](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.3.1) - Version 1.3.1 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
@@ -43,6 +43,7 @@ v1.3.0 Features:
 - [x] Added the ability to execute commands across mutiple sessions based on session ID or Arch (OS) filter with wildcard support
 - [x] Implement DNS C2
 - [x] Experimental LLM implant generation template :)
+- [x] BOF/COFF/PE loading API added - supports async BOFs/COFFs as well!
 
 
 Road Map:

