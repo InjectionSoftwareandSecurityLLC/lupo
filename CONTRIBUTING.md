@@ -38,7 +38,7 @@ Now start writing that awesome new feature!
 
 #### 2. Pushing Up:
 
-Once you're done making your awesome new feature, simply push it up!
+Once you're done making your awesome new feature, simply commit it and push it up!
 
 `git push origin dev/my-awesome-new-feature`
 
