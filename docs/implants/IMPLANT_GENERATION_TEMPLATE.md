@@ -57,7 +57,30 @@ SessionID and UUID **must be stored as global in-memory variables**, not written
 | HTTP/HTTPS | URL-encoded params | JSON object | Lowercase params: `psk`, `sessionID`, `UUID` |
 | DNS | Base64 in subdomain | Base64 in TXT record | Lowercase in JSON: `psk`, `sessionID`, `UUID` |
 
-### 4. Command Response Format (All Protocols)
+### 4. Session ID 0 Is Valid — Use `>= 0`, NOT `> 0` (Critical!)
+
+The Lupo server's internal `SessionID` counter starts at **0**. This means the very first implant to register on a freshly-started server receives `sessionID = 0` in the registration response.
+
+A guard like `IF session_id > 0 AND uuid != ""` silently rejects a legitimate session ID of 0, leaves the implant's in-memory `session_id` at its uninitialised sentinel (typically -1), and causes the implant to immediately re-register. The server then creates a **second** session (ID = 1). The implant uses session 1; session 0 is abandoned and never receives further traffic.
+
+**Symptom**: A new session appears in the Lupo client immediately after the first one registers, the first session hangs/goes stale, and the second session is the one the implant actually uses.
+
+**Fix — always use `>= 0`:**
+```
+// WRONG (breaks when server assigns session ID 0):
+IF session_id > 0 AND uuid != "":
+    store credentials
+
+// CORRECT:
+IF session_id >= 0 AND uuid != "":
+    store credentials
+```
+
+This applies to **every** protocol handler and every place where a registration or re-registration response is parsed.
+
+---
+
+### 5. Command Response Format (All Protocols)
 
 Server response is ALWAYS:
 ```json
@@ -107,7 +130,7 @@ REGISTRATION SEQUENCE (All Protocols):
 2. Server validates PSK
 
 3. If valid, server responds with:
-   - sessionID = new integer (e.g., 774)
+   - sessionID = new non-negative integer (e.g., 0 on a fresh server, or 5 after previous sessions)
    - UUID = new UUID string (e.g., "2080fae2-9d66-4a7d-ae1a-d9af45cf87fa")
 
 4. Client stores credentials in global in-memory variables
@@ -425,7 +448,9 @@ FUNCTION ParseTCPResponse(response):
         uuid = parsed["UUID"]
         
         // Validate and store in global in-memory variables
-        IF session_id > 0 AND uuid != "":
+        // NOTE: session_id >= 0, NOT > 0! The server's counter starts at 0;
+        //       using > 0 causes a double-registration on a fresh server.
+        IF session_id >= 0 AND uuid != "":
             implant.session_id = session_id
             implant.uuid       = uuid
             implant.registered = TRUE
@@ -687,7 +712,8 @@ FUNCTION SendToC2_HTTP_REGISTRATION(implant):
     session_id = parsed["sessionID"]
     uuid = parsed["UUID"]
     
-    IF session_id > 0 AND uuid != "":
+    // NOTE: session_id >= 0, NOT > 0! The server counter starts at 0.
+    IF session_id >= 0 AND uuid != "":
         implant.session_id = session_id
         implant.uuid       = uuid
         implant.registered = TRUE
@@ -796,7 +822,8 @@ FUNCTION SendToC2_HTTPS_REGISTRATION(implant):
     session_id = parsed["sessionID"]
     uuid = parsed["UUID"]
     
-    IF session_id > 0 AND uuid != "":
+    // NOTE: session_id >= 0, NOT > 0! The server counter starts at 0.
+    IF session_id >= 0 AND uuid != "":
         implant.session_id = session_id
         implant.uuid       = uuid
         implant.registered = TRUE
@@ -1128,7 +1155,7 @@ Before deploying an implant, verify:
 - [ ] **DNS**: Base64 chunks ~50 chars, response is also chunked base64
 - [ ] **Field names**: TCP uses capitalized, HTTP/DNS use lowercase
 - [ ] **Empty commands**: Check for empty string, don't execute
-- [ ] **Registration**: Assign returned sessionID/UUID to in-memory globals immediately
+- [ ] **Registration**: Assign returned sessionID/UUID to in-memory globals immediately — use `>= 0` NOT `> 0` when validating the returned sessionID (server counter starts at 0; `> 0` silently drops session 0 and causes an immediate double-registration)
 - [ ] **bof_loader / bof_loader_async**: Last space-delimited token = base64 COFF; preceding tokens = type-prefixed BOF args; pack with PACK_BOF_ARGS
 - [ ] **pe_loader**: Last space-delimited token = base64 PE binary; preceding tokens = command-line args passed to the PE
 - [ ] **Async BOF results**: Flush `global_async_results` queue to C2 at the start of each check-in cycle before processing the incoming command
