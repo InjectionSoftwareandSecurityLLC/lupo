@@ -7,6 +7,7 @@ LUPO_CLIENT=LUPO_CLIENT
 W=Windows-x64
 L=Linux-x64
 A=Linux-arm
+A64=Linux-arm64
 M=Linux-mips
 D=Darwin-arm64
 DX=Darwin-x64
@@ -21,7 +22,7 @@ $(shell go get ./sample)
 
 
 # Change default to just make for the host OS and add MAKE ALL to do this
-default: LUPO_SERVER-windows LUPO_SERVER-linux LUPO_SERVER-darwin LUPO_SERVER-darwin-x64 LUPO_SERVER-arm LUPO_SERVER-mips LUPO_CLIENT-windows LUPO_CLIENT-linux LUPO_CLIENT-darwin LUPO_CLIENT-darwin-x64 LUPO_CLIENT-arm LUPO_CLIENT-mips
+default: LUPO_SERVER-windows LUPO_SERVER-linux LUPO_SERVER-darwin LUPO_SERVER-darwin-x64 LUPO_SERVER-arm LUPO_SERVER-arm64 LUPO_SERVER-mips LUPO_CLIENT-windows LUPO_CLIENT-linux LUPO_CLIENT-darwin LUPO_CLIENT-darwin-x64 LUPO_CLIENT-arm LUPO_CLIENT-arm64 LUPO_CLIENT-mips
 
 all: default
 
@@ -39,6 +40,9 @@ darwin-x64: LUPO_SERVER-darwin-x64 LUPO_CLIENT-darwin-x64
 
 # Compile Arm binaries
 arm: LUPO_SERVER-arm LUPO_CLIENT-arm
+
+# Compile Arm64 binaries
+arm64: LUPO_SERVER-arm64 LUPO_CLIENT-arm64
 
 # Compile mips binaries
 mips: LUPO_SERVER-mips LUPO_CLIENT-mips
@@ -67,6 +71,10 @@ LUPO_SERVER-mips:
 LUPO_SERVER-arm:
 	export CGO_ENABLED=0;export GOOS=linux;export GOARCH=arm;export GOARM=7;go build -o ${DIR}/${LUPO_SERVER}-${A} lupo-server/main.go
 
+# Compile LUPO_SERVER - Linux arm64
+LUPO_SERVER-arm64:
+	export CGO_ENABLED=0;export GOOS=linux;export GOARCH=arm64;go build -o ${DIR}/${LUPO_SERVER}-${A64} lupo-server/main.go
+
 # Compile LUPO_CLIENT - Windows x64
 LUPO_CLIENT-windows:
 	export GOOS=windows GOARCH=amd64;go build -o ${DIR}/${LUPO_CLIENT}-${W}.exe lupo-client/main.go
@@ -90,6 +98,10 @@ LUPO_CLIENT-mips:
 # Compile LUPO_CLIENT - Linux arm
 LUPO_CLIENT-arm:
 	export CGO_ENABLED=0;export GOOS=linux;export GOARCH=arm;export GOARM=7;go build -o ${DIR}/${LUPO_CLIENT}-${A} lupo-client/main.go
+
+# Compile LUPO_CLIENT - Linux arm64
+LUPO_CLIENT-arm64:
+	export CGO_ENABLED=0;export GOOS=linux;export GOARCH=arm64;go build -o ${DIR}/${LUPO_CLIENT}-${A64} lupo-client/main.go
 
 clean:
 	rm -rf ${DIR}*
