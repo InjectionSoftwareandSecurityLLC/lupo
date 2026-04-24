@@ -43,7 +43,7 @@ jobs:
           git checkout main
           git add builds/
           git diff --cached --quiet || git commit -m "ci: update builds for ${{ github.ref_name }}"
-          git push origin main
+          git push https://x-access-token:${{ secrets.BUILDS_TOKEN }}@github.com/${{ github.repository }} main
 
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v2
