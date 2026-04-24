@@ -8,7 +8,8 @@ W=Windows-x64
 L=Linux-x64
 A=Linux-arm
 M=Linux-mips
-D=Darwin-x64
+D=Darwin-arm64
+DX=Darwin-x64
 
 # Make Directory to store executables
 $(shell mkdir -p ${DIR})
@@ -20,7 +21,7 @@ $(shell go get ./sample)
 
 
 # Change default to just make for the host OS and add MAKE ALL to do this
-default: LUPO_SERVER-windows LUPO_SERVER-linux LUPO_SERVER-darwin LUPO_CLIENT-windows LUPO_CLIENT-linux LUPO_CLIENT-darwin
+default: LUPO_SERVER-windows LUPO_SERVER-linux LUPO_SERVER-darwin LUPO_SERVER-darwin-x64 LUPO_SERVER-mips LUPO_CLIENT-windows LUPO_CLIENT-linux LUPO_CLIENT-darwin LUPO_CLIENT-darwin-x64 LUPO_CLIENT-mips
 
 all: default
 
@@ -30,8 +31,11 @@ windows: LUPO_SERVER-windows LUPO_CLIENT-windows
 # Compile Linux binaries
 linux: LUPO_SERVER-linux LUPO_CLIENT-linux
 
-# Compile Darwin binaries
+# Compile Darwin binaries (Apple Silicon arm64)
 darwin: LUPO_SERVER-darwin LUPO_CLIENT-darwin
+
+# Compile Darwin x64 binaries (Intel macOS)
+darwin-x64: LUPO_SERVER-darwin-x64 LUPO_CLIENT-darwin-x64
 
 # Compile Arm binaries
 arm: LUPO_SERVER-arm LUPO_CLIENT-arm
@@ -47,9 +51,13 @@ LUPO_SERVER-windows:
 LUPO_SERVER-linux:
 	export GOOS=linux;export GOARCH=amd64;go build -o ${DIR}/${LUPO_SERVER}-${L} lupo-server/main.go
 
-# Compile LUPO_SERVER - Darwin x64
+# Compile LUPO_SERVER - Darwin arm64 (Apple Silicon)
 LUPO_SERVER-darwin:
-	export GOOS=darwin;export GOARCH=amd64;go build -o ${DIR}/${LUPO_SERVER}-${D} lupo-server/main.go
+	export GOOS=darwin;export GOARCH=arm64;go build -o ${DIR}/${LUPO_SERVER}-${D} lupo-server/main.go
+
+# Compile LUPO_SERVER - Darwin x64 (Intel macOS)
+LUPO_SERVER-darwin-x64:
+	export GOOS=darwin;export GOARCH=amd64;go build -o ${DIR}/${LUPO_SERVER}-${DX} lupo-server/main.go
 
 # Compile LUPO_SERVER - Linux mips
 LUPO_SERVER-mips:
@@ -67,9 +75,13 @@ LUPO_CLIENT-windows:
 LUPO_CLIENT-linux:
 	export GOOS=linux;export GOARCH=amd64;go build -o ${DIR}/${LUPO_CLIENT}-${L} lupo-client/main.go
 
-# Compile LUPO_CLIENT - Darwin x64
+# Compile LUPO_CLIENT - Darwin arm64 (Apple Silicon)
 LUPO_CLIENT-darwin:
-	export GOOS=darwin;export GOARCH=amd64;go build -o ${DIR}/${LUPO_CLIENT}-${D} lupo-client/main.go
+	export GOOS=darwin;export GOARCH=arm64;go build -o ${DIR}/${LUPO_CLIENT}-${D} lupo-client/main.go
+
+# Compile LUPO_CLIENT - Darwin x64 (Intel macOS)
+LUPO_CLIENT-darwin-x64:
+	export GOOS=darwin;export GOARCH=amd64;go build -o ${DIR}/${LUPO_CLIENT}-${DX} lupo-client/main.go
 
 # Compile LUPO_CLIENT - Linux mips
 LUPO_CLIENT-mips:

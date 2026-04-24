@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -373,7 +374,7 @@ func startListener(id int, lhost string, lport int, protocol string, listenStrin
 
 	if protocol == "HTTP" || protocol == "HTTPS" {
 		newServer := &http.Server{Addr: listenString, Handler: http.HandlerFunc(server.HTTPServerHandler)}
-		newServer.MaxHeaderBytes = 1000000000000000
+		newServer.MaxHeaderBytes = math.MaxInt
 
 		newListener = core.Listener{
 			ID:           id,
