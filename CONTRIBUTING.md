@@ -8,7 +8,7 @@ If you'd like to contribute monetarily consider donating to this project via the
 
 Either way welcome to the project. This guide will walk you through the basics of submitting contributions to Lupo C2.
 
-Contributing to Lupo C2 is very easy. You just need to follow a few simple guidelines to insure your code is submitted correctly. *Code that is submitted incorrectly might have to be turned away in order to maintain the integrity of the repository.* Keep that in mind, because even we would hate to turn away contributions to the project especially if they are amazing and just submitted incorrectly.
+Contributing to Lupo C2 is very easy. You just need to follow a few simple guidelines to insure your code is submitted correctly. *Code that is submitted incorrectly might have to be turned away in order to maintain the integrity of the repository.* Keep that in mind, because we would hate to turn away contributions to the project especially if they are amazing and just submitted incorrectly.
 
 If you have never contributed to an open source project on Github before, then we suggest you read this guide first:
 
