@@ -48,7 +48,7 @@ v1.3.1 Features:
 - [x] PE loading API added
 - [x] Stager feature added to host static files for things like multi staged implants and DLL injection.
 - [x] Made the HTTP/HTTPS handlers more API like with CORS headers for fun browser/API behavoir stuff.
-
+- [x] Implement Github Actions to get automated builds for future releases (no more builds in the repo, compile from source if ya want!)
 
 
 Road Map:
@@ -56,4 +56,4 @@ Road Map:
 - [ ] Consider Implementing UDP listener (We have DNS now...but raw UDP is next!)
 - [ ] Implement Procdump API to support process dumping (can use the stager API)
 - [ ] Web interface for wolfpack server
-- [ ] Implement Github Actions to get automated builds for future releases
+
