@@ -7,7 +7,7 @@ Modular C2 server to tame your pack of wolves.
 
 
 ## Current Release
-- [v1.3.1](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.3.1) - Version 1.3.1 Release!
+- [v1.3.2](https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.3.2) - Version 1.3.1 Release!
 
 ## Documentation
 - [Usage Docs](./docs/README.md)
@@ -47,6 +47,7 @@ v1.3.1 Features:
 - [x] Async BOF/COFF loading API added (Experimental)
 - [x] PE loading API added
 - [x] Stager feature added to host static files for things like multi staged implants and DLL injection.
+- [x] Made the HTTP/HTTPS handlers more API like with CORS headers for fun browser/API behavoir stuff.
 
 
 

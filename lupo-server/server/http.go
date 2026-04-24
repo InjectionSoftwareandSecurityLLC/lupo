@@ -21,6 +21,15 @@ import (
 func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 	// Setup webserver attributes like headers and response information
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	// Handle CORS preflight — required for cross-origin fetch from browser implants
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
 
 	switch r.Method {
 	case "GET":
