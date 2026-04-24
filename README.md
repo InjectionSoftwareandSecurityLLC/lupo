@@ -14,7 +14,7 @@ Modular C2 server to tame your pack of wolves.
 - [Source Code Docs](https://pkg.go.dev/github.com/InjectionSoftwareandSecurityLLC/lupo)
 - [Contributing](contributing.md)
 
-v1.3.1 Features:
+v1.3.2 Features:
 - [x] Support for process injection commands that deliver shellcode payload data and process identifiers for implants to implement (BYOA - Bring your own allocation)
 - [x] Better multi function hook sample provided in the `sample` implant directory
 - [x] Added `updateinterval` subcommand to Sessions CLI to allow for dynamic updates to implant check-in delays 
