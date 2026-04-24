@@ -35,16 +35,6 @@ jobs:
       - name: List build artifacts
         run: ls -lh builds/
 
-      - name: Commit builds to repository
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git checkout main
-          git add builds/
-          git diff --cached --quiet || git commit -m "ci: update builds for ${{ github.ref_name }}"
-          git push https://x-access-token:${{ secrets.BUILDS_TOKEN }}@github.com/${{ github.repository }} main
-
       - name: Create GitHub Release and upload artifacts
         uses: softprops/action-gh-release@v2
         with:
