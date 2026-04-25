@@ -1,0 +1,3 @@
+[submodule "lupo-server/embedded/messenger"]
+	path = lupo-server/embedded/messenger
+	url = https://github.com/InjectionSoftwareandSecurityLLC/messenger
