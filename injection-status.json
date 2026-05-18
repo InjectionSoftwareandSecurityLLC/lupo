@@ -1,11 +1,11 @@
 {
     "name": "Lupo C2",
-    "version": "1.3.2",
+    "version": "1.3.3",
     "platform": "all-desktop",
     "progress": "100%",
     "state": "done",
     "released": true,
-    "release_version": "1.3.2",
+    "release_version": "1.3.3",
     "download_url": "https://github.com/InjectionSoftwareandSecurityLLC/lupo/releases/tag/v1.3.2",
     "featured": true,
     "featured_image": "https://raw.githubusercontent.com/InjectionSoftwareandSecurityLLC/lupo/main/docs/assets/lupo_logo.png"
