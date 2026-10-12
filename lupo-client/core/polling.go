@@ -131,10 +131,10 @@ func CheckForSessionData(jsonData []byte) bool {
 
 			_, session := coreResponse["session"]
 
-			if session{
+			if session {
 
 				fmt.Println("\nSession " + coreResponse["session"].(string) + " returned:\n" + coreResponse["data"].(string))
-				
+
 				return true
 			}
 		}
@@ -162,7 +162,16 @@ func CheckForFileDownload(jsonData []byte) bool {
 		if dataExists {
 			_, dataExists = coreResponse["file"]
 			if dataExists {
-				DownloadFile(coreResponse["filename"].(string), coreResponse["file"].(string))
+				filename, filenameOK := coreResponse["filename"].(string)
+				file, fileOK := coreResponse["file"].(string)
+				if !filenameOK || !fileOK {
+					return false
+				}
+				if outputFile, ok := coreResponse["outfile"].(string); ok && outputFile != "" {
+					DownloadFileAs(outputFile, file)
+				} else {
+					DownloadFile(filename, file)
+				}
 				return true
 			}
 		}

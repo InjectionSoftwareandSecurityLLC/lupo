@@ -82,6 +82,7 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	var getActiveSession int
 	var getFileName string
 	var getFile string
+	var getOutputFile string
 	var getIsGetChatLog = false
 	var getUpdateInterval string
 
@@ -248,6 +249,9 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 
 	if len(getParams["file"]) > 0 {
 		getFile = getParams["file"][0]
+	}
+	if len(getParams["outfile"]) > 0 {
+		getOutputFile = getParams["outfile"][0]
 	}
 
 	if getPSK != core.Wolves[getUsername].WolfPSK {
@@ -466,12 +470,23 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 						core.LogData("Session " + strconv.Itoa(getActiveSession) + " returned:\n" + data)
 
 						currentWolf := core.Wolves[CurrentOperator]
-						jsonData := `{"filename":"` + getFileName + `", "file":"` + data + `"}`
-						core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+						fileResponse := map[string]string{"filename": getFileName, "file": data}
+						if getOutputFile != "" {
+							fileResponse["outfile"] = getOutputFile
+						}
+						jsonData, err := json.Marshal(fileResponse)
+						if err != nil {
+							core.LogData("could not encode downloaded file response: " + err.Error())
+							return
+						}
+						core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, string(jsonData))
 					} else {
 						var cmdString = "download " + getFileName
 						core.LogData("Session " + strconv.Itoa(getActiveSession) + " requested to download the file: " + getFileName)
 						core.LogData(CurrentOperator + " executed on session " + strconv.Itoa(getActiveSession) + ": " + cmdString)
+						if getOutputFile != "" {
+							core.SetPendingDownloadOutput(getActiveSession, getFileName, getOutputFile)
+						}
 						core.QueueImplantCommand(getActiveSession, cmdString, CurrentOperator)
 					}
 				}

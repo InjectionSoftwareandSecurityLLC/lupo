@@ -375,9 +375,13 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Args: func(a *grumble.Args) {
 			a.String("infile", "path of the file to upload")
 		},
+		Flags: func(f *grumble.Flags) {
+			f.String("o", "outfile", "", "local output path for connector sessions; defaults to the remote basename")
+		},
 		Run: func(c *grumble.Context) error {
 
 			downloadFile := c.Args.String("infile")
+			outputFile := c.Flags.String("outfile")
 
 			// Exec on server and get session functions
 
@@ -385,6 +389,9 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			commandString := downloadFile
 
 			reqString = core.AuthURL + reqString + url.QueryEscape(commandString)
+			if outputFile != "" {
+				reqString += "&outfile=" + url.QueryEscape(outputFile)
+			}
 
 			resp, err := core.WolfPackHTTP.Get(reqString)
 

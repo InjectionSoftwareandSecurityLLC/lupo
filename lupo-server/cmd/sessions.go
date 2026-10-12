@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"errors"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -43,7 +44,7 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			operator := "server"
 
 			core.LogData(operator + " executed: back")
-			
+
 			sessionApp.Close()
 
 			return nil
@@ -106,26 +107,26 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 			core.CmdExec(activeSession, cmdString, operator)
 
 			/*
-			sessionVal, sessionExists := core.Sessions.Load(activeSession)
-			if !sessionExists {
-				return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
-			}
-			session := sessionVal.(core.Session)
-
-			if session.CommandQuery != "" {
-				data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, "", "")
-				if err != nil {
-					return err
+				sessionVal, sessionExists := core.Sessions.Load(activeSession)
+				if !sessionExists {
+					return errors.New("Session " + strconv.Itoa(activeSession) + " does not exist")
 				}
+				session := sessionVal.(core.Session)
 
-				core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
-				if operator == "server" {
-					fmt.Println("\nSession " + strconv.Itoa(activeSession) + " returned:\n" + data)
+				if session.CommandQuery != "" {
+					data, err := core.ExecuteConnection(session.Rhost, session.Rport, session.Protocol, session.ShellPath, session.CommandQuery, cmdString, session.Query, session.RequestType, "", "")
+					if err != nil {
+						return err
+					}
+
+					core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
+					if operator == "server" {
+						fmt.Println("\nSession " + strconv.Itoa(activeSession) + " returned:\n" + data)
+					}
+				} else {
+					core.QueueImplantCommand(activeSession, cmdString, "server")
 				}
-			} else {
-				core.QueueImplantCommand(activeSession, cmdString, "server")
-			}
-				*/
+			*/
 
 			return nil
 		},
@@ -222,11 +223,11 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 					cmdString := "upload " + fileName + " " + fileb64
 					core.QueueImplantCommand(activeSession, cmdString, "server")
 				}
-				if (session.Protocol == "DNS"){
+				if session.Protocol == "DNS" {
 					core.SuccessColorBold.Println("File: " + fileName + " is uploading (this may take a moment via DNS - progress updates will appear in the console)")
 
-				}else{
-				core.SuccessColorBold.Println("File: " + fileName + " should now be uploaded!")
+				} else {
+					core.SuccessColorBold.Println("File: " + fileName + " should now be uploaded!")
 				}
 			}
 
@@ -242,8 +243,15 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		Args: func(a *grumble.Args) {
 			a.String("infile", "path of the file to download")
 		},
+		Flags: func(f *grumble.Flags) {
+			f.String("o", "outfile", "", "local output path (defaults to the remote filename's basename)")
+		},
 		Run: func(c *grumble.Context) error {
 			downloadFile := c.Args.String("infile")
+			outputFile := c.Flags.String("outfile")
+			if outputFile == "" {
+				outputFile = filepath.Base(strings.ReplaceAll(downloadFile, `\`, "/"))
+			}
 
 			operator := "server"
 
@@ -263,8 +271,11 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 				}
 
 				core.LogData("Session " + strconv.Itoa(activeSession) + " returned:\n" + data)
-				core.DownloadFile(downloadFile, data)
+				core.DownloadFileAs(outputFile, data)
 			} else {
+				if c.Flags.String("outfile") != "" {
+					core.SetPendingDownloadOutput(activeSession, downloadFile, outputFile)
+				}
 				cmdString := "download " + downloadFile
 				core.QueueImplantCommand(activeSession, cmdString, "server")
 			}
@@ -408,7 +419,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 	}
 	sessionApp.AddCommand(sessionPidInject)
 
-
 	sessionBOFLoader := &grumble.Command{
 		Name:     "bof_loader",
 		Help:     "delivers a BOF/COFF payload to be executed by the implant",
@@ -502,7 +512,6 @@ func InitializeSessionCLI(sessionApp *grumble.App, activeSession int) {
 		},
 	}
 	sessionApp.AddCommand(sessionBOFLoaderAsync)
-
 
 	sessionPELoader := &grumble.Command{
 		Name:     "pe_loader",

@@ -1,21 +1,21 @@
 package server
 
 import (
-	"fmt"
-	"strings"
 	"encoding/base64"
+	"fmt"
 	"log"
+	"strings"
 	//"os"
 	//"text/tabwriter"
-	"strconv"
 	"encoding/json"
 	"errors"
-	"sync"
-	"time"
-    "net"
-	"math/rand"
 	"github.com/InjectionSoftwareandSecurityLLC/lupo/lupo-server/core"
 	"github.com/miekg/dns"
+	"math/rand"
+	"net"
+	"strconv"
+	"sync"
+	"time"
 )
 
 type DNSListener struct {
@@ -25,9 +25,9 @@ type DNSListener struct {
 }
 
 type MessageChunks struct {
-	chunks    map[int]string
-	total     int
-	lastSeen  time.Time
+	chunks   map[int]string
+	total    int
+	lastSeen time.Time
 }
 
 type ChunkTracker struct {
@@ -52,10 +52,9 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 	// Use remote IP (without port) to buffer registration fragments so clients
 	// that use ephemeral source ports still reassemble correctly.
 	// Seed the random generator (only once, usually in init or main)
-    rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 
-
-	remoteIP := remoteAddrFull 
+	remoteIP := remoteAddrFull
 	if host, _, err := net.SplitHostPort(remoteAddrFull); err == nil {
 		remoteIP = host
 	}
@@ -99,16 +98,16 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		if len(parts) == 3 {
 			sessionID, _ := strconv.Atoi(parts[1])
 			chunkIndex, _ := strconv.Atoi(parts[2])
-			
+
 			core.ResponseChunksMutex.RLock()
 			respChunk, exists := core.ResponseChunks[sessionID]
 			core.ResponseChunksMutex.RUnlock()
-			
+
 			if exists && chunkIndex > 0 && chunkIndex < len(respChunk.Chunks)+1 {
 				// Return the requested chunk in format: totalChunks-chunkIndex-chunkData
 				chunkData := respChunk.Chunks[chunkIndex-1]
 				chunkResp := fmt.Sprintf("%d-%d-%s", respChunk.TotalChunks, chunkIndex, chunkData)
-				
+
 				rr := &dns.TXT{
 					Hdr: dns.RR_Header{
 						Name:   q.Name,
@@ -120,10 +119,10 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				}
 				msg.Answer = append(msg.Answer, rr)
 				w.WriteMsg(msg)
-				
+
 				// Track this chunk as acknowledged for progress reporting
 				go core.AckFileChunk(sessionID, chunkIndex)
-				
+
 				// If this was the last chunk, clean up
 				if chunkIndex == len(respChunk.Chunks) {
 					core.ResponseChunksMutex.Lock()
@@ -258,7 +257,6 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 		log.Printf("Received reg chunk %d/%d from %s", chunkIndex+1, totalChunks, remoteIP)
 
-
 		// Check if all registration chunks received
 		complete := true
 		for _, frag := range frags {
@@ -285,12 +283,11 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		}
 
 		// Assemble full payload and remove buffer
-	registrationFragments.Lock()
-	fullBase64 = strings.Join(frags, "")
-	delete(registrationFragments.m, remoteIP)
-	registrationFragments.Unlock()
+		registrationFragments.Lock()
+		fullBase64 = strings.Join(frags, "")
+		delete(registrationFragments.m, remoteIP)
+		registrationFragments.Unlock()
 	}
-
 
 	// fullBase64 contains the reassembled payload (from session or registration buffers)
 	jsonBytes, err := base64.RawURLEncoding.DecodeString(fullBase64)
@@ -351,7 +348,6 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				"UUID":      implant.ID,
 			}
 
-
 			jsonResp, err := json.Marshal(response)
 
 			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
@@ -410,11 +406,9 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				"UUID":      implant.ID,
 			}
 
-
 			jsonResp, err := json.Marshal(response)
 
 			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
-
 
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
@@ -466,7 +460,6 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 				"sessionID": newSession,
 				"UUID":      implant.ID,
 			}
-
 
 			jsonResp, err := json.Marshal(response)
 
@@ -522,11 +515,20 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 			fmt.Println("\nSession " + strconv.Itoa(dnsParams.SessionID) + " file contents was empty, no file written for: " + dnsParams.FileName)
 		} else {
 			if dnsParams.Username == "server" {
-				core.DownloadFile(dnsParams.FileName, dnsParams.File)
+				outputFile := core.ConsumePendingDownloadOutput(dnsParams.SessionID, dnsParams.FileName)
+				core.SaveDownloadedFile(dnsParams.FileName, outputFile, dnsParams.File)
 			} else {
 				currentWolf := core.Wolves[dnsParams.Username]
-				jsonData := `{"filename":"` + dnsParams.FileName + `"` + `,"file":"` + dnsParams.File + `"}`
-				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+				fileResponse := map[string]string{"filename": dnsParams.FileName, "file": dnsParams.File}
+				if outputFile := core.ConsumePendingDownloadOutput(dnsParams.SessionID, dnsParams.FileName); outputFile != "" {
+					fileResponse["outfile"] = outputFile
+				}
+				jsonData, err := json.Marshal(fileResponse)
+				if err != nil {
+					core.LogData("could not encode downloaded file response: " + err.Error())
+				} else {
+					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, string(jsonData))
+				}
 			}
 		}
 	}
@@ -555,7 +557,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 	}
 
 	core.UpdateImplant(dnsParams.SessionID, dnsParams.Update, dnsParams.ImplantArch, additionalFunctions)
-	core.SessionCheckIn(dnsParams.SessionID,"DNS")
+	core.SessionCheckIn(dnsParams.SessionID, "DNS")
 
 	// Chunk response if it's too large for a single DNS response (> 200 chars is safer than 255)
 	const maxResponseSize = 200
@@ -573,7 +575,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		// Send first chunk with metadata: totalChunks-chunkIndex-chunkData
 		totalChunks := len(chunks)
 		firstChunkResp := fmt.Sprintf("%d-0-%s", totalChunks, chunks[0])
-		
+
 		rr := &dns.TXT{
 			Hdr: dns.RR_Header{
 				Name:   q.Name,
@@ -585,7 +587,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		}
 		msg.Answer = append(msg.Answer, rr)
 		w.WriteMsg(msg)
-		
+
 		log.Printf("Sending chunked response (chunk 0/%d) for session %d", totalChunks-1, dnsParams.SessionID)
 
 		// Store remaining chunks in a server-side buffer for this session
@@ -597,27 +599,27 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 			Timestamp:   time.Now(),
 		}
 		core.ResponseChunksMutex.Unlock()
-		
+
 		// Initialize file transfer tracking for progress reporting
 		// Always start fresh transfer tracking for new responses
 		core.FileTransfersMutex.Lock()
 		// Clean up any previous transfer for this session
 		delete(core.FileTransfers, dnsParams.SessionID)
 		core.FileTransfersMutex.Unlock()
-		
+
 		// Start new transfer tracking
 		totalChunksTracked := core.StartFileTransfer(dnsParams.SessionID, encodedJsonResp, maxResponseSize)
-		
+
 		// Mark chunk 0 (first chunk) as acknowledged since we just sent it
 		core.AckFileChunk(dnsParams.SessionID, 0)
-		
+
 		progressMsg := fmt.Sprintf("[Session %d] File Transfer Started: 0%% (0/%d chunks)", dnsParams.SessionID, totalChunksTracked)
 		core.LogData(progressMsg)
 		log.Printf(progressMsg)
-		
+
 		core.LogData(fmt.Sprintf("Buffered %d response chunks for session %d", len(chunks)-1, dnsParams.SessionID))
 		log.Printf("Session %d response chunked into %d parts", dnsParams.SessionID, totalChunks)
-		
+
 		return
 	}
 
@@ -695,7 +697,6 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 
 			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
 
-
 			if err != nil {
 				errorString := "Error converting DNS response to JSON"
 				core.LogData(errorString)
@@ -770,7 +771,6 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 				"UUID":      implant.ID,
 			}
 
-
 			jsonResp, err := json.Marshal(response)
 
 			encodedJsonResp := base64.RawURLEncoding.EncodeToString([]byte(jsonResp))
@@ -812,11 +812,20 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 			fmt.Println("\nSession " + strconv.Itoa(dnsParams.SessionID) + " file contents was empty, no file written for: " + dnsParams.FileName)
 		} else {
 			if dnsParams.Username == "server" {
-				core.DownloadFile(dnsParams.FileName, dnsParams.File)
+				outputFile := core.ConsumePendingDownloadOutput(dnsParams.SessionID, dnsParams.FileName)
+				core.SaveDownloadedFile(dnsParams.FileName, outputFile, dnsParams.File)
 			} else {
 				currentWolf := core.Wolves[dnsParams.Username]
-				jsonData := `{"filename":"` + dnsParams.FileName + `"` + `,"file":"` + dnsParams.File + `"}`
-				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+				fileResponse := map[string]string{"filename": dnsParams.FileName, "file": dnsParams.File}
+				if outputFile := core.ConsumePendingDownloadOutput(dnsParams.SessionID, dnsParams.FileName); outputFile != "" {
+					fileResponse["outfile"] = outputFile
+				}
+				jsonData, err := json.Marshal(fileResponse)
+				if err != nil {
+					core.LogData("could not encode downloaded file response: " + err.Error())
+				} else {
+					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, string(jsonData))
+				}
 			}
 		}
 	}
@@ -842,7 +851,6 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 		"user": user,
 		"cmd":  cmd,
 	}
-	
 
 	jsonResp, err := json.Marshal(response)
 
@@ -861,7 +869,7 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 func (d *DNSListener) handleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	msg := new(dns.Msg)
 	msg.SetReply(r)
-	
+
 	if len(r.Question) == 0 {
 		return
 	}
@@ -996,13 +1004,13 @@ func (d *DNSListener) processChunk(implantID string, index, total int, data stri
 func (d *DNSListener) assembleChunks(implantID string) string {
 	tracker := d.chunkMap[implantID]
 	result := make([]string, tracker.TotalChunks)
-	
+
 	for i := 0; i < tracker.TotalChunks; i++ {
 		if chunk, ok := tracker.Chunks[i]; ok {
 			result[i] = chunk
 		}
 	}
-	
+
 	return strings.Join(result, "")
 }
 

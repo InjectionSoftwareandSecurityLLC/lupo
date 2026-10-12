@@ -278,11 +278,20 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 			fmt.Println("\nSession " + strconv.Itoa(tcpParams.SessionID) + " file contents was empty, no file written for: " + tcpParams.FileName)
 		} else {
 			if tcpParams.Username == "server" {
-				core.DownloadFile(tcpParams.FileName, tcpParams.File)
+				outputFile := core.ConsumePendingDownloadOutput(tcpParams.SessionID, tcpParams.FileName)
+				core.SaveDownloadedFile(tcpParams.FileName, outputFile, tcpParams.File)
 			} else {
 				currentWolf := core.Wolves[tcpParams.Username]
-				jsonData := `{"filename":"` + tcpParams.FileName + `"` + `,"file":"` + tcpParams.File + `"}`
-				core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, jsonData)
+				fileResponse := map[string]string{"filename": tcpParams.FileName, "file": tcpParams.File}
+				if outputFile := core.ConsumePendingDownloadOutput(tcpParams.SessionID, tcpParams.FileName); outputFile != "" {
+					fileResponse["outfile"] = outputFile
+				}
+				jsonData, err := json.Marshal(fileResponse)
+				if err != nil {
+					core.LogData("could not encode downloaded file response: " + err.Error())
+				} else {
+					core.AssignWolfBroadcast(currentWolf.Username, currentWolf.Rhost, string(jsonData))
+				}
 			}
 		}
 	}
