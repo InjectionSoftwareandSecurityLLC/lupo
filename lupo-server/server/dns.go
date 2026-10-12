@@ -615,7 +615,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 
 		progressMsg := fmt.Sprintf("[Session %d] File Transfer Started: 0%% (0/%d chunks)", dnsParams.SessionID, totalChunksTracked)
 		core.LogData(progressMsg)
-		log.Printf(progressMsg)
+		log.Print(progressMsg)
 
 		core.LogData(fmt.Sprintf("Buffered %d response chunks for session %d", len(chunks)-1, dnsParams.SessionID))
 		log.Printf("Session %d response chunked into %d parts", dnsParams.SessionID, totalChunks)

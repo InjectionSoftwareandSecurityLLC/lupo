@@ -1,8 +1,6 @@
 module github.com/InjectionSoftwareandSecurityLLC/lupo
 
-go 1.23.0
-
-toolchain go1.23.4
+go 1.25.0
 
 require (
 	github.com/desertbit/grumble v1.1.3
@@ -23,10 +21,10 @@ require (
 	github.com/hashicorp/go-multierror v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.9 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
-	golang.org/x/mod v0.24.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/sync v0.14.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/tools v0.44.0 // indirect
 )
