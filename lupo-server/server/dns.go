@@ -316,11 +316,7 @@ func DNSServerHandler(w dns.ResponseWriter, r *dns.Msg) {
 		//fmt.Println(err)
 	}
 
-	if dnsParams.PSK == "" {
-		errorString := "DNS Request did not provide PSK, request ignored"
-		core.LogData(errorString)
-		returnErr := errors.New(errorString)
-		ErrorHandler(returnErr)
+	if !hasPSKField(jsonBytes) {
 		return
 	}
 
@@ -666,12 +662,8 @@ func (d *DNSListener) handleImplantMessage(decoded string, remoteAddr net.Addr) 
 		raddr = remoteAddr.String()
 	}
 
-	if dnsParams.PSK == "" {
-		errorString := "DNS Request did not provide PSK, request ignored"
-		core.LogData(errorString)
-		returnErr := errors.New(errorString)
-		ErrorHandler(returnErr)
-		return "", returnErr
+	if !hasPSKField([]byte(decoded)) {
+		return "", nil
 	}
 
 	if dnsParams.ImplantArch == "" {

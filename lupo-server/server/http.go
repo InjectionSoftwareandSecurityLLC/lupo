@@ -94,9 +94,6 @@ func handleGetRequests(w http.ResponseWriter, r *http.Request) {
 	if v := getParams["psk"]; len(v) > 0 {
 		getPSK = v[0]
 	} else {
-		errorString := "http GET Request did not provide PSK, request ignored"
-		core.LogData(errorString)
-		ErrorHandler(errors.New(errorString))
 		return
 	}
 
@@ -389,9 +386,6 @@ func handlePostRequests(w http.ResponseWriter, r *http.Request) {
 	if v := postParams["psk"]; len(v) > 0 {
 		postPSK = v[0]
 	} else {
-		errorString := "http POST Request did not provide PSK, request ignored"
-		core.LogData(errorString)
-		ErrorHandler(errors.New(errorString))
 		return
 	}
 

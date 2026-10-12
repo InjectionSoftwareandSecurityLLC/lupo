@@ -92,10 +92,6 @@ func handleWolfPackRequests(w http.ResponseWriter, r *http.Request) {
 	if len(getParams["psk"]) > 0 {
 		getPSK = getParams["psk"][0]
 	} else {
-		errorString := "wolfpack GET Request did not provide PSK, request ignored"
-		core.LogData(errorString)
-		returnErr := errors.New(errorString)
-		ErrorHandler(returnErr)
 		return
 	}
 
