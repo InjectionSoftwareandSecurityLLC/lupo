@@ -121,11 +121,7 @@ func TCPServerHandler(conn net.Conn, cryptoPSK string) {
 		fmt.Println(err)
 	}
 
-	if tcpParams.PSK == "" {
-		errorString := "TCP Request did not provide PSK, request ignored"
-		core.LogData(errorString)
-		returnErr := errors.New(errorString)
-		ErrorHandler(returnErr)
+	if !hasPSKField([]byte(netData)) {
 		return
 	}
 
